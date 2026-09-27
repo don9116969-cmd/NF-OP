@@ -1,0 +1,28 @@
+# Secrets & Local Environment
+.env
+*.env
+*.key
+*.pem
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Large temporary cache & testing data
+testing/data/real_options_cache/
+testing/results/
+data/real_options_cache/
+data/angel_scrip_master.json
+*.log
+logs/
+
+# IDE & Editor folders
+.vscode/
+.idea/
+.DS_Store

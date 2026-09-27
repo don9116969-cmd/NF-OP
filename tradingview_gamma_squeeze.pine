@@ -1,0 +1,103 @@
+//@version=5
+indicator("Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze [Champion]", overlay=true)
+
+// ==========================================
+// INPUTS & PARAMETERS
+// ==========================================
+compression_bars = input.int(20, "Consolidation Compression (Minutes)", minval=10, maxval=60, step=5)
+buffer_pts       = input.float(5.0, "Breakout Buffer (Points)", minval=1.0, maxval=15.0, step=1.0)
+target_premium   = input.float(45.0, "Target Option Premium (INR)", minval=15.0, maxval=80.0, step=5.0)
+sl_pct           = input.float(25.0, "Stop-Loss (%)", minval=10.0, maxval=50.0, step=5.0)
+target_pct       = input.float(80.0, "Profit Target (%)", minval=30.0, maxval=200.0, step=10.0)
+time_stop_mins   = input.int(45, "Time-Based Decay Stop (Minutes)", minval=15, maxval=90, step=5)
+
+// ==========================================
+// TIME & EXPIRY FILTER (NSE TUESDAY EXPIRY)
+// ==========================================
+// Monday = 2 (dayofweek in Pine: Sunday=1, Monday=2, Tuesday=3, Wednesday=4, Thursday=5, Friday=6)
+is_monday  = dayofweek == dayofweek.monday
+is_tuesday = dayofweek == dayofweek.tuesday
+is_expiry_cycle_day = is_monday or is_tuesday
+
+// Morning Window (09:45 - 11:30 AM IST)
+is_morning_window = (hour == 9 and minute >= 45) or (hour == 10) or (hour == 11 and minute <= 30)
+
+// Calculate Rolling Consolidation High & Low
+highest_high = ta.highest(high, compression_bars)
+lowest_low   = ta.lowest(low, compression_bars)
+box_range    = highest_high - lowest_low
+range_pct    = (box_range / close) * 100.0
+is_compressed = range_pct <= 0.25
+
+// Breakout Detection
+var bool signal_today = false
+var int current_signal = 0 // +1 CE, -1 PE
+var float entry_spot = na
+var int recommended_strike = na
+var string opt_type = ""
+
+if ta.change(time("D")) != 0
+    signal_today := false
+    current_signal := 0
+    entry_spot := na
+    recommended_strike := na
+    opt_type := ""
+
+if is_expiry_cycle_day and is_morning_window and not signal_today and is_compressed
+    // Upside Breakout -> CALL BUY
+    if high >= (highest_high[1] + buffer_pts)
+        signal_today := true
+        current_signal := 1
+        entry_spot := close
+        opt_type := "CE"
+        // Target option around 40-50 pts OTM
+        atm_strike = math.round(close / 50.0) * 50
+        recommended_strike := int(atm_strike + 50)
+
+    // Downside Breakout -> PUT BUY
+    else if low <= (lowest_low[1] - buffer_pts)
+        signal_today := true
+        current_signal := -1
+        entry_spot := close
+        opt_type := "PE"
+        atm_strike = math.round(close / 50.0) * 50
+        recommended_strike := int(atm_strike - 50)
+
+// ==========================================
+// PLOTS & ALERTS
+// ==========================================
+plot(is_compressed and is_morning_window ? (highest_high + buffer_pts) : na, "Upper Breakout Trigger", color=color.green, style=plot.style_linebr, linewidth=2)
+plot(is_compressed and is_morning_window ? (lowest_low - buffer_pts) : na, "Lower Breakout Trigger", color=color.red, style=plot.style_linebr, linewidth=2)
+
+plotshape(current_signal == 1 and ta.change(current_signal), title="Gamma CE Buy Signal",
+          style=shape.triangleup, location=location.belowbar, color=color.lime, size=size.normal, text="BUY CE\n(GAMMA)")
+plotshape(current_signal == -1 and ta.change(current_signal), title="Gamma PE Buy Signal",
+          style=shape.triangledown, location=location.abovebar, color=color.red, size=size.normal, text="BUY PE\n(GAMMA)")
+
+// ==========================================
+// DASHBOARD TABLE
+// ==========================================
+var table info = table.new(position.top_right, 2, 6, bgcolor=color.new(color.black, 20), border_color=color.gray, border_width=1)
+
+if barstate.islast
+    table.cell(info, 0, 0, "Strategy", text_color=color.white, bgcolor=color.maroon)
+    table.cell(info, 1, 0, "0-DTE/1-DTE Gamma Squeeze", text_color=color.yellow, bgcolor=color.maroon)
+
+    table.cell(info, 0, 1, "Session Day", text_color=color.white)
+    string day_txt = is_tuesday ? "TUESDAY (0-DTE EXPIRY)" : (is_monday ? "MONDAY (1-DTE PRE-EXPIRY)" : "NON-EXPIRY DAY (STANDBY)")
+    color day_col = is_tuesday ? color.lime : (is_monday ? color.yellow : color.gray)
+    table.cell(info, 1, 1, day_txt, text_color=day_col)
+
+    table.cell(info, 0, 2, "Compression (20m)", text_color=color.white)
+    string comp_str = str.tostring(box_range, "#.##") + " pts (" + str.tostring(range_pct, "#.##") + "%)"
+    table.cell(info, 1, 2, is_compressed ? comp_str + " [TIGHT]" : comp_str + " [WIDE]", text_color=is_compressed ? color.green : color.orange)
+
+    table.cell(info, 0, 3, "Recommended Leg", text_color=color.white)
+    string leg_str = signal_today ? "BUY " + str.tostring(recommended_strike) + " " + opt_type + " (~INR " + str.tostring(target_premium, "#") + ")" : "WAITING FOR BREAKOUT"
+    table.cell(info, 1, 3, leg_str, text_color=signal_today ? (opt_type == "CE" ? color.lime : color.red) : color.white)
+
+    table.cell(info, 0, 4, "Risk Management", text_color=color.white)
+    table.cell(info, 1, 4, "SL: -" + str.tostring(sl_pct, "#") + "% | Target: +" + str.tostring(target_pct, "#") + "%", text_color=color.aqua)
+
+    table.cell(info, 0, 5, "Time Decay Stop", text_color=color.white)
+    table.cell(info, 1, 5, str.tostring(time_stop_mins) + " Mins (Exit if Stagnant)", text_color=color.orange)

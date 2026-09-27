@@ -1,0 +1,122 @@
+//@version=5
+indicator("Hedged Strangle 15M Box Breakout [Champion]", overlay=true)
+
+// ==========================================
+// INPUTS & PARAMETERS
+// ==========================================
+box_start_time = input.time(timestamp("2026-01-01 09:15"), "Box Start Time", confirm=false)
+box_end_time   = input.time(timestamp("2026-01-01 09:30"), "Box End Time", confirm=false)
+max_box_pct    = input.float(0.30, "Max Box Width (% of Spot)", minval=0.1, maxval=1.0, step=0.01)
+buffer_pts     = input.float(6.0, "Breakout Buffer (Points)", minval=1.0, maxval=20.0, step=1.0)
+otm_distance   = input.int(150, "OTM Strike Distance (Points)", options=[50, 100, 150, 200])
+leg_sl_pct     = input.float(20.0, "Leg Stop-Loss (%)", minval=5.0, maxval=50.0, step=5.0)
+target_pct     = input.float(75.0, "Runner Target (%)", minval=20.0, maxval=150.0, step=5.0)
+
+// ==========================================
+// INTRADAY TIME LOGIC (IST: 09:15 - 15:30)
+// ==========================================
+is_new_day = ta.change(time("D")) != 0
+
+var float box_high = na
+var float box_low = na
+var float box_pct = na
+var bool box_qualified = false
+var bool signal_triggered = false
+var int trade_direction = 0 // 1 for upside breakout, -1 for downside breakout
+var float entry_spot = na
+var int ce_strike = na
+var int pe_strike = na
+
+// Reset daily variables at 09:15
+if is_new_day
+    box_high := na
+    box_low := na
+    box_pct := na
+    box_qualified := false
+    signal_triggered := false
+    trade_direction := 0
+    entry_spot := na
+    ce_strike := na
+    pe_strike := na
+
+// Identify 09:15 - 09:30 box
+is_box_window = (hour == 9 and minute >= 15 and minute < 30)
+is_after_box  = (hour == 9 and minute >= 30) or (hour > 9 and hour < 15) or (hour == 15 and minute <= 15)
+
+if is_box_window
+    if na(box_high) or high > box_high
+        box_high := high
+    if na(box_low) or low < box_low
+        box_low := low
+
+// At 09:30 candle close: lock the box and evaluate qualification
+if (hour == 9 and minute == 30 and not box_qualified and na(box_pct))
+    if not na(box_high) and not na(box_low)
+        box_range = box_high - box_low
+        box_pct := (box_range / close) * 100.0
+        if box_pct <= max_box_pct
+            box_qualified := true
+
+// Breakout Detection (09:30 to 13:30)
+can_trade_window = ((hour == 9 and minute >= 30) or (hour >= 10 and hour < 13) or (hour == 13 and minute <= 30))
+
+if box_qualified and not signal_triggered and can_trade_window
+    // Upside Breakout
+    if high >= (box_high + buffer_pts)
+        signal_triggered := true
+        trade_direction := 1
+        entry_spot := close
+        atm_strike = math.round(close / 50.0) * 50
+        ce_strike := int(atm_strike + otm_distance)
+        pe_strike := int(atm_strike - otm_distance)
+    // Downside Breakout
+    else if low <= (box_low - buffer_pts)
+        signal_triggered := true
+        trade_direction := -1
+        entry_spot := close
+        atm_strike = math.round(close / 50.0) * 50
+        ce_strike := int(atm_strike + otm_distance)
+        pe_strike := int(atm_strike - otm_distance)
+
+// ==========================================
+// PLOTTING BOX & SIGNALS
+// ==========================================
+plot(box_qualified ? (box_high + buffer_pts) : na, "Breakout Upper Trigger", color=color.green, style=plot.style_linebr, linewidth=2)
+plot(box_qualified ? (box_low - buffer_pts) : na, "Breakout Lower Trigger", color=color.red, style=plot.style_linebr, linewidth=2)
+plot(box_qualified ? box_high : na, "15M Box High", color=color.gray, style=plot.style_circles)
+plot(box_qualified ? box_low : na, "15M Box Low", color=color.gray, style=plot.style_circles)
+
+plotshape(signal_triggered and ta.change(signal_triggered), title="Strangle Entry Signal",
+          style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.normal, text="BUY STRANGLE\n(CE + PE)")
+
+// ==========================================
+// LIVE DASHBOARD TABLE
+// ==========================================
+var table info_table = table.new(position.top_right, 2, 7, bgcolor=color.new(color.black, 20), border_color=color.gray, border_width=1)
+
+if barstate.islast
+    table.cell(info_table, 0, 0, "Strategy", text_color=color.white, text_size=size.small, bgcolor=color.navy)
+    table.cell(info_table, 1, 0, "Hedged Strangle (15M)", text_color=color.yellow, text_size=size.small, bgcolor=color.navy)
+
+    table.cell(info_table, 0, 1, "Box Range", text_color=color.white, text_size=size.small)
+    string range_str = not na(box_high) and not na(box_low) ? str.tostring(box_high - box_low, "#.##") + " pts (" + str.tostring(box_pct, "#.##") + "%)" : "Forming..."
+    table.cell(info_table, 1, 1, range_str, text_color=color.white, text_size=size.small)
+
+    table.cell(info_table, 0, 2, "Box Status", text_color=color.white, text_size=size.small)
+    color status_col = box_qualified ? color.green : (not na(box_pct) ? color.red : color.orange)
+    string status_txt = box_qualified ? "QUALIFIED (<0.30%)" : (not na(box_pct) ? "FILTERED (Too Wide)" : "Analyzing...")
+    table.cell(info_table, 1, 2, status_txt, text_color=status_col, text_size=size.small)
+
+    table.cell(info_table, 0, 3, "Buy CE Strike", text_color=color.white, text_size=size.small)
+    string ce_str = not na(ce_strike) ? str.tostring(ce_strike) + " CE (OTM)" : (box_qualified ? str.tostring(math.round(close / 50.0) * 50 + otm_distance) + " CE" : "-")
+    table.cell(info_table, 1, 3, ce_str, text_color=color.green, text_size=size.small)
+
+    table.cell(info_table, 0, 4, "Buy PE Strike", text_color=color.white, text_size=size.small)
+    string pe_str = not na(pe_strike) ? str.tostring(pe_strike) + " PE (OTM)" : (box_qualified ? str.tostring(math.round(close / 50.0) * 50 - otm_distance) + " PE" : "-")
+    table.cell(info_table, 1, 4, pe_str, text_color=color.red, text_size=size.small)
+
+    table.cell(info_table, 0, 5, "Leg Stop-Loss", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 5, "-" + str.tostring(leg_sl_pct, "#") + "% on Each Leg", text_color=color.orange, text_size=size.small)
+
+    table.cell(info_table, 0, 6, "Runner Target", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 6, "+" + str.tostring(target_pct, "#") + "% (Trail at +25%)", text_color=color.lime, text_size=size.small)

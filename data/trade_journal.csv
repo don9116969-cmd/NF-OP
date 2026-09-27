@@ -1,0 +1,11 @@
+date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_pnl,charges,net_pnl,exit_reason,data_feed
+2026-09-21,Strategy 2: Expiry Gamma Squeeze,PE,23350,10:27:00,10:53:00,65.37,54.01,4902.75,-852.0,54.55,-906.55,SL Hit (-25%),Angel One Real Traded (NIFTY22SEP2623350PE)
+2026-09-22,Strategy 1: Hedged Strangle,CE+PE,23550CE / 23250PE,10:33:00,10:40:00,8.62,7.46,646.5,32.21,95.86,-63.65,CE SL (-20%) | PE Trail,Angel One Real Traded
+2026-09-22,Strategy 2: Expiry Gamma Squeeze,PE,23450,10:21:00,10:42:00,44.81,89.53,3360.75,3354.0,58.73,3295.27,Target Hit (+80%),Angel One Real Traded (NIFTY22SEP2623450PE)
+2026-09-22,Strategy 3: 30M Directional ITM,PE,23450,10:33:00,10:59:00,62.04,85.56,4653.0,1764.0,59.14,1704.86,Trailing Peak Exit,Angel One Real Traded (NIFTY22SEP2623450PE)
+2026-09-23,Strategy 1: Hedged Strangle,CE+PE,23700CE / 23100PE,10:48:00,15:02:00,52.12,41.36,3909.0,-807.0,101.64,-908.64,PE SL (-20%) | CE SL (-20%),Angel One Real Traded (NIFTY29SEP2623700CE + NIFTY29SEP2623100PE)
+2026-09-23,Strategy 3: 30M Directional ITM,CE,23550,10:48:00,15:20:00,66.23,62.25,4967.25,-298.5,71.41,-369.91,EOD (15:15 PM),Angel One Real Traded (NIFTY29SEP2623550CE)
+2026-09-24,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,23350CE / 23100PE,09:46:00,10:11:00,131.3,125.85,9847.5,-408.75,115.22,-523.97,Max Hold (25m) | Max Hold (25m),Angel One Real Traded
+2026-09-24,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,23350CE / 23100PE,10:48:00,11:13:00,125.4,125.05,9405.0,-26.25,114.86,-141.11,Max Hold (25m) | Max Hold (25m),Angel One Real Traded
+2026-09-24,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,23350CE / 23050PE,13:08:00,13:33:00,112.7,134.42,8452.5,1629.0,115.42,1513.58,Max Hold (25m) | PE Target (+50%),Angel One Real Traded
+2026-09-25,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,NIFTY29SEP2623250CE / NIFTY29SEP2623050PE,14:01:00,14:26:00,123.2,145.62,9240.0,1681.5,117.22,1564.28,CE Target (+50%) | Max Hold (25m),Angel One Real Traded
