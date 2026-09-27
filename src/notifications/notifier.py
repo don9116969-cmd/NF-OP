@@ -47,6 +47,7 @@ def get_or_detect_chat_id() -> str:
 
 def send_telegram_alert(message: str) -> bool:
     """Sends a markdown/plain text alert to your Telegram."""
+    import requests
     token = get_telegram_token()
     chat_id = get_or_detect_chat_id()
 
@@ -55,7 +56,7 @@ def send_telegram_alert(message: str) -> bool:
         return False
 
     if not chat_id:
-        print("[NOTIFIER] Telegram Chat ID not found. Please open your bot in Telegram and click 'Start' or send a message.")
+        print("[NOTIFIER] Telegram Chat ID not found.")
         return False
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -64,24 +65,28 @@ def send_telegram_alert(message: str) -> bool:
         "text": message,
         "parse_mode": "Markdown"
     }
+    headers = {
+        "Connection": "close",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
 
-    try:
-        data = urllib.parse.urlencode(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            res = json.loads(resp.read().decode('utf-8'))
-            if res.get("ok"):
+    import time as time_lib
+    for attempt in range(3):
+        try:
+            r = requests.post(url, json=payload, headers=headers, timeout=15)
+            if r.status_code == 200:
                 return True
-            else:
-                # Retry without markdown if formatting was rejected
+            elif "can't parse entities" in r.text or "Bad Request" in r.text:
                 payload["parse_mode"] = ""
-                data = urllib.parse.urlencode(payload).encode("utf-8")
-                req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0"})
-                urllib.request.urlopen(req, timeout=10)
-                return True
-    except Exception as e:
-        print(f"[ERROR] Failed to send Telegram alert: {e}")
-        return False
+                r2 = requests.post(url, json=payload, headers=headers, timeout=15)
+                return r2.status_code == 200
+            time_lib.sleep(1)
+        except Exception as e:
+            if attempt == 2:
+                print(f"[ERROR] Failed to send Telegram alert: {e}")
+            time_lib.sleep(1.5)
+
+    return False
 
 def send_trade_entry_alert(
     strategy: str,

@@ -40,7 +40,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python -u live_paper_trader.py --strategy das
+          python -u live_paper_trader.py --strategy all
 
       - name: Commit and Push Journal Updates
         run: |
