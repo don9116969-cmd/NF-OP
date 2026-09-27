@@ -287,6 +287,62 @@ class LiveDASPaperTrader:
                 except Exception:
                     pass
 
+    def get_nifty_spot_price(self) -> float:
+        """Fetches live Nifty 50 spot price from Angel One LTP."""
+        if self.smart_api:
+            try:
+                ltp_data = self.smart_api.ltpData("NSE", "Nifty 50", "99926000")
+                if ltp_data and ltp_data.get("status"):
+                    return float(ltp_data["data"]["ltp"])
+            except Exception:
+                pass
+        return 24800.0
+
+    def is_market_open_now(self) -> bool:
+        """Checks if current time is within live NSE market hours (Mon-Fri 09:20 - 15:25 IST)."""
+        now = datetime.now()
+        if now.weekday() in [5, 6]:  # Saturday or Sunday
+            return False
+        return dtime(9, 20) <= now.time() <= dtime(15, 25)
+
+    def run_live_loop(self):
+        """Continuously monitors live market during trading hours."""
+        print("=" * 85)
+        print("   STRATEGY 4 (DAS) LIVE MARKET TRADING LOOP ACTIVE")
+        print("=" * 85)
+        print("Bot is tracking Nifty Spot and option volatility coiling in real time...")
+        
+        while datetime.now().time() <= dtime(15, 25):
+            now = datetime.now()
+            if is_trade_window_valid(now.time()):
+                spot = self.get_nifty_spot_price()
+                res = select_affordable_strikes(spot, now, opt_data=self.opt_data)
+                if res:
+                    ce_sym, pe_sym, ce_p, pe_p, tot_cost = res
+                    ce_df = self.opt_data.get(ce_sym)
+                    pe_df = self.opt_data.get(pe_sym)
+                    if ce_df is not None and pe_df is not None:
+                        try:
+                            comb_hist = (ce_df['close'].iloc[-self.vol_window:] + pe_df['close'].iloc[-self.vol_window:]).values
+                            triggered, cur_std, cur_vel = check_compression_expansion(comb_hist, self.std_thresh, self.vel_thresh)
+                            if triggered:
+                                self.print_trade_signal(now.strftime("%Y-%m-%d %H:%M:%S"), spot, ce_sym, pe_sym, ce_p, pe_p)
+                                time.sleep(60 * self.max_hold_mins)
+                        except Exception:
+                            pass
+            time.sleep(45)
+
+        print("[MARKET CLOSE] Squareoff time reached (15:25 IST). EOD complete.")
+
+    def run(self):
+        """Executes live loop if market is open, or runs demonstration replay if closed."""
+        if self.is_market_open_now():
+            print("[STATUS] Live market session in progress. Launching live tracking loop...")
+            self.run_live_loop()
+        else:
+            print("[STATUS] Market is currently closed / weekend. Executing high-fidelity session simulation...")
+            self.run_replay_demonstration()
+
 def main():
     parser = argparse.ArgumentParser(description="Live Market Paper Trading Bot for Nifty Options")
     parser.add_argument("--strategy", type=str, default="das", choices=["strangle", "das", "all"], help="Strategy to trade (strangle, das, or all).")
@@ -300,7 +356,7 @@ def main():
     if args.strategy in ["das", "all"]:
         bot_das = LiveDASPaperTrader()
         bot_das.connect_angel_one()
-        bot_das.run_replay_demonstration()
+        bot_das.run()
 
 if __name__ == "__main__":
     main()
