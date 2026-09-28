@@ -6,9 +6,9 @@ Executes and monitors all 4 quantitative strategies concurrently:
 3. Strategy 3: 30M Statistical Directional ITM Breakout (Trailing Peak Exit, Target +80%)
 4. Strategy 4: Decoupled Asymmetric Strangle (DAS - Delta-Neutral Volatility Compression & Kinetic Expansion)
 
-Connects to Angel One SmartAPI to track Nifty Spot in real-time or runs in high-fidelity replay simulation mode.
+Connects to Angel One SmartAPI to track Nifty Spot and option candles in real-time.
 Pushes instant alerts to Telegram for every entry, target, stop, and EOD daily report.
-Logs all paper trades to data/live_paper_trades.csv and data/trade_journal.md.
+Logs all paper trades to data/trade_journal.csv and data/trade_journal.md.
 """
 
 import os
@@ -18,7 +18,7 @@ import math
 import argparse
 import pandas as pd
 import numpy as np
-from datetime import datetime, time as dtime, timedelta
+from datetime import datetime, timezone, timedelta, time as dtime
 from dotenv import load_dotenv
 
 # Try importing SmartApi
@@ -47,11 +47,16 @@ from daily_result_checker import (
     evaluate_strategy_2,
     evaluate_strategy_3,
     evaluate_strategy_4,
+    sync_and_update_candles,
     log_trade_to_journal,
     CANDLE_FILE
 )
 
 load_dotenv()
+
+def get_ist_now() -> datetime:
+    """Returns the current datetime in Indian Standard Time (IST, UTC+5:30)."""
+    return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
 
 class LiveQuadPaperTrader:
     """
@@ -113,11 +118,11 @@ class LiveQuadPaperTrader:
         return 24800.0
 
     def is_market_open_now(self) -> bool:
-        """Checks if current time is within live NSE market hours (Mon-Fri 09:20 - 15:25 IST)."""
-        now = datetime.now()
+        """Checks if current time is within live NSE market hours (Mon-Fri 09:15 - 15:25 IST)."""
+        now = get_ist_now()
         if now.weekday() in [5, 6]:  # Saturday or Sunday
             return False
-        return dtime(9, 20) <= now.time() <= dtime(15, 25)
+        return dtime(9, 15) <= now.time() <= dtime(15, 25)
 
     def run_live_loop(self):
         """Continuously monitors live market during trading hours across all active strategies."""
@@ -126,56 +131,202 @@ class LiveQuadPaperTrader:
         print("   Tracking Strategies: Strategy 1 (Strangle), 2 (Gamma), 3 (Directional), 4 (DAS)")
         print("=" * 85)
 
+        ist_now = get_ist_now()
         send_telegram_alert(
-            "🚀 *Nifty Option Trading Bot Woke Up (Cloud Runner)*\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "Bot is actively monitoring all 4 strategies for today's market session:\n"
-            "• Strategy 1: Hedged Long Strangle (15M Box)\n"
-            "• Strategy 2: Expiry Gamma Squeeze (Mon/Tue)\n"
-            "• Strategy 3: 30M Directional ITM Breakout\n"
-            "• Strategy 4: Decoupled Asymmetric Strangle (DAS)\n\n"
-            "Capital Budget: ₹10,000 | You will receive alerts here on any setup!"
+            f"🚀 *Nifty Option Trading Bot Woke Up (Live Engine Active)*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
+            f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
+            f"Bot is actively monitoring all 4 quantitative strategies:\n"
+            f"• Strategy 1: Hedged Long Strangle (15M Box Breakout)\n"
+            f"• Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze\n"
+            f"• Strategy 3: 30M Statistical Directional ITM Breakout\n"
+            f"• Strategy 4: Decoupled Asymmetric Strangle (DAS)\n\n"
+            f"💰 *Capital Limit:* ₹10,000 per trade\n"
+            f"🔔 Instant alerts will be sent here for every trade entry and exit!"
         )
 
-        while datetime.now().time() <= dtime(15, 25):
-            now = datetime.now()
-            t_time = now.time()
+        alerted_entries = set()
+        alerted_exits = set()
 
-            # Read latest spot
-            spot = self.get_nifty_spot_price()
+        while get_ist_now().time() <= dtime(15, 25):
+            ist_now = get_ist_now()
+            today_date = ist_now.date()
+            t_time = ist_now.time()
+
+            # 1. Sync live candles from Angel One SmartAPI
+            try:
+                if self.smart_api:
+                    df_all = sync_and_update_candles(self.smart_api)
+                else:
+                    df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
+            except Exception as e:
+                print(f"[WARN] Candle sync error: {e}")
+                df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
+
+            if df_all.empty:
+                time.sleep(30)
+                continue
+
+            df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
+            day_candles = df_all[df_all["timestamp"].dt.date == today_date]
+            spot = float(day_candles["close"].iloc[-1]) if not day_candles.empty else self.get_nifty_spot_price()
+
+            # -------------------------------------------------------------
+            # Strategy 1: Hedged Long Strangle (15M Box Breakout)
+            # -------------------------------------------------------------
+            if self.target_strategy in ["all", "strangle"] and t_time >= dtime(9, 30):
+                try:
+                    s1_res = evaluate_strategy_1(df_all, today_date, api=self.smart_api)
+                    if s1_res.get("trade_occurred", False):
+                        entry_key = ("s1_entry", str(s1_res.get("entry_time")))
+                        if entry_key not in alerted_entries:
+                            send_trade_entry_alert(
+                                strategy="Strategy 1: Hedged Long Strangle (15M Box)",
+                                spot=spot,
+                                ce_str="Dual OTM CE (+150)",
+                                pe_str="Dual OTM PE (-150)",
+                                ce_p=round(s1_res.get("entry_p", 0.0) / 2.0, 2),
+                                pe_p=round(s1_res.get("entry_p", 0.0) / 2.0, 2),
+                                tot_cost=s1_res.get("cost", 0.0),
+                                win_target_pct=0.75,
+                                lose_stop_pct=0.20,
+                                max_hold_mins=120,
+                                time_str=str(s1_res.get("entry_time"))
+                            )
+                            alerted_entries.add(entry_key)
+
+                        exit_key = ("s1_exit", str(s1_res.get("exit_time")))
+                        if s1_res.get("exit_time") and exit_key not in alerted_exits:
+                            send_trade_exit_alert(
+                                strategy="Strategy 1: Hedged Long Strangle (15M Box)",
+                                exit_reason=s1_res.get("exit_reason", "Target / SL Hit"),
+                                gross_pnl=s1_res.get("gross_pnl", 0.0),
+                                charges=s1_res.get("charges", 0.0),
+                                net_pnl=s1_res.get("net_pnl", 0.0),
+                                details=f"Entry: ₹{s1_res.get('entry_p')} -> Exit: ₹{s1_res.get('exit_p')}",
+                                time_str=str(s1_res.get("exit_time"))
+                            )
+                            alerted_exits.add(exit_key)
+                except Exception as e:
+                    print(f"[WARN] Strategy 1 evaluation error: {e}")
+
+            # -------------------------------------------------------------
+            # Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze (Mon & Tue)
+            # -------------------------------------------------------------
+            if self.target_strategy in ["all", "gamma"] and today_date.weekday() in [0, 1] and t_time >= dtime(9, 35):
+                try:
+                    s2_res = evaluate_strategy_2(df_all, today_date, api=self.smart_api)
+                    if s2_res.get("trade_occurred", False):
+                        entry_key = ("s2_entry", str(s2_res.get("entry_time")))
+                        if entry_key not in alerted_entries:
+                            send_trade_entry_alert(
+                                strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
+                                spot=spot,
+                                opt_type=s2_res.get("opt_type", "PE"),
+                                strike=str(s2_res.get("strike")),
+                                entry_p=s2_res.get("entry_p", 0.0),
+                                tot_cost=s2_res.get("cost", 0.0),
+                                win_target_pct=0.80,
+                                lose_stop_pct=0.25,
+                                max_hold_mins=45,
+                                time_str=str(s2_res.get("entry_time"))
+                            )
+                            alerted_entries.add(entry_key)
+
+                        exit_key = ("s2_exit", str(s2_res.get("exit_time")))
+                        if s2_res.get("exit_time") and exit_key not in alerted_exits:
+                            send_trade_exit_alert(
+                                strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
+                                exit_reason=s2_res.get("exit_reason", "Time Stop / Target"),
+                                gross_pnl=s2_res.get("gross_pnl", 0.0),
+                                charges=s2_res.get("charges", 0.0),
+                                net_pnl=s2_res.get("net_pnl", 0.0),
+                                details=f"BUY {s2_res.get('strike')} {s2_res.get('opt_type')} @ ₹{s2_res.get('entry_p')} exited @ ₹{s2_res.get('exit_p')}",
+                                time_str=str(s2_res.get("exit_time"))
+                            )
+                            alerted_exits.add(exit_key)
+                except Exception as e:
+                    print(f"[WARN] Strategy 2 evaluation error: {e}")
+
+            # -------------------------------------------------------------
+            # Strategy 3: 30M Statistical Directional ITM Breakout
+            # -------------------------------------------------------------
+            if self.target_strategy in ["all", "directional"] and t_time >= dtime(9, 45):
+                try:
+                    s3_res = evaluate_strategy_3(df_all, today_date, api=self.smart_api)
+                    if s3_res.get("trade_occurred", False):
+                        entry_key = ("s3_entry", str(s3_res.get("entry_time")))
+                        if entry_key not in alerted_entries:
+                            send_trade_entry_alert(
+                                strategy="Strategy 3: 30M Statistical Directional ITM",
+                                spot=spot,
+                                opt_type=s3_res.get("opt_type", "CE"),
+                                strike=str(s3_res.get("strike")),
+                                entry_p=s3_res.get("entry_p", 0.0),
+                                tot_cost=s3_res.get("cost", 0.0),
+                                win_target_pct=0.80,
+                                lose_stop_pct=0.15,
+                                max_hold_mins=60,
+                                time_str=str(s3_res.get("entry_time"))
+                            )
+                            alerted_entries.add(entry_key)
+
+                        exit_key = ("s3_exit", str(s3_res.get("exit_time")))
+                        if s3_res.get("exit_time") and exit_key not in alerted_exits:
+                            send_trade_exit_alert(
+                                strategy="Strategy 3: 30M Statistical Directional ITM",
+                                exit_reason=s3_res.get("exit_reason", "Target / SL / Trailing Exit"),
+                                gross_pnl=s3_res.get("gross_pnl", 0.0),
+                                charges=s3_res.get("charges", 0.0),
+                                net_pnl=s3_res.get("net_pnl", 0.0),
+                                details=f"BUY {s3_res.get('strike')} {s3_res.get('opt_type')} @ ₹{s3_res.get('entry_p')} exited @ ₹{s3_res.get('exit_p')}",
+                                time_str=str(s3_res.get("exit_time"))
+                            )
+                            alerted_exits.add(exit_key)
+                except Exception as e:
+                    print(f"[WARN] Strategy 3 evaluation error: {e}")
 
             # -------------------------------------------------------------
             # Strategy 4: Decoupled Asymmetric Strangle (DAS)
             # -------------------------------------------------------------
-            if self.target_strategy in ["all", "das"]:
-                if is_trade_window_valid(t_time):
-                    res = select_affordable_strikes(spot, now, opt_data=self.opt_data)
-                    if res:
-                        ce_sym, pe_sym, ce_p, pe_p, tot_cost = res
-                        ce_df = self.opt_data.get(ce_sym)
-                        pe_df = self.opt_data.get(pe_sym)
-                        if ce_df is not None and pe_df is not None:
-                            try:
-                                comb_hist = (ce_df['close'].iloc[-config.DAS_VOL_WINDOW:] + pe_df['close'].iloc[-config.DAS_VOL_WINDOW:]).values
-                                triggered, cur_std, cur_vel = check_compression_expansion(comb_hist, config.DAS_STD_THRESH, config.DAS_VEL_THRESH)
-                                if triggered:
-                                    send_trade_entry_alert(
-                                        strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
-                                        spot=spot,
-                                        ce_str=ce_sym,
-                                        pe_str=pe_sym,
-                                        ce_p=ce_p,
-                                        pe_p=pe_p,
-                                        tot_cost=tot_cost,
-                                        win_target_pct=config.DAS_WIN_TARGET_PCT,
-                                        lose_stop_pct=config.DAS_LOSE_STOP_PCT,
-                                        max_hold_mins=config.DAS_MAX_HOLD_MINS
-                                    )
-                                    time.sleep(60 * config.DAS_MAX_HOLD_MINS)
-                            except Exception:
-                                pass
+            if self.target_strategy in ["all", "das"] and t_time >= dtime(9, 35):
+                try:
+                    s4_res = evaluate_strategy_4(df_all, today_date, api=self.smart_api)
+                    if s4_res.get("trade_occurred", False):
+                        entry_key = ("s4_entry", str(s4_res.get("entry_time")))
+                        if entry_key not in alerted_entries:
+                            send_trade_entry_alert(
+                                strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
+                                spot=spot,
+                                ce_str=f"{s4_res.get('strike', 'Dual OTM')}",
+                                pe_str=f"{s4_res.get('strike', 'Dual OTM')}",
+                                ce_p=round(s4_res.get("entry_p", 0.0) / 2.0, 2),
+                                pe_p=round(s4_res.get("entry_p", 0.0) / 2.0, 2),
+                                tot_cost=s4_res.get("cost", 0.0),
+                                win_target_pct=config.DAS_WIN_TARGET_PCT,
+                                lose_stop_pct=config.DAS_LOSE_STOP_PCT,
+                                max_hold_mins=config.DAS_MAX_HOLD_MINS,
+                                time_str=str(s4_res.get("entry_time"))
+                            )
+                            alerted_entries.add(entry_key)
 
-            time.sleep(45)
+                        exit_key = ("s4_exit", str(s4_res.get("exit_time")))
+                        if s4_res.get("exit_time") and exit_key not in alerted_exits:
+                            send_trade_exit_alert(
+                                strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
+                                exit_reason=s4_res.get("exit_reason", "Target / SL"),
+                                gross_pnl=s4_res.get("gross_pnl", 0.0),
+                                charges=s4_res.get("charges", 0.0),
+                                net_pnl=s4_res.get("net_pnl", 0.0),
+                                details=f"Entry: ₹{s4_res.get('entry_p')} -> Exit: ₹{s4_res.get('exit_p')}",
+                                time_str=str(s4_res.get("exit_time"))
+                            )
+                            alerted_exits.add(exit_key)
+                except Exception as e:
+                    print(f"[WARN] Strategy 4 evaluation error: {e}")
+
+            time.sleep(60)
 
         # Market Close Procedure at 15:25 IST
         print("[MARKET CLOSE] Squareoff time reached (15:25 IST). Performing EOD audit...")
@@ -186,7 +337,7 @@ class LiveQuadPaperTrader:
         df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
         if not df_all.empty:
             df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
-            today = datetime.now().date()
+            today = get_ist_now().date()
             
             s1_res = evaluate_strategy_1(df_all, today, api=self.smart_api)
             s2_res = evaluate_strategy_2(df_all, today, api=self.smart_api)
@@ -240,19 +391,19 @@ class LiveQuadPaperTrader:
         print(f"Strategy 3 (Directional ITM): {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
         print(f"Strategy 4 (DAS Strangle)   : {s4.get('status')} | Trade: {s4.get('trade_occurred')}")
 
-        if s4.get("trade_occurred"):
-            print(f"\n-> Firing Telegram Demonstration Alert for Strategy 4...")
+        if s2.get("trade_occurred"):
+            print(f"\n-> Firing Telegram Demonstration Alert for Strategy 2...")
             send_trade_entry_alert(
-                strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
-                spot=float(df[df['timestamp'].dt.date == last_date]['close'].iloc[-1]),
-                ce_str="NIFTY 23250 CE",
-                pe_str="NIFTY 23050 PE",
-                ce_p=62.15,
-                pe_p=61.05,
-                tot_cost=9240.0,
-                win_target_pct=0.50,
-                lose_stop_pct=0.35,
-                max_hold_mins=25
+                strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
+                spot=22750.0,
+                opt_type=s2.get("opt_type", "PE"),
+                strike=str(s2.get("strike")),
+                entry_p=s2.get("entry_p", 56.25),
+                tot_cost=s2.get("cost", 4218.75),
+                win_target_pct=0.80,
+                lose_stop_pct=0.25,
+                max_hold_mins=45,
+                time_str=str(s2.get("entry_time", "10:09:00 AM"))
             )
 
     def run(self):

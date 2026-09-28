@@ -1,13 +1,13 @@
 # Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-09-26 20:40:48*
+*Last Updated: 2026-09-28 12:34:47*
 
 ### 1. Live Paper Trading Performance Summary
 - **Starting Capital**: INR 10,000.00
-- **Total Live Trades**: 10
-- **Win Rate**: 40.0% (4 Wins / 6 Losses)
-- **Net Live PnL**: INR +5,164.16
-- **Current Balance**: INR +15,164.16
+- **Total Live Trades**: 11
+- **Win Rate**: 36.4% (4 Wins / 7 Losses)
+- **Net Live PnL**: INR +5,080.83
+- **Current Balance**: INR +15,080.83
 
 ### 2. Complete Trade Ledger
 
@@ -23,3 +23,5 @@
 | 2026-09-24 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | 23350CE / 23100PE | 10:48:00 | 11:13:00 | ₹125.40 | ₹125.05 | ₹9405.00 | **-₹141.11** | Max Hold (25m) | Max Hold (25m) | Angel One Real Traded |
 | 2026-09-24 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | 23350CE / 23050PE | 13:08:00 | 13:33:00 | ₹112.70 | ₹134.42 | ₹8452.50 | **+₹1513.58** | Max Hold (25m) | PE Target (+50%) | Angel One Real Traded |
 | 2026-09-25 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | NIFTY29SEP2623250CE / NIFTY29SEP2623050PE | 14:01:00 | 14:26:00 | ₹123.20 | ₹145.62 | ₹9240.00 | **+₹1564.28** | CE Target (+50%) | Max Hold (25m) | Angel One Real Traded |
+| 2026-09-28 | Strategy 2: Expiry Gamma Squeeze | PE | 22800 | 10:09:00 | 10:58:00 | ₹56.25 | ₹55.85 | ₹4218.75 | **-₹83.33** | Time Stop (45m) | Angel One Real Traded (NIFTY29SEP2622800PE) |
+

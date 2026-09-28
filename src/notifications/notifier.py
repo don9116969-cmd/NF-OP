@@ -71,7 +71,14 @@ def send_telegram_alert(message: str) -> bool:
     }
 
     import time as time_lib
-    for attempt in range(3):
+    data_bytes = json.dumps(payload).encode('utf-8')
+    headers_req = {
+        "Content-Type": "application/json",
+        "Connection": "close",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+
+    for attempt in range(4):
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             if r.status_code == 200:
@@ -80,52 +87,93 @@ def send_telegram_alert(message: str) -> bool:
                 payload["parse_mode"] = ""
                 r2 = requests.post(url, json=payload, headers=headers, timeout=15)
                 return r2.status_code == 200
-            time_lib.sleep(1)
-        except Exception as e:
-            if attempt == 2:
-                print(f"[ERROR] Failed to send Telegram alert: {e}")
-            time_lib.sleep(1.5)
+        except Exception:
+            pass
+
+        # Urllib fallback attempt
+        try:
+            req = urllib.request.Request(url, data=data_bytes, headers=headers_req)
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.status == 200:
+                    return True
+        except Exception:
+            pass
+
+        time_lib.sleep(1.5 * (attempt + 1))
 
     return False
 
 def send_trade_entry_alert(
     strategy: str,
-    spot: float,
-    ce_str: str,
-    pe_str: str,
-    ce_p: float,
-    pe_p: float,
-    tot_cost: float,
+    spot: float = 0.0,
+    ce_str: str = "",
+    pe_str: str = "",
+    ce_p: float = 0.0,
+    pe_p: float = 0.0,
+    tot_cost: float = 0.0,
     win_target_pct: float = 0.50,
     lose_stop_pct: float = 0.35,
-    max_hold_mins: int = 25
+    max_hold_mins: int = 25,
+    opt_type: str = "",
+    strike: str = "",
+    entry_p: float = 0.0,
+    time_str: str = ""
 ) -> bool:
-    """Formats and sends an instant Trade Entry alert."""
-    now_str = datetime.now().strftime("%I:%M:%S %p")
-    ce_tgt = ce_p * (1.0 + win_target_pct)
-    ce_sl = ce_p * (1.0 - lose_stop_pct)
-    pe_tgt = pe_p * (1.0 + win_target_pct)
-    pe_sl = pe_p * (1.0 - lose_stop_pct)
+    """Formats and sends an instant Trade Entry alert for both single-leg and dual-leg trades."""
+    if not time_str:
+        time_str = datetime.now().strftime("%I:%M:%S %p")
 
-    msg = (
-        f"🚨 *TRADE ENTRY TRIGGERED*\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"⏰ *Time:* {now_str} | Spot: `{spot:.2f}`\n"
-        f"📊 *Strategy:* `{strategy}`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🟢 *CALL Leg:* BUY 1 Lot (75 Qty)\n"
-        f"   • `{ce_str}` @ *₹{ce_p:.2f}*\n"
-        f"   • Target (+{int(win_target_pct*100)}%): *₹{ce_tgt:.2f}*\n"
-        f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{ce_sl:.2f}*\n\n"
-        f"🔴 *PUT Leg:* BUY 1 Lot (75 Qty)\n"
-        f"   • `{pe_str}` @ *₹{pe_p:.2f}*\n"
-        f"   • Target (+{int(win_target_pct*100)}%): *₹{pe_tgt:.2f}*\n"
-        f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{pe_sl:.2f}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 *Capital Used:* *₹{tot_cost:,.2f}* (<= ₹10,000 budget)\n"
-        f"⏱️ *Max Hold:* {max_hold_mins} Minutes\n"
-        f"🛡️ *Combined Stop:* -15% on Total Position\n"
-    )
+    # Detect if single-leg trade (e.g. Strategy 2 Gamma Squeeze or Strategy 3 Directional ITM)
+    if opt_type in ["CE", "PE"] or (entry_p > 0 and not (ce_str and pe_str)):
+        leg_type = opt_type if opt_type in ["CE", "PE"] else ("CE" if "CE" in str(strike) else "PE")
+        p_val = entry_p if entry_p > 0 else (ce_p if leg_type == "CE" else pe_p)
+        sym_val = f"{strike} {leg_type}" if strike and leg_type not in str(strike) else (strike or f"NIFTY {leg_type}")
+        cost_val = tot_cost if tot_cost > 0 else (p_val * 75.0)
+        tgt_val = p_val * (1.0 + win_target_pct)
+        sl_val = p_val * (1.0 - lose_stop_pct)
+        emoji = "🟢" if leg_type == "CE" else "🔴"
+
+        msg = (
+            f"🚨 *TRADE ENTRY TRIGGERED*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⏰ *Time:* {time_str} | Spot: `{spot:.2f}`\n"
+            f"📊 *Strategy:* `{strategy}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{emoji} *{leg_type} Option Leg:* BUY 1 Lot (75 Qty)\n"
+            f"   • `{sym_val}` @ *₹{p_val:.2f}*\n"
+            f"   • Profit Target (+{int(win_target_pct*100)}%): *₹{tgt_val:.2f}*\n"
+            f"   • Stop Loss (-{int(lose_stop_pct*100)}%): *₹{sl_val:.2f}*\n"
+            f"   • Time Stop: {max_hold_mins} Mins\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹10,000 budget)\n"
+        )
+    else:
+        # Dual-leg Strangle (Strategy 1 or Strategy 4)
+        ce_tgt = ce_p * (1.0 + win_target_pct)
+        ce_sl = ce_p * (1.0 - lose_stop_pct)
+        pe_tgt = pe_p * (1.0 + win_target_pct)
+        pe_sl = pe_p * (1.0 - lose_stop_pct)
+        cost_val = tot_cost if tot_cost > 0 else ((ce_p + pe_p) * 75.0)
+
+        msg = (
+            f"🚨 *TRADE ENTRY TRIGGERED*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⏰ *Time:* {time_str} | Spot: `{spot:.2f}`\n"
+            f"📊 *Strategy:* `{strategy}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"🟢 *CALL Leg:* BUY 1 Lot (75 Qty)\n"
+            f"   • `{ce_str}` @ *₹{ce_p:.2f}*\n"
+            f"   • Target (+{int(win_target_pct*100)}%): *₹{ce_tgt:.2f}*\n"
+            f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{ce_sl:.2f}*\n\n"
+            f"🔴 *PUT Leg:* BUY 1 Lot (75 Qty)\n"
+            f"   • `{pe_str}` @ *₹{pe_p:.2f}*\n"
+            f"   • Target (+{int(win_target_pct*100)}%): *₹{pe_tgt:.2f}*\n"
+            f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{pe_sl:.2f}*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹10,000 budget)\n"
+            f"⏱️ *Max Hold:* {max_hold_mins} Minutes\n"
+            f"🛡️ *Exit Mode:* Decoupled Asymmetric Profit & SL\n"
+        )
     return send_telegram_alert(msg)
 
 def send_trade_exit_alert(
@@ -134,22 +182,24 @@ def send_trade_exit_alert(
     gross_pnl: float,
     charges: float,
     net_pnl: float,
-    details: str = ""
+    details: str = "",
+    time_str: str = ""
 ) -> bool:
     """Formats and sends an instant Trade Exit alert."""
-    now_str = datetime.now().strftime("%I:%M:%S %p")
+    if not time_str:
+        time_str = datetime.now().strftime("%I:%M:%S %p")
     p_emoji = "🎯" if net_pnl > 0 else "🛑"
     p_sign = "+" if net_pnl > 0 else ""
 
     msg = (
         f"{p_emoji} *TRADE EXIT NOTIFICATION*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"⏰ *Time:* {now_str}\n"
+        f"⏰ *Time:* {time_str}\n"
         f"📊 *Strategy:* `{strategy}`\n"
         f"📌 *Exit Reason:* `{exit_reason}`\n"
     )
     if details:
-        msg += f"ℹ️ *Details:* {details}\n"
+        msg += f"ℹ️ *Trade Summary:* {details}\n"
 
     msg += (
         f"━━━━━━━━━━━━━━━━━━━━━━\n"

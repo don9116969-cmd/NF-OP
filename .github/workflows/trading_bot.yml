@@ -33,6 +33,7 @@ jobs:
 
       - name: Run Nifty Trading Bot
         env:
+          TZ: 'Asia/Kolkata'
           ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
           ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
           ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD || secrets.ANGEI_PASSWORD }}
