@@ -14,15 +14,16 @@ from SmartApi import SmartConnect
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-ENV_PATH = r"c:\Desktop\NF-OP\.env"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH = os.path.join(BASE_DIR, ".env")
 
 def get_authenticated_api() -> SmartConnect:
     """Authenticates with Angel One SmartAPI using credentials in .env."""
-    env = dotenv_values(ENV_PATH)
-    api_key = env.get("ANGEL_API_KEY")
-    client_code = env.get("ANGEL_CLIENT_CODE")
-    password = env.get("ANGEL_PASSWORD")
-    totp_secret = env.get("ANGEL_TOTP_SECRET")
+    env = dotenv_values(ENV_PATH) if os.path.exists(ENV_PATH) else {}
+    api_key = os.getenv("ANGEL_API_KEY") or env.get("ANGEL_API_KEY")
+    client_code = os.getenv("ANGEL_CLIENT_CODE") or env.get("ANGEL_CLIENT_CODE")
+    password = os.getenv("ANGEL_PASSWORD") or os.getenv("ANGEL_PIN") or os.getenv("ANGEI_PASSWORD") or env.get("ANGEL_PASSWORD")
+    totp_secret = os.getenv("ANGEL_TOTP_SECRET") or env.get("ANGEL_TOTP_SECRET")
 
     if not all([api_key, client_code, password, totp_secret]):
         raise ValueError("Missing Angel One credentials in .env file.")

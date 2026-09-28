@@ -33,16 +33,17 @@ from src.decoupled_strangle.das_engine import evaluate_das_for_day
 from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles
 from config import config
 
-ENV_PATH = r"c:\Desktop\NF-OP\.env"
-LEDGER_PATH = r"c:\Desktop\NF-OP\data\paper_trading_ledger.csv"
-CANDLE_FILE = r"c:\Desktop\NF-OP\data\nifty_1min_real.csv"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+LEDGER_PATH = os.path.join(BASE_DIR, "data", "paper_trading_ledger.csv")
+CANDLE_FILE = os.path.join(BASE_DIR, "data", "nifty_1min_real.csv")
 
 def get_smart_api() -> SmartConnect:
-    env = dotenv_values(ENV_PATH)
-    api_key = env.get("ANGEL_API_KEY")
-    client_code = env.get("ANGEL_CLIENT_CODE")
-    password = env.get("ANGEL_PASSWORD")
-    totp_secret = env.get("ANGEL_TOTP_SECRET")
+    env = dotenv_values(ENV_PATH) if os.path.exists(ENV_PATH) else {}
+    api_key = os.getenv("ANGEL_API_KEY") or env.get("ANGEL_API_KEY")
+    client_code = os.getenv("ANGEL_CLIENT_CODE") or env.get("ANGEL_CLIENT_CODE")
+    password = os.getenv("ANGEL_PASSWORD") or os.getenv("ANGEL_PIN") or os.getenv("ANGEI_PASSWORD") or env.get("ANGEL_PASSWORD")
+    totp_secret = os.getenv("ANGEL_TOTP_SECRET") or env.get("ANGEL_TOTP_SECRET")
 
     if not all([api_key, client_code, password, totp_secret]):
         return None
@@ -560,11 +561,13 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     print("\nAccount Capital: INR 10,000.00  -->  Current Portfolio Balance: INR 27,508.90 (+175.1% Growth)")
     print("=" * 95 + "\n")
 
-TRADE_JOURNAL_CSV = r"c:\Desktop\NF-OP\data\trade_journal.csv"
-TRADE_JOURNAL_MD = r"c:\Desktop\NF-OP\data\trade_journal.md"
+TRADE_JOURNAL_CSV = os.path.join(BASE_DIR, "data", "trade_journal.csv")
+TRADE_JOURNAL_MD = os.path.join(BASE_DIR, "data", "trade_journal.md")
 
 def log_trade_to_journal(target_date: datetime.date, strategy_name: str, trade_res: dict):
-    os.makedirs(os.path.dirname(TRADE_JOURNAL_CSV), exist_ok=True)
+    parent_dir = os.path.dirname(TRADE_JOURNAL_CSV)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
     df_j = pd.DataFrame()
     if os.path.exists(TRADE_JOURNAL_CSV):
         try:

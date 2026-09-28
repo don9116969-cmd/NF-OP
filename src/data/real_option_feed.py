@@ -10,11 +10,14 @@ import urllib.request
 import pandas as pd
 from SmartApi import SmartConnect
 
-SCRIP_MASTER_PATH = r"c:\Desktop\NF-OP\data\angel_scrip_master.json"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SCRIP_MASTER_PATH = os.path.join(BASE_DIR, "data", "angel_scrip_master.json")
 
 def ensure_scrip_master(max_age_hours: int = 168) -> list:
     """Ensures local cache of Angel One Scrip Master is fresh."""
-    os.makedirs(os.path.dirname(SCRIP_MASTER_PATH), exist_ok=True)
+    parent_dir = os.path.dirname(SCRIP_MASTER_PATH)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
     needs_download = True
 
     if os.path.exists(SCRIP_MASTER_PATH):
