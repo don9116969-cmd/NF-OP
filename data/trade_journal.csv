@@ -10,3 +10,4 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-09-24,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,23350CE / 23050PE,13:08:00,13:33:00,112.7,134.42,8452.5,1629.0,115.42,1513.58,Max Hold (25m) | PE Target (+50%),Angel One Real Traded
 2026-09-25,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,NIFTY29SEP2623250CE / NIFTY29SEP2623050PE,14:01:00,14:26:00,123.2,145.62,9240.0,1681.5,117.22,1564.28,CE Target (+50%) | Max Hold (25m),Angel One Real Traded
 2026-09-28,Strategy 2: Expiry Gamma Squeeze,PE,22800,10:09:00,10:58:00,56.25,55.85,4218.75,-30.0,53.33,-83.33,Time Stop (45m),Angel One Real Traded (NIFTY29SEP2622800PE)
+2026-09-29,Strategy 2: Expiry Gamma Squeeze,PE,22600,10:11:00,10:26:00,56.01,41.448742994894154,4200.75,-1092.09,54.62,-1146.71,SL Hit (-25%),Mathematical (BSM)
