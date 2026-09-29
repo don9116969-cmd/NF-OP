@@ -124,6 +124,29 @@ class LiveQuadPaperTrader:
             return False
         return dtime(9, 15) <= now.time() <= dtime(15, 25)
 
+    def wait_for_market_open(self):
+        """If started before 09:15 AM IST on a weekday, waits until 09:15:00 IST."""
+        now = get_ist_now()
+        if now.weekday() in [5, 6]:
+            return False
+        if now.time() < dtime(9, 15):
+            open_time = datetime(now.year, now.month, now.day, 9, 15, 0)
+            now_naive = datetime(now.year, now.month, now.day, now.hour, now.minute, now.second)
+            wait_secs = (open_time - now_naive).total_seconds()
+            if 0 < wait_secs <= 3600:
+                print(f"\n[PRE-MARKET STANDBY] Bot initialized early at {now.strftime('%I:%M:%S %p')} IST.")
+                print(f"Waiting {int(wait_secs)} seconds until NSE market opens at 09:15:00 AM IST...")
+                send_telegram_alert(
+                    f"⏳ *Nifty Trading Bot Initialized Early (Pre-Market)*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⏰ *Current Time:* {now.strftime('%I:%M:%S %p')} IST\n"
+                    f"📅 *Date:* {now.strftime('%A, %d-%b-%Y')}\n\n"
+                    f"Market opens at 09:15:00 AM IST. Bot is standing by and will begin active tracking at the opening bell! 🔔"
+                )
+                time.sleep(max(1.0, wait_secs))
+                return True
+        return False
+
     def run_live_loop(self):
         """Continuously monitors live market during trading hours across all active strategies."""
         print("\n" + "=" * 85)
@@ -408,10 +431,50 @@ class LiveQuadPaperTrader:
 
     def run(self):
         """Master execution entry point."""
-        if self.is_market_open_now():
-            self.run_live_loop()
-        else:
+        now = get_ist_now()
+
+        # Weekend check
+        if now.weekday() in [5, 6]:
+            print(f"[WEEKEND] Today is {now.strftime('%A')}. NSE Market is closed on weekends.")
             self.run_replay_demonstration()
+            return
+
+        # Weekday Pre-Market (e.g. 08:30 - 09:14 AM IST)
+        if now.time() < dtime(9, 15):
+            self.wait_for_market_open()
+            self.run_live_loop()
+
+        # Weekday Live Trading Session (09:15 - 15:25 IST)
+        elif dtime(9, 15) <= now.time() <= dtime(15, 25):
+            self.run_live_loop()
+
+        # Weekday Post-Market (after 15:25 PM IST - e.g. if runner was delayed or backup trigger)
+        else:
+            print(f"[MARKET CLOSED] Runner started at {now.strftime('%I:%M:%S %p')} IST (Market closed at 15:25 IST).")
+            today_str = str(now.date())
+            already_audited = False
+            if os.path.exists("data/trade_journal.md"):
+                try:
+                    with open("data/trade_journal.md", "r", encoding="utf-8") as f:
+                        if f"Last Updated: {today_str}" in f.read():
+                            already_audited = True
+                except Exception:
+                    pass
+
+            if already_audited:
+                print(f"[IDLE] Today's session ({today_str}) has already completed and was audited. Exiting cleanly.")
+                return
+
+            print("[EOD RECONCILIATION] Performing End-of-Day audit and journal updates...")
+            send_telegram_alert(
+                f"⚠️ *Trading Bot Started After Market Close*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⏰ *Started At:* {now.strftime('%I:%M:%S %p')} IST\n"
+                f"📅 *Date:* {now.strftime('%A, %d-%b-%Y')}\n\n"
+                f"The GitHub Actions runner was delayed past market close (15:25 IST).\n"
+                f"Performing final EOD reconciliation report."
+            )
+            self.run_eod_accounting()
 
 def main():
     parser = argparse.ArgumentParser(description="Live Market Paper Trading Bot for Nifty Options")
