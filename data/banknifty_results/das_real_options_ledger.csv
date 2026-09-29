@@ -1,0 +1,5 @@
+strategy,entry_time,exit_time,capital,net_pnl,ret_pct,reason
+Decoupled Asymmetric Strangle,2026-09-24 10:22,2026-09-24 11:52,16152.0,-138.5,-0.86,TIME_STOP_90M
+Decoupled Asymmetric Strangle,2026-09-24 13:26,2026-09-24 14:56,16564.5,3904.0,23.57,TIME_STOP_90M
+Decoupled Asymmetric Strangle,2026-09-25 09:47,2026-09-25 11:17,14950.5,-137.0,-0.92,TIME_STOP_90M
+Decoupled Asymmetric Strangle,2026-09-25 12:58,2026-09-25 14:28,13842.0,212.5,1.54,TIME_STOP_90M

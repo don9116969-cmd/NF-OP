@@ -1,0 +1,4 @@
+date,strategy,symbol,entry_time,exit_time,entry_price,exit_price,return_pct,gross_pnl,friction,net_pnl
+2026-09-24,Directional Box Breakout,BANKNIFTY29SEP2655700PE,2026-09-24 09:42:00,2026-09-24 13:58:00,324.5,556.9,71.6%,6972.0,45.0,6927.0
+2026-09-25,Directional Box Breakout,BANKNIFTY29SEP2655700CE,2026-09-25 14:03:00,2026-09-25 14:47:00,411.9,318.65,-22.6%,-2797.5,45.0,-2842.5
+2026-09-28,Directional Box Breakout,BANKNIFTY29SEP2654800PE,2026-09-28 09:33:00,2026-09-28 10:17:00,212.75,344.05,61.7%,3939.0,45.0,3894.0

@@ -1,0 +1,2 @@
+strategy,entry_time,exit_time,capital,net_pnl,ret_pct,reason
+Directional Box Breakout,2026-09-25 14:04,2026-09-25 15:01,11409.0,-2988.0,-26.19,STOP_LOSS (-25%)

@@ -1,0 +1,5 @@
+date,strategy,symbol,entry_time,exit_time,entry_price,exit_price,return_pct,gross_pnl,friction,net_pnl
+2026-09-21,Directional Box Breakout,SYNTH_ATM_CE_56549,2026-09-21 13:33:00,2026-09-21 14:30:00,263.01,206.8,-21.4%,-1686.49,45.0,-1731.49
+2026-09-22,Directional Box Breakout,SYNTH_ATM_PE_56448,2026-09-22 10:32:00,2026-09-22 12:43:00,151.58,113.65,-25.0%,-1137.77,45.0,-1182.77
+2026-09-23,Directional Box Breakout,SYNTH_ATM_CE_56486,2026-09-23 10:00:00,2026-09-23 11:17:00,128.7,96.9,-24.7%,-954.08,45.0,-999.08
+2026-09-28,Directional Box Breakout,SYNTH_ATM_PE_54823,2026-09-28 09:33:00,2026-09-28 13:04:00,250.29,197.8,-21.0%,-1574.48,45.0,-1619.48
