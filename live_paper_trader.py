@@ -351,36 +351,38 @@ class LiveQuadPaperTrader:
                 try:
                     s4_res = evaluate_strategy_4(df_all, today_date, api=self.smart_api)
                     if s4_res.get("trade_occurred", False):
-                        entry_key = ("s4_entry", str(s4_res.get("entry_time")))
-                        if entry_key not in alerted_entries:
-                            send_trade_entry_alert(
-                                strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
-                                spot=spot,
-                                ce_str=f"{s4_res.get('strike', 'Dual OTM')}",
-                                pe_str=f"{s4_res.get('strike', 'Dual OTM')}",
-                                ce_p=round(s4_res.get("entry_p", 0.0) / 2.0, 2),
-                                pe_p=round(s4_res.get("entry_p", 0.0) / 2.0, 2),
-                                tot_cost=s4_res.get("cost", 0.0),
-                                win_target_pct=config.DAS_WIN_TARGET_PCT,
-                                lose_stop_pct=config.DAS_LOSE_STOP_PCT,
-                                max_hold_mins=config.DAS_MAX_HOLD_MINS,
-                                time_str=str(s4_res.get("entry_time")),
-                                qty=self.lot_size
-                            )
-                            alerted_entries.add(entry_key)
+                        trades_to_alert = s4_res.get("all_trades", [s4_res])
+                        for tr in trades_to_alert:
+                            entry_key = ("s4_entry", str(tr.get("entry_time")))
+                            if entry_key not in alerted_entries:
+                                send_trade_entry_alert(
+                                    strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
+                                    spot=spot,
+                                    ce_str=f"{tr.get('strike', 'Dual OTM')}",
+                                    pe_str=f"{tr.get('strike', 'Dual OTM')}",
+                                    ce_p=round(tr.get("entry_p", 0.0) / 2.0, 2),
+                                    pe_p=round(tr.get("entry_p", 0.0) / 2.0, 2),
+                                    tot_cost=tr.get("cost", 0.0),
+                                    win_target_pct=config.DAS_WIN_TARGET_PCT,
+                                    lose_stop_pct=config.DAS_LOSE_STOP_PCT,
+                                    max_hold_mins=config.DAS_MAX_HOLD_MINS,
+                                    time_str=str(tr.get("entry_time")),
+                                    qty=self.lot_size
+                                )
+                                alerted_entries.add(entry_key)
 
-                        exit_key = ("s4_exit", str(s4_res.get("exit_time")))
-                        if s4_res.get("exit_time") and exit_key not in alerted_exits:
-                            send_trade_exit_alert(
-                                strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
-                                exit_reason=s4_res.get("exit_reason", "Target / SL"),
-                                gross_pnl=s4_res.get("gross_pnl", 0.0),
-                                charges=s4_res.get("charges", 0.0),
-                                net_pnl=s4_res.get("net_pnl", 0.0),
-                                details=f"Entry: ₹{s4_res.get('entry_p')} -> Exit: ₹{s4_res.get('exit_p')}",
-                                time_str=str(s4_res.get("exit_time"))
-                            )
-                            alerted_exits.add(exit_key)
+                            exit_key = ("s4_exit", str(tr.get("exit_time")))
+                            if tr.get("exit_time") and exit_key not in alerted_exits:
+                                send_trade_exit_alert(
+                                    strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
+                                    exit_reason=tr.get("exit_reason", "Target / SL"),
+                                    gross_pnl=tr.get("gross_pnl", 0.0),
+                                    charges=tr.get("charges", 0.0),
+                                    net_pnl=tr.get("net_pnl", 0.0),
+                                    details=f"Entry: ₹{tr.get('entry_p')} -> Exit: ₹{tr.get('exit_p')}",
+                                    time_str=str(tr.get("exit_time"))
+                                )
+                                alerted_exits.add(exit_key)
                 except Exception as e:
                     print(f"[WARN] Strategy 4 evaluation error: {e}")
 
@@ -391,36 +393,38 @@ class LiveQuadPaperTrader:
                 try:
                     s5_res = evaluate_strategy_5(df_bn, today_date, api=self.smart_api)
                     if s5_res.get("trade_occurred", False):
-                        entry_key = ("s5_entry", str(s5_res.get("entry_time")))
-                        if entry_key not in alerted_entries:
-                            send_trade_entry_alert(
-                                strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
-                                spot=bn_spot,
-                                ce_str=f"{s5_res.get('strike', 'ATM Strangle')}",
-                                pe_str=f"{s5_res.get('strike', 'ATM Strangle')}",
-                                ce_p=round(s5_res.get("entry_p", 0.0) / 2.0, 2),
-                                pe_p=round(s5_res.get("entry_p", 0.0) / 2.0, 2),
-                                tot_cost=s5_res.get("cost", 0.0),
-                                win_target_pct=1.00,
-                                lose_stop_pct=0.15,
-                                max_hold_mins=45,
-                                time_str=str(s5_res.get("entry_time")),
-                                qty=self.bn_lot_size
-                            )
-                            alerted_entries.add(entry_key)
+                        trades_to_alert = s5_res.get("all_trades", [s5_res])
+                        for tr in trades_to_alert:
+                            entry_key = ("s5_entry", str(tr.get("entry_time")))
+                            if entry_key not in alerted_entries:
+                                send_trade_entry_alert(
+                                    strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
+                                    spot=bn_spot,
+                                    ce_str=f"{tr.get('strike', 'ATM Strangle')}",
+                                    pe_str=f"{tr.get('strike', 'ATM Strangle')}",
+                                    ce_p=round(tr.get("entry_p", 0.0) / 2.0, 2),
+                                    pe_p=round(tr.get("entry_p", 0.0) / 2.0, 2),
+                                    tot_cost=tr.get("cost", 0.0),
+                                    win_target_pct=1.00,
+                                    lose_stop_pct=0.15,
+                                    max_hold_mins=45,
+                                    time_str=str(tr.get("entry_time")),
+                                    qty=self.bn_lot_size
+                                )
+                                alerted_entries.add(entry_key)
 
-                        exit_key = ("s5_exit", str(s5_res.get("exit_time")))
-                        if s5_res.get("exit_time") and exit_key not in alerted_exits:
-                            send_trade_exit_alert(
-                                strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
-                                exit_reason=s5_res.get("exit_reason", "Target / SL"),
-                                gross_pnl=s5_res.get("gross_pnl", 0.0),
-                                charges=s5_res.get("charges", 80.0),
-                                net_pnl=s5_res.get("net_pnl", 0.0),
-                                details=f"Entry: ₹{s5_res.get('entry_p')} -> Exit: ₹{s5_res.get('exit_p')}",
-                                time_str=str(s5_res.get("exit_time"))
-                            )
-                            alerted_exits.add(exit_key)
+                            exit_key = ("s5_exit", str(tr.get("exit_time")))
+                            if tr.get("exit_time") and exit_key not in alerted_exits:
+                                send_trade_exit_alert(
+                                    strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
+                                    exit_reason=tr.get("exit_reason", "Target / SL"),
+                                    gross_pnl=tr.get("gross_pnl", 0.0),
+                                    charges=tr.get("charges", 58.0),
+                                    net_pnl=tr.get("net_pnl", 0.0),
+                                    details=f"Entry: ₹{tr.get('entry_p')} -> Exit: ₹{tr.get('exit_p')}",
+                                    time_str=str(tr.get("exit_time"))
+                                )
+                                alerted_exits.add(exit_key)
                 except Exception as e:
                     print(f"[WARN] Strategy 5 evaluation error: {e}")
 

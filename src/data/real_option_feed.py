@@ -13,8 +13,15 @@ from SmartApi import SmartConnect
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIP_MASTER_PATH = os.path.join(BASE_DIR, "data", "angel_scrip_master.json")
 
-def ensure_scrip_master(max_age_hours: int = 168) -> list:
-    """Ensures local cache of Angel One Scrip Master is fresh."""
+_SCRIP_CACHE = {}
+
+def ensure_scrip_master(max_age_hours: int = 168, name: str = "NIFTY") -> list:
+    """Ensures local cache of Angel One Scrip Master is fresh and cached in memory."""
+    global _SCRIP_CACHE
+    target_name = name.upper()
+    if target_name in _SCRIP_CACHE:
+        return _SCRIP_CACHE[target_name]
+
     parent_dir = os.path.dirname(SCRIP_MASTER_PATH)
     if parent_dir:
         os.makedirs(parent_dir, exist_ok=True)
@@ -40,18 +47,21 @@ def ensure_scrip_master(max_age_hours: int = 168) -> list:
     with open(SCRIP_MASTER_PATH, "r", encoding="utf-8") as f:
         master = json.load(f)
 
-    return [d for d in master if d.get("name") == "NIFTY" and d.get("instrumenttype") == "OPTIDX"]
+    for idx in ["NIFTY", "BANKNIFTY", "FINNIFTY"]:
+        _SCRIP_CACHE[idx] = [d for d in master if d.get("name") == idx and d.get("instrumenttype") == "OPTIDX"]
 
-def get_active_option_contract(target_date: datetime.date, strike: int, opt_type: str) -> dict:
+    return _SCRIP_CACHE.get(target_name, [])
+
+def get_active_option_contract(target_date: datetime.date, strike: int, opt_type: str, underlying: str = "NIFTY") -> dict:
     """
-    Finds the active weekly Nifty option contract matching the strike, opt_type, and nearest Tuesday expiry.
+    Finds the active option contract matching the strike, opt_type, and nearest expiry for NIFTY or BANKNIFTY.
     """
-    nifty_opts = ensure_scrip_master()
+    opts = ensure_scrip_master(name=underlying)
     opt_type_upper = opt_type.upper()
 
     # Collect all available expiries
     exp_map = {}
-    for d in nifty_opts:
+    for d in opts:
         exp_str = d.get("expiry")
         if exp_str and exp_str not in exp_map:
             try:
@@ -63,7 +73,13 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
     # Find nearest expiry on or after target_date
     valid_expiries = [(exp_str, exp_dt) for exp_str, exp_dt in exp_map.items() if exp_dt >= target_date]
     if not valid_expiries:
-        return None
+        # Fallback to the latest available expiry before target_date for historical playback
+        past_expiries = [(exp_str, exp_dt) for exp_str, exp_dt in exp_map.items() if exp_dt <= target_date]
+        if past_expiries:
+            past_expiries.sort(key=lambda x: x[1], reverse=True)
+            valid_expiries = [past_expiries[0]]
+        else:
+            return None
 
     valid_expiries.sort(key=lambda x: x[1])
     nearest_exp_str, nearest_exp_dt = valid_expiries[0]
@@ -71,7 +87,7 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
     # Target strike in paise
     target_paise = float(strike * 100)
 
-    for d in nifty_opts:
+    for d in opts:
         if d.get("expiry") == nearest_exp_str:
             sym = d.get("symbol", "")
             if sym.endswith(opt_type_upper):
@@ -92,29 +108,45 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
 def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: datetime.datetime, to_date: datetime.datetime) -> pd.DataFrame:
     """
     Fetches real 1-minute OHLCV candles for the option contract from Angel One SmartAPI.
+    Includes rate-limit retry handling with backoff.
     """
     if not api or not contract:
         return pd.DataFrame()
 
+    import time as time_lib
+    if isinstance(from_date, str):
+        from_date = pd.to_datetime(from_date)
+    if isinstance(to_date, str):
+        to_date = pd.to_datetime(to_date)
     from_str = from_date.strftime("%Y-%m-%d %H:%M")
     to_str = to_date.strftime("%Y-%m-%d %H:%M")
 
-    try:
-        res = api.getCandleData({
-            "exchange": contract.get("exch_seg", "NFO"),
-            "symboltoken": contract["token"],
-            "interval": "ONE_MINUTE",
-            "fromdate": from_str,
-            "todate": to_str
-        })
+    for attempt in range(4):
+        try:
+            time_lib.sleep(0.4)
+            res = api.getCandleData({
+                "exchange": contract.get("exch_seg", "NFO"),
+                "symboltoken": contract["token"],
+                "interval": "ONE_MINUTE",
+                "fromdate": from_str,
+                "todate": to_str
+            })
 
-        if res and res.get("status") and res.get("data"):
-            df = pd.DataFrame(res["data"], columns=["timestamp", "open", "high", "low", "close", "volume"])
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-            df.set_index("timestamp", inplace=True)
-            df.sort_index(inplace=True)
-            return df
-    except Exception as e:
-        print(f"[WARN] Failed to fetch real candles for {contract.get('symbol')}: {e}")
+            if res and res.get("status") and res.get("data"):
+                df = pd.DataFrame(res["data"], columns=["timestamp", "open", "high", "low", "close", "volume"])
+                df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+                df.set_index("timestamp", inplace=True)
+                df.sort_index(inplace=True)
+                return df
+            elif res and "exceeding access rate" in str(res):
+                time_lib.sleep(1.5 * (attempt + 1))
+            else:
+                break
+        except Exception as e:
+            if "exceeding access rate" in str(e):
+                time_lib.sleep(1.5 * (attempt + 1))
+            else:
+                print(f"[WARN] Failed to fetch real candles for {contract.get('symbol')}: {e}")
+                break
 
     return pd.DataFrame()
