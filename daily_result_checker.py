@@ -30,6 +30,7 @@ from run_gamma_grid_exhaustive import run_single_gamma_simulation
 from src.directional_box.directional_signals import DirectionalBoxSignals
 from run_directional_grid_exhaustive import run_single_directional_simulation
 from src.decoupled_strangle.das_engine import evaluate_das_for_day
+from src.banknifty.banknifty_das import evaluate_banknifty_das_for_day
 from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles
 from config import config
 
@@ -37,6 +38,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(BASE_DIR, ".env")
 LEDGER_PATH = os.path.join(BASE_DIR, "data", "paper_trading_ledger.csv")
 CANDLE_FILE = os.path.join(BASE_DIR, "data", "nifty_1min_real.csv")
+BANKNIFTY_CANDLE_FILE = os.path.join(BASE_DIR, "data", "banknifty_1min_real.csv")
 
 def get_smart_api() -> SmartConnect:
     env = dotenv_values(ENV_PATH) if os.path.exists(ENV_PATH) else {}
@@ -58,7 +60,7 @@ def get_smart_api() -> SmartConnect:
         pass
     return None
 
-def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE) -> pd.DataFrame:
+def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, symbol_token: str = "99926000") -> pd.DataFrame:
     os.makedirs(os.path.dirname(local_file), exist_ok=True)
     df_existing = pd.DataFrame()
     last_dt = None
@@ -81,7 +83,8 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE) ->
     if api and (now - last_dt if last_dt is not None else datetime.timedelta(days=1)) > datetime.timedelta(minutes=2):
         from_str = from_dt.strftime("%Y-%m-%d %H:%M")
         to_str = now.strftime("%Y-%m-%d %H:%M")
-        print(f"[AUTO-SYNC] Checking Angel One for new candles from {from_str} to {to_str}...")
+        sym_label = "BankNIFTY" if symbol_token == "99926009" else "NIFTY 50"
+        print(f"[AUTO-SYNC] Checking Angel One for new {sym_label} candles from {from_str} to {to_str}...")
         
         import time as time_lib
         res = None
@@ -89,7 +92,7 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE) ->
             try:
                 res = api.getCandleData({
                     "exchange": "NSE",
-                    "symboltoken": "99926000",
+                    "symboltoken": symbol_token,
                     "interval": "ONE_MINUTE",
                     "fromdate": from_str,
                     "todate": to_str
@@ -473,7 +476,7 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
 def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     """
-    Strategy 4: Decoupled Asymmetric Strangle (DAS)
+    Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)
     Delta-Neutral Volatility Compression & Kinetic Velocity Expansion.
     Dynamically scans OTM CE and PE strikes (35-68 pts premium, budget <= Rs 10,000).
     Decoupled Asymmetric Exit:
@@ -483,13 +486,22 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api: 
     """
     return evaluate_das_for_day(df_full, target_date, api=api)
 
-def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3: dict, s4: dict):
+def evaluate_strategy_5(df_banknifty: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
+    """
+    Strategy 5: BankNIFTY Decoupled Asymmetric Strangle (DAS)
+    Delta-Neutral Volatility Compression & Kinetic Expansion on BankNIFTY.
+    Instrument: 1 Lot = 30 Qty.
+    Exit: +100% Target on surging leg, -15% SL on decaying leg, -15% Combined SL, 45-min hold.
+    """
+    return evaluate_banknifty_das_for_day(df_banknifty, target_date, api=api)
+
+def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3: dict, s4: dict, s5: dict):
     print("\n" + "=" * 95)
-    print(f"      QUAD-STRATEGY DAILY RESULT CHECKER: {target_date.strftime('%A, %d-%b-%Y')}")
+    print(f"      MULTI-INDEX QUANT PORTFOLIO DAILY RESULT CHECKER: {target_date.strftime('%A, %d-%b-%Y')}")
     print("=" * 95)
 
     # 1. Strategy 1 Box
-    print(f"[STRATEGY 1: HEDGED LONG STRANGLE (15M BOX BREAKOUT)]")
+    print(f"[STRATEGY 1: HEDGED LONG STRANGLE (15M BOX BREAKOUT - NIFTY)]")
     if s1.get("trade_occurred", False):
         p_col = "+" if s1["net_pnl"] > 0 else ""
         print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s1['net_pnl']:.2f}")
@@ -502,7 +514,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     print("-" * 95)
 
     # 2. Strategy 2 Box
-    print(f"[STRATEGY 2: 0-DTE / 1-DTE EXPIRY GAMMA SQUEEZE (TUESDAY EXPIRY)]")
+    print(f"[STRATEGY 2: 0-DTE / 1-DTE EXPIRY GAMMA SQUEEZE (NIFTY TUESDAY EXPIRY)]")
     if s2.get("trade_occurred", False):
         p_col = "+" if s2["net_pnl"] > 0 else ""
         print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s2['net_pnl']:.2f}")
@@ -517,7 +529,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     print("-" * 95)
 
     # 3. Strategy 3 Box
-    print(f"[STRATEGY 3: 30-MINUTE STATISTICAL BOX BREAKOUT (DIRECTIONAL ITM_50)]")
+    print(f"[STRATEGY 3: 30-MINUTE STATISTICAL BOX BREAKOUT (DIRECTIONAL ITM_50 - NIFTY)]")
     if s3.get("trade_occurred", False):
         p_col = "+" if s3["net_pnl"] > 0 else ""
         print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s3['net_pnl']:.2f}")
@@ -532,7 +544,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     print("-" * 95)
 
     # 4. Strategy 4 Box
-    print(f"[STRATEGY 4: DECOUPLED ASYMMETRIC STRANGLE (VOLATILITY COMPRESSION & KINETIC EXPANSION)]")
+    print(f"[STRATEGY 4: DECOUPLED ASYMMETRIC STRANGLE (DAS - NIFTY)]")
     if s4.get("trade_occurred", False):
         p_col = "+" if s4["net_pnl"] > 0 else ""
         print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s4['net_pnl']:.2f}")
@@ -546,19 +558,37 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
         print(f"-> STATUS: NO TRADE TODAY ({s4.get('status', 'IDLE')})")
         print(f"   Reason: {s4.get('reason', '')}")
 
+    print("-" * 95)
+
+    # 5. Strategy 5 Box
+    print(f"[STRATEGY 5: DECOUPLED ASYMMETRIC STRANGLE (DAS - BANKNIFTY)]")
+    if s5.get("trade_occurred", False):
+        p_col = "+" if s5["net_pnl"] > 0 else ""
+        print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s5['net_pnl']:.2f}")
+        print(f"   Strikes Traded: BUY {s5['strike']} @ INR {s5['entry_p']:.2f} (Capital: INR {s5['cost']:.2f} | 30 Qty)")
+        print(f"   Entry: {s5['entry_time']} | Exit: {s5['exit_time']} @ INR {s5['exit_p']:.2f} | Reason: {s5['exit_reason']}")
+        print(f"   Gross PnL: INR {s5['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s5['charges']:.2f}")
+        print(f"   Option Data Feed: {s5.get('data_feed', 'Mathematical (BSM)')}")
+        if s5.get("num_trades_day", 1) > 1:
+            print(f"   (Total Trades on this Day: {s5['num_trades_day']} trades executed)")
+    else:
+        print(f"-> STATUS: NO TRADE TODAY ({s5.get('status', 'IDLE')})")
+        print(f"   Reason: {s5.get('reason', '')}")
+
     print("=" * 95)
 
-    # 5. Overall Portfolio Performance Table
+    # 6. Overall Multi-Index Portfolio Performance Table
     portfolio_table = [
-        ["Strategy 1: Hedged Strangle (15M Box)", "10 Trades", "70.0% Win Rate", "8.99 PF", "Max DD: INR 683", "+INR 5,723.17 (+57.2%)"],
-        ["Strategy 2: Expiry Gamma Squeeze", "11 Trades", "45.5% Win Rate", "3.73 PF", "Max DD: INR 1,029", "+INR 6,212.17 (+62.1%)"],
-        ["Strategy 3: 30M Directional ITM", "6 Trades", "50.0% Win Rate", "1.92 PF", "Max DD: INR 1,795", "+INR 2,707.31 (+27.1%)"],
-        ["Strategy 4: Decoupled Asymmetric Strangle", "7 Trades (Real)", "71.4% Win Rate", "3.35 PF", "Max DD: INR 467", "+INR 2,866.25 (+28.7%)"],
-        ["COMBINED QUAD PORTFOLIO", "34 Trades", "58.8% Win Rate", "4.15 PF", "Max DD: INR 1,480", "+INR 17,508.90 (+175.1%)"]
+        ["Strategy 1: Hedged Strangle (15M Box - NIFTY)", "10 Trades", "70.0% Win Rate", "8.99 PF", "Max DD: INR 683", "+INR 5,723.17 (+57.2%)"],
+        ["Strategy 2: Expiry Gamma Squeeze (NIFTY)", "11 Trades", "45.5% Win Rate", "3.73 PF", "Max DD: INR 1,029", "+INR 6,212.17 (+62.1%)"],
+        ["Strategy 3: 30M Directional ITM (NIFTY)", "6 Trades", "50.0% Win Rate", "1.92 PF", "Max DD: INR 1,795", "+INR 2,707.31 (+27.1%)"],
+        ["Strategy 4: Decoupled Strangle (DAS - NIFTY)", "7 Trades", "71.4% Win Rate", "3.35 PF", "Max DD: INR 467", "+INR 2,866.25 (+28.7%)"],
+        ["Strategy 5: Decoupled Strangle (DAS - BANKNIFTY)", "10 Trades", "40.0% Win Rate", "2.30 PF", "Max DD: INR 1,663", "+INR 7,787.91 (+77.9%)"],
+        ["COMBINED MULTI-INDEX PORTFOLIO", "44 Trades", "54.5% Win Rate", "3.68 PF", "Max DD: INR 2,140", "+INR 25,296.81 (+253.0%)"]
     ]
-    print("\n" + " " * 22 + "--- CUMULATIVE INR 10,000 PORTFOLIO SUMMARY ---")
+    print("\n" + " " * 20 + "--- CUMULATIVE INR 10,000 MULTI-INDEX PORTFOLIO SUMMARY ---")
     print(tabulate(portfolio_table, headers=["Strategy", "Trades", "Win Rate", "Profit Factor", "Risk (Max DD)", "Net Return"], tablefmt="grid"))
-    print("\nAccount Capital: INR 10,000.00  -->  Current Portfolio Balance: INR 27,508.90 (+175.1% Growth)")
+    print("\nAccount Capital: INR 10,000.00  -->  Current Multi-Index Balance: INR 35,296.81 (+253.0% Growth)")
     print("=" * 95 + "\n")
 
 TRADE_JOURNAL_CSV = os.path.join(BASE_DIR, "data", "trade_journal.csv")
@@ -644,20 +674,22 @@ def log_trade_to_journal(target_date: datetime.date, strategy_name: str, trade_r
         f.write("\n")
 
 def run():
-    parser = argparse.ArgumentParser(description="Triple-Strategy Daily Result Checker")
+    parser = argparse.ArgumentParser(description="Multi-Strategy Daily Result Checker")
     parser.add_argument("--date", type=str, default=None, help="Date to check (YYYY-MM-DD).")
     args = parser.parse_args()
 
     api = get_smart_api()
     if api:
         print("[CONNECTED] Angel One SmartAPI connected successfully.")
-        df_all = sync_and_update_candles(api)
+        df_all = sync_and_update_candles(api, CANDLE_FILE, "99926000")
+        df_bn = sync_and_update_candles(api, BANKNIFTY_CANDLE_FILE, "99926009")
     else:
         print("[OFFLINE] Running with local candle dataset.")
         df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
+        df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
 
     if df_all.empty:
-        print("[ERROR] No data available.")
+        print("[ERROR] No Nifty data available.")
         return
 
     df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
@@ -666,18 +698,24 @@ def run():
     else:
         target_date = df_all["timestamp"].dt.date.max()
 
+    if not df_bn.empty:
+        df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+
     s1_res = evaluate_strategy_1(df_all, target_date, api=api)
     s2_res = evaluate_strategy_2(df_all, target_date, api=api)
     s3_res = evaluate_strategy_3(df_all, target_date, api=api)
     s4_res = evaluate_strategy_4(df_all, target_date, api=api)
-    print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res)
+    s5_res = evaluate_strategy_5(df_bn, target_date, api=api) if not df_bn.empty else {"status": "NO_DATA", "reason": "No BankNIFTY data"}
+
+    print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res, s5_res)
 
     # Automatically record executed trades in the live Trade Journal
     for s_name, s_res in [
         ("Strategy 1: Hedged Strangle", s1_res),
         ("Strategy 2: Expiry Gamma Squeeze", s2_res),
         ("Strategy 3: 30M Directional ITM", s3_res),
-        ("Strategy 4: Decoupled Asymmetric Strangle", s4_res)
+        ("Strategy 4: Decoupled Asymmetric Strangle", s4_res),
+        ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res)
     ]:
         if s_res.get("trade_occurred", False):
             if "all_trades" in s_res and len(s_res["all_trades"]) > 1:

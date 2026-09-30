@@ -117,7 +117,8 @@ def send_trade_entry_alert(
     opt_type: str = "",
     strike: str = "",
     entry_p: float = 0.0,
-    time_str: str = ""
+    time_str: str = "",
+    qty: int = 75
 ) -> bool:
     """Formats and sends an instant Trade Entry alert for both single-leg and dual-leg trades."""
     if not time_str:
@@ -127,8 +128,8 @@ def send_trade_entry_alert(
     if opt_type in ["CE", "PE"] or (entry_p > 0 and not (ce_str and pe_str)):
         leg_type = opt_type if opt_type in ["CE", "PE"] else ("CE" if "CE" in str(strike) else "PE")
         p_val = entry_p if entry_p > 0 else (ce_p if leg_type == "CE" else pe_p)
-        sym_val = f"{strike} {leg_type}" if strike and leg_type not in str(strike) else (strike or f"NIFTY {leg_type}")
-        cost_val = tot_cost if tot_cost > 0 else (p_val * 75.0)
+        sym_val = f"{strike} {leg_type}" if strike and leg_type not in str(strike) else (strike or f"OPTION {leg_type}")
+        cost_val = tot_cost if tot_cost > 0 else (p_val * qty)
         tgt_val = p_val * (1.0 + win_target_pct)
         sl_val = p_val * (1.0 - lose_stop_pct)
         emoji = "🟢" if leg_type == "CE" else "🔴"
@@ -139,7 +140,7 @@ def send_trade_entry_alert(
             f"⏰ *Time:* {time_str} | Spot: `{spot:.2f}`\n"
             f"📊 *Strategy:* `{strategy}`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{emoji} *{leg_type} Option Leg:* BUY 1 Lot (75 Qty)\n"
+            f"{emoji} *{leg_type} Option Leg:* BUY 1 Lot ({qty} Qty)\n"
             f"   • `{sym_val}` @ *₹{p_val:.2f}*\n"
             f"   • Profit Target (+{int(win_target_pct*100)}%): *₹{tgt_val:.2f}*\n"
             f"   • Stop Loss (-{int(lose_stop_pct*100)}%): *₹{sl_val:.2f}*\n"
@@ -148,12 +149,12 @@ def send_trade_entry_alert(
             f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹10,000 budget)\n"
         )
     else:
-        # Dual-leg Strangle (Strategy 1 or Strategy 4)
+        # Dual-leg Strangle (Strategy 1, Strategy 4, or Strategy 5 BankNifty)
         ce_tgt = ce_p * (1.0 + win_target_pct)
         ce_sl = ce_p * (1.0 - lose_stop_pct)
         pe_tgt = pe_p * (1.0 + win_target_pct)
         pe_sl = pe_p * (1.0 - lose_stop_pct)
-        cost_val = tot_cost if tot_cost > 0 else ((ce_p + pe_p) * 75.0)
+        cost_val = tot_cost if tot_cost > 0 else ((ce_p + pe_p) * qty)
 
         msg = (
             f"🚨 *TRADE ENTRY TRIGGERED*\n"
@@ -161,11 +162,11 @@ def send_trade_entry_alert(
             f"⏰ *Time:* {time_str} | Spot: `{spot:.2f}`\n"
             f"📊 *Strategy:* `{strategy}`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🟢 *CALL Leg:* BUY 1 Lot (75 Qty)\n"
+            f"🟢 *CALL Leg:* BUY 1 Lot ({qty} Qty)\n"
             f"   • `{ce_str}` @ *₹{ce_p:.2f}*\n"
             f"   • Target (+{int(win_target_pct*100)}%): *₹{ce_tgt:.2f}*\n"
             f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{ce_sl:.2f}*\n\n"
-            f"🔴 *PUT Leg:* BUY 1 Lot (75 Qty)\n"
+            f"🔴 *PUT Leg:* BUY 1 Lot ({qty} Qty)\n"
             f"   • `{pe_str}` @ *₹{pe_p:.2f}*\n"
             f"   • Target (+{int(win_target_pct*100)}%): *₹{pe_tgt:.2f}*\n"
             f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{pe_sl:.2f}*\n"

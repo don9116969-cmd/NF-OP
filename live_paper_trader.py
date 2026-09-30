@@ -47,9 +47,11 @@ from daily_result_checker import (
     evaluate_strategy_2,
     evaluate_strategy_3,
     evaluate_strategy_4,
+    evaluate_strategy_5,
     sync_and_update_candles,
     log_trade_to_journal,
-    CANDLE_FILE
+    CANDLE_FILE,
+    BANKNIFTY_CANDLE_FILE
 )
 
 load_dotenv()
@@ -64,8 +66,9 @@ class LiveQuadPaperTrader:
     Executes and monitors all 4 strategies during live market hours.
     """
     def __init__(self, target_strategy: str = "all"):
-        self.target_strategy = target_strategy.lower() # 'all', 'das', 'strangle', 'gamma', 'directional'
+        self.target_strategy = target_strategy.lower() # 'all', 'das', 'bndas', 'strangle', 'gamma', 'directional'
         self.lot_size = config.LOT_SIZE
+        self.bn_lot_size = 30
         self.capital = config.INITIAL_CAPITAL
 
         self.smart_api = None
@@ -97,7 +100,7 @@ class LiveQuadPaperTrader:
             totp = pyotp.TOTP(totp_secret).now()
             data = self.smart_api.generateSession(client_code, pin, totp)
             if data and data.get("status"):
-                print(f"[SUCCESS] Connected to Angel One SmartAPI for Quad-Strategy Live Trading. (Client: {client_code})")
+                print(f"[SUCCESS] Connected to Angel One SmartAPI for Multi-Index Live Trading. (Client: {client_code})")
                 return True
             else:
                 print(f"[WARN] Angel One login failed: {data.get('message', 'Unknown error')}")
@@ -116,6 +119,17 @@ class LiveQuadPaperTrader:
             except Exception:
                 pass
         return 24800.0
+
+    def get_banknifty_spot_price(self) -> float:
+        """Fetches live BankNIFTY spot price from Angel One LTP."""
+        if self.smart_api:
+            try:
+                ltp_data = self.smart_api.ltpData("NSE", "Nifty Bank", "99926009")
+                if ltp_data and ltp_data.get("status"):
+                    return float(ltp_data["data"]["ltp"])
+            except Exception:
+                pass
+        return 55000.0
 
     def is_market_open_now(self) -> bool:
         """Checks if current time is within live NSE market hours (Mon-Fri 09:15 - 15:25 IST)."""
@@ -137,11 +151,11 @@ class LiveQuadPaperTrader:
                 print(f"\n[PRE-MARKET STANDBY] Bot initialized early at {now.strftime('%I:%M:%S %p')} IST.")
                 print(f"Waiting {int(wait_secs)} seconds until NSE market opens at 09:15:00 AM IST...")
                 send_telegram_alert(
-                    f"⏳ *Nifty Trading Bot Initialized Early (Pre-Market)*\n"
+                    f"⏳ *Option Trading Bot Initialized Early (Pre-Market)*\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━\n"
                     f"⏰ *Current Time:* {now.strftime('%I:%M:%S %p')} IST\n"
                     f"📅 *Date:* {now.strftime('%A, %d-%b-%Y')}\n\n"
-                    f"Market opens at 09:15:00 AM IST. Bot is standing by and will begin active tracking at the opening bell! 🔔"
+                    f"Market opens at 09:15:00 AM IST. Bot is standing by and will begin active tracking across Nifty & BankNifty at the opening bell! 🔔"
                 )
                 time.sleep(max(1.0, wait_secs))
                 return True
@@ -150,21 +164,22 @@ class LiveQuadPaperTrader:
     def run_live_loop(self):
         """Continuously monitors live market during trading hours across all active strategies."""
         print("\n" + "=" * 85)
-        print("   QUAD-STRATEGY LIVE MARKET TRADING ENGINE ACTIVE")
-        print("   Tracking Strategies: Strategy 1 (Strangle), 2 (Gamma), 3 (Directional), 4 (DAS)")
+        print("   MULTI-INDEX LIVE MARKET TRADING ENGINE ACTIVE")
+        print("   Tracking Strategies: Strategy 1, 2, 3, 4 (Nifty) & Strategy 5 (BankNifty DAS)")
         print("=" * 85)
 
         ist_now = get_ist_now()
         send_telegram_alert(
-            f"🚀 *Nifty Option Trading Bot Woke Up (Live Engine Active)*\n"
+            f"🚀 *Option Trading Bot Woke Up (Live Engine Active)*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
             f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
-            f"Bot is actively monitoring all 4 quantitative strategies:\n"
-            f"• Strategy 1: Hedged Long Strangle (15M Box Breakout)\n"
-            f"• Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze\n"
-            f"• Strategy 3: 30M Statistical Directional ITM Breakout\n"
-            f"• Strategy 4: Decoupled Asymmetric Strangle (DAS)\n\n"
+            f"Bot is actively monitoring all 5 quantitative strategies:\n"
+            f"• Strategy 1: Hedged Long Strangle (15M Box - Nifty)\n"
+            f"• Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze (Nifty)\n"
+            f"• Strategy 3: 30M Statistical Directional ITM Breakout (Nifty)\n"
+            f"• Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)\n"
+            f"• Strategy 5: Decoupled Asymmetric Strangle (DAS - BankNifty)\n\n"
             f"💰 *Capital Limit:* ₹10,000 per trade\n"
             f"🔔 Instant alerts will be sent here for every trade entry and exit!"
         )
@@ -180,25 +195,44 @@ class LiveQuadPaperTrader:
             # 1. Sync live candles from Angel One SmartAPI
             try:
                 if self.smart_api:
-                    df_all = sync_and_update_candles(self.smart_api)
+                    df_all = sync_and_update_candles(self.smart_api, CANDLE_FILE, "99926000")
                 else:
                     df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
             except Exception as e:
-                print(f"[WARN] Candle sync error: {e}")
+                print(f"[WARN] Nifty candle sync error: {e}")
                 df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
 
-            if df_all.empty:
+            try:
+                if self.smart_api:
+                    df_bn = sync_and_update_candles(self.smart_api, BANKNIFTY_CANDLE_FILE, "99926009")
+                else:
+                    df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
+            except Exception as e:
+                print(f"[WARN] BankNifty candle sync error: {e}")
+                df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
+
+            if df_all.empty and df_bn.empty:
                 time.sleep(30)
                 continue
 
-            df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
-            day_candles = df_all[df_all["timestamp"].dt.date == today_date]
-            spot = float(day_candles["close"].iloc[-1]) if not day_candles.empty else self.get_nifty_spot_price()
+            if not df_all.empty:
+                df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
+                day_candles = df_all[df_all["timestamp"].dt.date == today_date]
+                spot = float(day_candles["close"].iloc[-1]) if not day_candles.empty else self.get_nifty_spot_price()
+            else:
+                spot = self.get_nifty_spot_price()
+
+            if not df_bn.empty:
+                df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+                day_bn_candles = df_bn[df_bn["timestamp"].dt.date == today_date]
+                bn_spot = float(day_bn_candles["close"].iloc[-1]) if not day_bn_candles.empty else self.get_banknifty_spot_price()
+            else:
+                bn_spot = self.get_banknifty_spot_price()
 
             # -------------------------------------------------------------
-            # Strategy 1: Hedged Long Strangle (15M Box Breakout)
+            # Strategy 1: Hedged Long Strangle (15M Box Breakout - Nifty)
             # -------------------------------------------------------------
-            if self.target_strategy in ["all", "strangle"] and t_time >= dtime(9, 30):
+            if self.target_strategy in ["all", "strangle"] and t_time >= dtime(9, 30) and not df_all.empty:
                 try:
                     s1_res = evaluate_strategy_1(df_all, today_date, api=self.smart_api)
                     if s1_res.get("trade_occurred", False):
@@ -235,9 +269,9 @@ class LiveQuadPaperTrader:
                     print(f"[WARN] Strategy 1 evaluation error: {e}")
 
             # -------------------------------------------------------------
-            # Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze (Mon & Tue)
+            # Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze (Nifty Mon & Tue)
             # -------------------------------------------------------------
-            if self.target_strategy in ["all", "gamma"] and today_date.weekday() in [0, 1] and t_time >= dtime(9, 35):
+            if self.target_strategy in ["all", "gamma"] and today_date.weekday() in [0, 1] and t_time >= dtime(9, 35) and not df_all.empty:
                 try:
                     s2_res = evaluate_strategy_2(df_all, today_date, api=self.smart_api)
                     if s2_res.get("trade_occurred", False):
@@ -273,9 +307,9 @@ class LiveQuadPaperTrader:
                     print(f"[WARN] Strategy 2 evaluation error: {e}")
 
             # -------------------------------------------------------------
-            # Strategy 3: 30M Statistical Directional ITM Breakout
+            # Strategy 3: 30M Statistical Directional ITM Breakout (Nifty)
             # -------------------------------------------------------------
-            if self.target_strategy in ["all", "directional"] and t_time >= dtime(9, 45):
+            if self.target_strategy in ["all", "directional"] and t_time >= dtime(9, 45) and not df_all.empty:
                 try:
                     s3_res = evaluate_strategy_3(df_all, today_date, api=self.smart_api)
                     if s3_res.get("trade_occurred", False):
@@ -311,9 +345,9 @@ class LiveQuadPaperTrader:
                     print(f"[WARN] Strategy 3 evaluation error: {e}")
 
             # -------------------------------------------------------------
-            # Strategy 4: Decoupled Asymmetric Strangle (DAS)
+            # Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)
             # -------------------------------------------------------------
-            if self.target_strategy in ["all", "das"] and t_time >= dtime(9, 35):
+            if self.target_strategy in ["all", "das"] and t_time >= dtime(9, 35) and not df_all.empty:
                 try:
                     s4_res = evaluate_strategy_4(df_all, today_date, api=self.smart_api)
                     if s4_res.get("trade_occurred", False):
@@ -330,7 +364,8 @@ class LiveQuadPaperTrader:
                                 win_target_pct=config.DAS_WIN_TARGET_PCT,
                                 lose_stop_pct=config.DAS_LOSE_STOP_PCT,
                                 max_hold_mins=config.DAS_MAX_HOLD_MINS,
-                                time_str=str(s4_res.get("entry_time"))
+                                time_str=str(s4_res.get("entry_time")),
+                                qty=self.lot_size
                             )
                             alerted_entries.add(entry_key)
 
@@ -349,6 +384,46 @@ class LiveQuadPaperTrader:
                 except Exception as e:
                     print(f"[WARN] Strategy 4 evaluation error: {e}")
 
+            # -------------------------------------------------------------
+            # Strategy 5: Decoupled Asymmetric Strangle (DAS - BankNifty)
+            # -------------------------------------------------------------
+            if self.target_strategy in ["all", "bndas", "das"] and t_time >= dtime(9, 45) and not df_bn.empty:
+                try:
+                    s5_res = evaluate_strategy_5(df_bn, today_date, api=self.smart_api)
+                    if s5_res.get("trade_occurred", False):
+                        entry_key = ("s5_entry", str(s5_res.get("entry_time")))
+                        if entry_key not in alerted_entries:
+                            send_trade_entry_alert(
+                                strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
+                                spot=bn_spot,
+                                ce_str=f"{s5_res.get('strike', 'ATM Strangle')}",
+                                pe_str=f"{s5_res.get('strike', 'ATM Strangle')}",
+                                ce_p=round(s5_res.get("entry_p", 0.0) / 2.0, 2),
+                                pe_p=round(s5_res.get("entry_p", 0.0) / 2.0, 2),
+                                tot_cost=s5_res.get("cost", 0.0),
+                                win_target_pct=1.00,
+                                lose_stop_pct=0.15,
+                                max_hold_mins=45,
+                                time_str=str(s5_res.get("entry_time")),
+                                qty=self.bn_lot_size
+                            )
+                            alerted_entries.add(entry_key)
+
+                        exit_key = ("s5_exit", str(s5_res.get("exit_time")))
+                        if s5_res.get("exit_time") and exit_key not in alerted_exits:
+                            send_trade_exit_alert(
+                                strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
+                                exit_reason=s5_res.get("exit_reason", "Target / SL"),
+                                gross_pnl=s5_res.get("gross_pnl", 0.0),
+                                charges=s5_res.get("charges", 80.0),
+                                net_pnl=s5_res.get("net_pnl", 0.0),
+                                details=f"Entry: ₹{s5_res.get('entry_p')} -> Exit: ₹{s5_res.get('exit_p')}",
+                                time_str=str(s5_res.get("exit_time"))
+                            )
+                            alerted_exits.add(exit_key)
+                except Exception as e:
+                    print(f"[WARN] Strategy 5 evaluation error: {e}")
+
             time.sleep(60)
 
         # Market Close Procedure at 15:25 IST
@@ -358,76 +433,99 @@ class LiveQuadPaperTrader:
     def run_eod_accounting(self):
         """Runs end-of-day result check and logs to journal and Telegram."""
         df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
+        df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
+        today = get_ist_now().date()
+
         if not df_all.empty:
             df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
-            today = get_ist_now().date()
-            
             s1_res = evaluate_strategy_1(df_all, today, api=self.smart_api)
             s2_res = evaluate_strategy_2(df_all, today, api=self.smart_api)
             s3_res = evaluate_strategy_3(df_all, today, api=self.smart_api)
             s4_res = evaluate_strategy_4(df_all, today, api=self.smart_api)
+        else:
+            s1_res, s2_res, s3_res, s4_res = {}, {}, {}, {}
 
-            # Log any executed trades to journal
-            daily_net = 0.0
-            trades_today = 0
-            for s_name, s_res in [
-                ("Strategy 1: Hedged Strangle", s1_res),
-                ("Strategy 2: Expiry Gamma Squeeze", s2_res),
-                ("Strategy 3: 30M Directional ITM", s3_res),
-                ("Strategy 4: Decoupled Asymmetric Strangle", s4_res)
-            ]:
-                if s_res.get("trade_occurred", False):
-                    trades_today += s_res.get("num_trades_day", 1)
-                    daily_net += s_res.get("net_pnl", 0.0)
+        if not df_bn.empty:
+            df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+            s5_res = evaluate_strategy_5(df_bn, today, api=self.smart_api)
+        else:
+            s5_res = {}
+
+        # Log any executed trades to journal
+        daily_net = 0.0
+        trades_today = 0
+        for s_name, s_res in [
+            ("Strategy 1: Hedged Strangle", s1_res),
+            ("Strategy 2: Expiry Gamma Squeeze", s2_res),
+            ("Strategy 3: 30M Directional ITM", s3_res),
+            ("Strategy 4: Decoupled Asymmetric Strangle", s4_res),
+            ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res)
+        ]:
+            if s_res.get("trade_occurred", False):
+                trades_today += s_res.get("num_trades_day", 1)
+                daily_net += s_res.get("net_pnl", 0.0)
+                if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
+                    for sub_tr in s_res["all_trades"]:
+                        log_trade_to_journal(today, s_name, sub_tr)
+                else:
                     log_trade_to_journal(today, s_name, s_res)
 
-            # Read current ledger for total cumulative PnL
+        # Read cumulative PnL directly from journal
+        total_pnl = 0.0
+        if os.path.exists("data/trade_journal.csv"):
+            try:
+                df_j = pd.read_csv("data/trade_journal.csv")
+                if not df_j.empty and "net_pnl" in df_j.columns:
+                    total_pnl = round(float(df_j["net_pnl"].sum()), 2)
+            except Exception:
+                total_pnl = 5164.16 + daily_net
+        else:
             total_pnl = 5164.16 + daily_net
-            current_balance = 10000.0 + total_pnl
 
-            send_daily_summary_alert(
-                date_str=today.strftime("%d-%b-%Y"),
-                trades_count=trades_today,
-                daily_pnl=daily_net,
-                total_pnl=total_pnl,
-                current_balance=current_balance
-            )
+        current_balance = round(10000.0 + total_pnl, 2)
+
+        send_daily_summary_alert(
+            date_str=today.strftime("%d-%b-%Y"),
+            trades_count=trades_today,
+            daily_pnl=daily_net,
+            total_pnl=total_pnl,
+            current_balance=current_balance
+        )
 
     def run_replay_demonstration(self):
-        """Simulates all 4 strategies on the latest market session for offline testing."""
+        """Simulates all 5 strategies on the latest market session for offline testing."""
         print("=" * 85)
-        print("   QUAD-STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
+        print("   MULTI-INDEX STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
         print("=" * 85)
-        df = pd.read_csv("data/nifty_1min_real.csv")
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-        last_date = df["timestamp"].dt.date.max()
+        df_n = pd.read_csv("data/nifty_1min_real.csv") if os.path.exists("data/nifty_1min_real.csv") else pd.DataFrame()
+        df_b = pd.read_csv("data/banknifty_1min_real.csv") if os.path.exists("data/banknifty_1min_real.csv") else pd.DataFrame()
+
+        if not df_n.empty:
+            df_n["timestamp"] = pd.to_datetime(df_n["timestamp"])
+            last_date = df_n["timestamp"].dt.date.max()
+        elif not df_b.empty:
+            df_b["timestamp"] = pd.to_datetime(df_b["timestamp"]).dt.tz_localize(None)
+            last_date = df_b["timestamp"].dt.date.max()
+        else:
+            print("[ERROR] No candle data for demonstration.")
+            return
+
+        if not df_b.empty:
+            df_b["timestamp"] = pd.to_datetime(df_b["timestamp"]).dt.tz_localize(None)
 
         print(f"Testing latest recorded market session: {last_date}")
-        s1 = evaluate_strategy_1(df, last_date, api=self.smart_api)
-        s2 = evaluate_strategy_2(df, last_date, api=self.smart_api)
-        s3 = evaluate_strategy_3(df, last_date, api=self.smart_api)
-        s4 = evaluate_strategy_4(df, last_date, api=self.smart_api)
+        s1 = evaluate_strategy_1(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
+        s2 = evaluate_strategy_2(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
+        s3 = evaluate_strategy_3(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
+        s4 = evaluate_strategy_4(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
+        s5 = evaluate_strategy_5(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
 
         print(f"\n[EVALUATION RESULTS FOR {last_date}]")
-        print(f"Strategy 1 (15M Strangle)   : {s1.get('status')} | Trade: {s1.get('trade_occurred')}")
-        print(f"Strategy 2 (Gamma Squeeze)  : {s2.get('status')} | Trade: {s2.get('trade_occurred')}")
-        print(f"Strategy 3 (Directional ITM): {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
-        print(f"Strategy 4 (DAS Strangle)   : {s4.get('status')} | Trade: {s4.get('trade_occurred')}")
-
-        if s2.get("trade_occurred"):
-            print(f"\n-> Firing Telegram Demonstration Alert for Strategy 2...")
-            send_trade_entry_alert(
-                strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
-                spot=22750.0,
-                opt_type=s2.get("opt_type", "PE"),
-                strike=str(s2.get("strike")),
-                entry_p=s2.get("entry_p", 56.25),
-                tot_cost=s2.get("cost", 4218.75),
-                win_target_pct=0.80,
-                lose_stop_pct=0.25,
-                max_hold_mins=45,
-                time_str=str(s2.get("entry_time", "10:09:00 AM"))
-            )
+        print(f"Strategy 1 (15M Strangle - Nifty)    : {s1.get('status')} | Trade: {s1.get('trade_occurred')}")
+        print(f"Strategy 2 (Gamma Squeeze - Nifty)   : {s2.get('status')} | Trade: {s2.get('trade_occurred')}")
+        print(f"Strategy 3 (Directional ITM - Nifty) : {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
+        print(f"Strategy 4 (DAS Strangle - Nifty)    : {s4.get('status')} | Trade: {s4.get('trade_occurred')}")
+        print(f"Strategy 5 (DAS Strangle - BankNifty): {s5.get('status')} | Trade: {s5.get('trade_occurred')}")
 
     def run(self):
         """Master execution entry point."""
@@ -477,8 +575,8 @@ class LiveQuadPaperTrader:
             self.run_eod_accounting()
 
 def main():
-    parser = argparse.ArgumentParser(description="Live Market Paper Trading Bot for Nifty Options")
-    parser.add_argument("--strategy", type=str, default="all", choices=["strangle", "gamma", "directional", "das", "all"], help="Strategy to trade (strangle, gamma, directional, das, or all).")
+    parser = argparse.ArgumentParser(description="Multi-Index Live Market Paper Trading Bot")
+    parser.add_argument("--strategy", type=str, default="all", choices=["strangle", "gamma", "directional", "das", "bndas", "all"], help="Strategy to trade (strangle, gamma, directional, das, bndas, or all).")
     args = parser.parse_args()
 
     bot = LiveQuadPaperTrader(target_strategy=args.strategy)
