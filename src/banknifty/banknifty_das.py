@@ -197,7 +197,8 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
             entry_tot = ce_entry + pe_entry
             comb_ret = (cur_tot - entry_tot) / max(0.1, entry_tot)
 
-            is_time_up = (bars >= 45) or (tm >= datetime.time(15, 15))
+            elapsed_mins = (day_slice.iloc[i]["timestamp"] - day_slice.iloc[entry_idx]["timestamp"]).total_seconds() / 60.0
+            is_time_up = (elapsed_mins >= 45.0) or (tm >= datetime.time(15, 15))
             is_comb_stop = comb_ret <= -0.15
 
             if (ce_exited and pe_exited) or is_time_up or is_comb_stop:
@@ -313,7 +314,8 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
 
                             cur_tot = (ce_exit_p if ce_exited else float(c_bar["close"])) + (pe_exit_p if pe_exited else float(p_bar["close"]))
                             comb_ret = (cur_tot - entry_tot) / entry_tot
-                            is_time_up = (bars_held >= 45) or (ts_idx.time() >= datetime.time(15, 15))
+                            elapsed_mins = (ts_idx - t_start).total_seconds() / 60.0
+                            is_time_up = (elapsed_mins >= 45.0) or (ts_idx.time() >= datetime.time(15, 15))
                             is_comb_stop = comb_ret <= -0.15
 
                             if (ce_exited and pe_exited) or is_time_up or is_comb_stop:
@@ -349,6 +351,12 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                                     "strategy": "BankNIFTY Decoupled Strangle (DAS)",
                                     "opt_type": "CE+PE",
                                     "strike": f"{c_ce['symbol']} + {c_pe['symbol']}",
+                                    "ce_symbol": c_ce['symbol'],
+                                    "pe_symbol": c_pe['symbol'],
+                                    "ce_entry": real_ce_entry,
+                                    "pe_entry": real_pe_entry,
+                                    "ce_exit": p_c,
+                                    "pe_exit": p_p,
                                     "entry_time": t_start.time().strftime("%H:%M:%S"),
                                     "exit_time": exit_ts.time().strftime("%H:%M:%S"),
                                     "entry_p": entry_tot,

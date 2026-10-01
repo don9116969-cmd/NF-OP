@@ -236,6 +236,21 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
                                 ce_reason = 'CE Target (+75%)'
                                 ce_exit_time = ts
 
+                        # Check 120-minute time cutoff or market close (15:15 IST)
+                        elapsed_m = (ts - entry_ts).total_seconds() / 60.0
+                        if elapsed_m >= 120.0 or ts.time() >= datetime.time(15, 15):
+                            if ce_active:
+                                ce_active = False
+                                ce_exit_p = round(float(c_bar['close']) * (1.0 - config.SLIPPAGE_PCT), 2)
+                                ce_reason = 'Time Stop (120m)'
+                                ce_exit_time = ts
+                            if pe_active:
+                                pe_active = False
+                                pe_exit_p = round(float(p_bar['close']) * (1.0 - config.SLIPPAGE_PCT), 2)
+                                pe_reason = 'Time Stop (120m)'
+                                pe_exit_time = ts
+                            break
+
                         if not ce_active and not pe_active:
                             break
 
@@ -313,17 +328,55 @@ def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: 
             df_opt = fetch_real_option_candles(api, contract, t_min, t_max)
             if not df_opt.empty:
                 entry_ts = pd.to_datetime(trade["entry_time"])
-                exit_ts = pd.to_datetime(trade["exit_time"])
                 sub_entry = df_opt[df_opt.index >= entry_ts]
-                sub_exit = df_opt[df_opt.index >= exit_ts]
                 if not sub_entry.empty:
-                    trade["entry_p"] = round(float(sub_entry.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    trade["cost"] = round(trade["entry_p"] * 75, 2)
-                if not sub_exit.empty:
-                    trade["exit_p"] = round(float(sub_exit.iloc[0]["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
-                    gross = (trade["exit_p"] - trade["entry_p"]) * 75
-                    trade["gross"] = gross
-                    trade["net"] = round(gross - trade["charges"], 2)
+                    real_entry_p = round(float(sub_entry.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                    trade["entry_p"] = real_entry_p
+                    trade["cost"] = round(real_entry_p * 75, 2)
+
+                    tgt_p = round(real_entry_p * 1.80, 2)
+                    sl_p = round(real_entry_p * 0.75, 2)
+
+                    exit_p = real_entry_p
+                    exit_reason = "Time Stop (45m)"
+                    exit_ts = sub_entry.index[-1]
+
+                    for ts, bar in sub_entry.iterrows():
+                        elapsed_m = (ts - entry_ts).total_seconds() / 60.0
+                        b_high = float(bar['high'])
+                        b_low = float(bar['low'])
+                        b_close = float(bar['close'])
+
+                        if b_high >= tgt_p:
+                            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = "Target Hit (+80%)"
+                            exit_ts = ts
+                            break
+                        elif b_low <= sl_p:
+                            exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = "SL Hit (-25%)"
+                            exit_ts = ts
+                            break
+                        elif elapsed_m >= 45.0 or ts.time() >= datetime.time(15, 15):
+                            exit_p = round(b_close * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = "Time Stop (45m)"
+                            exit_ts = ts
+                            break
+
+                    trade["exit_p"] = exit_p
+                    trade["exit_time"] = exit_ts
+                    trade["exit_reason"] = exit_reason
+                    gross = (exit_p - real_entry_p) * 75
+                    trade["gross"] = round(gross, 2)
+                    buy_val = real_entry_p * 75
+                    sell_val = exit_p * 75
+                    turn = buy_val + sell_val
+                    brok = 40.0
+                    stt = sell_val * 0.001
+                    exch = turn * 0.0005
+                    gst = (brok + exch) * 0.18
+                    trade["charges"] = round(brok + stt + exch + gst, 2)
+                    trade["net"] = round(trade["gross"] - trade["charges"], 2)
                 feed_label = f"Angel One Real Traded ({contract['symbol']})"
 
     return {

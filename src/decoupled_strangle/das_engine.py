@@ -190,7 +190,7 @@ def evaluate_das_for_day(
             elif comb_pnl_pct <= -comb_stop_pct and (not pos['ce_exited'] and not pos['pe_exited']):
                 force_close = True
                 close_reason = f"Combined SL (-{int(comb_stop_pct*100)}%)"
-            elif bars_held >= max_hold_bars:
+            elif (t - pos['entry_time']).total_seconds() / 60.0 >= max_hold_bars:
                 force_close = True
                 close_reason = f"Max Hold ({max_hold_bars}m)"
             elif time_str >= "15:15":
