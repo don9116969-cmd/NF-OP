@@ -19,3 +19,5 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-10-06,Strategy 2: Expiry Gamma Squeeze,PE,22650,10:10:00,10:35:00,67.44,50.18,5058.0,-1294.5,56.17,-1350.67,SL Hit (-25%),Angel One Real Traded (NIFTY06OCT2622650PE)
 2026-10-06,Strategy 3: 30M Directional ITM,CE,22600,09:48:00,10:03:00,82.0,85.56,6150.0,267.0,61.03,205.97,Trailing Peak Exit,Angel One Real Traded (NIFTY06OCT2622600CE)
 2026-10-06,Strategy 5: BankNIFTY Decoupled Strangle (DAS),CE+PE,BANKNIFTY27OCT2657700CE + BANKNIFTY27OCT2652100PE,10:05:00,10:50:00,212.66,206.6,6379.8,-181.74,60.82,-242.56,Time Exit (45m),Angel One Real Traded (BANKNIFTY27OCT2657700CE + BANKNIFTY27OCT2652100PE)
+2026-10-06,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,22650CE / 22600PE,09:48:00,10:13:00,96.35,92.9,6262.75,-224.25,107.7,-331.95,Max Hold (25m) | Max Hold (25m),Angel One Real Traded
+2026-10-06,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,22700CE / 22700PE,13:06:00,13:31:00,83.6,77.5,5434.0,-396.5,105.62,-502.12,Max Hold (25m) | Max Hold (25m),Angel One Real Traded

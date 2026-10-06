@@ -320,8 +320,8 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
 
                             if (ce_exited and pe_exited) or is_time_up or is_comb_stop:
                                 exit_ts = ts_idx
-                                p_c = ce_exit_p if ce_exited else float(c_bar["close"])
-                                p_p = pe_exit_p if pe_exited else float(p_bar["close"])
+                                p_c = ce_exit_p if ce_exited else round(float(c_bar["close"]) * (1.0 - SLIPPAGE_PCT), 2)
+                                p_p = pe_exit_p if pe_exited else round(float(p_bar["close"]) * (1.0 - SLIPPAGE_PCT), 2)
 
                                 gross = ((p_c - real_ce_entry) + (p_p - real_pe_entry)) * LOT_SIZE
                                 buy_v = entry_tot * LOT_SIZE
@@ -329,7 +329,7 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                                 turn = buy_v + sell_v
                                 stt = sell_v * 0.001
                                 exch = turn * 0.0005
-                                charges = round(40.0 + stt + exch + (40.0 + exch) * 0.18, 2)
+                                charges = round(80.0 + stt + exch + (80.0 + exch) * 0.18, 2)
                                 net = round(gross - charges, 2)
 
                                 if is_comb_stop:

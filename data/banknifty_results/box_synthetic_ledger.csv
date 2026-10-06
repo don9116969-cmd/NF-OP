@@ -1,14 +1,5 @@
-strategy,entry_time,exit_time,capital,net_pnl,ret_pct,reason
-Directional Box Breakout,2026-08-28 10:15,2026-08-28 13:04,14400.23,-3669.67,-25.48,STOP_LOSS (-25%)
-Directional Box Breakout,2026-08-31 10:37,2026-08-31 11:35,7648.31,-1973.84,-25.81,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-01 11:13,2026-09-01 12:54,5411.94,-1559.11,-28.81,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-02 10:19,2026-09-02 11:03,4362.47,-1226.11,-28.11,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-07 10:16,2026-09-07 14:02,7951.6,-2047.25,-25.75,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-08 12:06,2026-09-08 12:37,4046.14,-1119.76,-27.67,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-09 12:35,2026-09-09 13:10,2510.3,-791.34,-31.52,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-11 10:21,2026-09-11 14:02,14199.9,9402.54,66.22,TARGET_HIT (+60%)
-Directional Box Breakout,2026-09-18 11:05,2026-09-18 12:42,11831.87,-3051.44,-25.79,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-21 13:34,2026-09-21 15:12,6339.03,-1632.51,-25.75,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-22 10:33,2026-09-22 12:50,4656.17,2757.68,59.23,TARGET_HIT (+60%)
-Directional Box Breakout,2026-09-23 10:00,2026-09-23 13:35,3743.65,-1095.85,-29.27,STOP_LOSS (-25%)
-Directional Box Breakout,2026-09-25 14:03,2026-09-25 14:58,11815.0,-3065.08,-25.94,STOP_LOSS (-25%)
+strategy,entry_time,exit_time,capital,gross_pnl,net_pnl,pnl_pct,close_reason
+Directional Box Breakout,2026-09-08 11:50,2026-09-08 14:17,5181.85,-1420.84,-1465.84,-28.29,STOP_LOSS (-25%)
+Directional Box Breakout,2026-09-09 12:34,2026-09-09 12:49,3518.83,695.79,650.79,18.49,TRAILING_STOP_LOCK
+Directional Box Breakout,2026-09-18 10:40,2026-09-18 12:43,11644.49,-3105.63,-3150.63,-27.06,STOP_LOSS (-25%)
+Directional Box Breakout,2026-09-22 10:31,2026-09-22 10:59,5577.84,1084.71,1039.71,18.64,TRAILING_STOP_LOCK

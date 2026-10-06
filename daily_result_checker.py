@@ -196,7 +196,7 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
                     real_ce_entry = round(float(sub_ce.iloc[0]['close']) * (1.0 + config.SLIPPAGE_PCT), 2)
                     real_pe_entry = round(float(sub_pe.iloc[0]['close']) * (1.0 + config.SLIPPAGE_PCT), 2)
                     trade["entry_p"] = round(real_ce_entry + real_pe_entry, 2)
-                    trade["cost"] = round(trade["entry_p"] * 75, 2)
+                    trade["cost"] = round(trade["entry_p"] * config.LOT_SIZE, 2)
 
                     ce_sl = real_ce_entry * (1 - 0.20)
                     ce_tgt = real_ce_entry * (1 + 0.75)
@@ -258,12 +258,12 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
                     final_exit_time = max(ce_exit_time, pe_exit_time) if (ce_exit_time and pe_exit_time) else trade["exit_time"]
                     trade["exit_time"] = final_exit_time
                     trade["exit_p"] = round(ce_exit_p + pe_exit_p, 2)
-                    gross_ce = (ce_exit_p - real_ce_entry) * 75
-                    gross_pe = (pe_exit_p - real_pe_entry) * 75
+                    gross_ce = (ce_exit_p - real_ce_entry) * config.LOT_SIZE
+                    gross_pe = (pe_exit_p - real_pe_entry) * config.LOT_SIZE
                     trade["gross"] = round(gross_ce + gross_pe, 2)
 
-                    buy_v = trade["entry_p"] * 75
-                    sell_v = trade["exit_p"] * 75
+                    buy_v = trade["entry_p"] * config.LOT_SIZE
+                    sell_v = trade["exit_p"] * config.LOT_SIZE
                     turn = buy_v + sell_v
                     brok = 80.0
                     stt = sell_v * 0.001
@@ -332,7 +332,7 @@ def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: 
                 if not sub_entry.empty:
                     real_entry_p = round(float(sub_entry.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                     trade["entry_p"] = real_entry_p
-                    trade["cost"] = round(real_entry_p * 75, 2)
+                    trade["cost"] = round(real_entry_p * config.LOT_SIZE, 2)
 
                     tgt_p = round(real_entry_p * 1.80, 2)
                     sl_p = round(real_entry_p * 0.75, 2)
@@ -366,10 +366,10 @@ def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: 
                     trade["exit_p"] = exit_p
                     trade["exit_time"] = exit_ts
                     trade["exit_reason"] = exit_reason
-                    gross = (exit_p - real_entry_p) * 75
+                    gross = (exit_p - real_entry_p) * config.LOT_SIZE
                     trade["gross"] = round(gross, 2)
-                    buy_val = real_entry_p * 75
-                    sell_val = exit_p * 75
+                    buy_val = real_entry_p * config.LOT_SIZE
+                    sell_val = exit_p * config.LOT_SIZE
                     turn = buy_val + sell_val
                     brok = 40.0
                     stt = sell_val * 0.001
@@ -455,7 +455,7 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
                 if not sub_opt.empty:
                     entry_p = round(float(sub_opt.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                     trade["entry_p"] = entry_p
-                    trade["cost"] = round(entry_p * 75, 2)
+                    trade["cost"] = round(entry_p * config.LOT_SIZE, 2)
 
                     sl_price = round(entry_p * (1.0 - 0.15), 2)
                     tgt_price = round(entry_p * (1.0 + 0.80), 2)
@@ -496,11 +496,11 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
                     trade["exit_p"] = exit_p
                     trade["exit_time"] = exit_ts
                     trade["exit_reason"] = exit_reason
-                    gross = (trade["exit_p"] - trade["entry_p"]) * 75
+                    gross = (trade["exit_p"] - trade["entry_p"]) * config.LOT_SIZE
                     trade["gross"] = round(gross, 2)
 
-                    buy_val = trade["entry_p"] * 75
-                    sell_val = trade["exit_p"] * 75
+                    buy_val = trade["entry_p"] * config.LOT_SIZE
+                    sell_val = trade["exit_p"] * config.LOT_SIZE
                     turn = buy_val + sell_val
                     brok = 40.0
                     stt = sell_val * 0.001
@@ -792,8 +792,28 @@ def run():
                 tot_pnl = daily_net_pnl
 
         try:
-            from src.notifications.notifier import send_daily_summary_alert
-            print(f"[TELEGRAM] Pushing daily summary to Telegram for {target_date.strftime('%d-%b-%Y')}...")
+            from src.notifications.notifier import send_daily_summary_alert, send_trade_exit_alert
+            print(f"[TELEGRAM] Pushing daily summary and executed trades to Telegram for {target_date.strftime('%d-%b-%Y')}...")
+            for s_name, s_res in [
+                ("Strategy 1: Hedged Strangle (15M Box)", s1_res),
+                ("Strategy 2: 0-DTE / 1-DTE Gamma Squeeze", s2_res),
+                ("Strategy 3: 30M Directional ITM", s3_res),
+                ("Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)", s4_res),
+                ("Strategy 5: Decoupled Asymmetric Strangle (DAS - BankNifty)", s5_res)
+            ]:
+                if s_res.get("trade_occurred", False):
+                    trades_to_notify = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
+                    for sub_tr in trades_to_notify:
+                        send_trade_exit_alert(
+                            strategy=s_name,
+                            exit_reason=sub_tr.get("exit_reason", "Target/SL/Time"),
+                            gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
+                            charges=sub_tr.get("charges", 0.0),
+                            net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
+                            details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
+                            time_str=str(sub_tr.get("exit_time", ""))
+                        )
+
             send_daily_summary_alert(
                 date_str=target_date.strftime("%d-%b-%Y"),
                 trades_count=daily_trades_count,
@@ -801,7 +821,7 @@ def run():
                 total_pnl=tot_pnl,
                 current_balance=round(10000.0 + tot_pnl, 2)
             )
-            print("[TELEGRAM] Telegram sync alert delivered successfully!")
+            print("[TELEGRAM] All trade alerts and summary delivered successfully!")
         except Exception as e:
             print(f"[WARN] Failed to push Telegram sync: {e}")
 

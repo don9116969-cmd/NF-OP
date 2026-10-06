@@ -7,7 +7,8 @@ from dataclasses import dataclass
 class TradingConfig:
     # Asset settings
     INDEX_NAME: str = "NIFTY"
-    LOT_SIZE: int = 75  # Current standard Nifty lot size
+    LOT_SIZE: int = 65  # Official NSE Nifty standard lot size
+    BANKNIFTY_LOT_SIZE: int = 30  # Official NSE BankNifty standard lot size
     STRIKE_STEP: int = 50  # Nifty strike intervals (e.g. 24000, 24050, 24100)
     
     # Capital & Risk Controls (₹10,000 Budget)

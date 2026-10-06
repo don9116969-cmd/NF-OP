@@ -28,7 +28,7 @@ def run_single_directional_simulation(
     trailing_peak_pct: float = 0.15  # Trail 15% from peak once in profit
 ) -> dict:
     n = len(data)
-    lot_size = 75
+    lot_size = config.LOT_SIZE
     capital = 10000.0
     equity = capital
     trades = []

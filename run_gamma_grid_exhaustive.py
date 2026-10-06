@@ -53,7 +53,7 @@ def run_single_gamma_simulation(
     time_stop_mins: int = 45   # Exit if trade stagnates for 45 mins
 ) -> dict:
     n = len(data)
-    lot_size = 75
+    lot_size = config.LOT_SIZE
     capital = 10000.0
     equity = capital
     trades = []

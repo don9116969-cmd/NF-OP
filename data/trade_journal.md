@@ -1,13 +1,13 @@
 # Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-06 14:36:49*
+*Last Updated: 2026-10-06 16:01:01*
 
 ### 1. Live Paper Trading Performance Summary
 - **Starting Capital**: INR 10,000.00
-- **Total Live Trades**: 20
-- **Win Rate**: 35.0% (7 Wins / 13 Losses)
-- **Net Live PnL**: INR +2,346.59
-- **Current Balance**: INR +12,346.59
+- **Total Live Trades**: 22
+- **Win Rate**: 31.8% (7 Wins / 15 Losses)
+- **Net Live PnL**: INR +1,512.52
+- **Current Balance**: INR +11,512.52
 
 ### 2. Complete Trade Ledger
 
@@ -33,4 +33,6 @@
 | 2026-10-06 | Strategy 2: Expiry Gamma Squeeze | PE | 22650 | 10:10:00 | 10:35:00 | ₹67.44 | ₹50.18 | ₹5058.00 | **-₹1350.67** | SL Hit (-25%) | Angel One Real Traded (NIFTY06OCT2622650PE) |
 | 2026-10-06 | Strategy 3: 30M Directional ITM | CE | 22600 | 09:48:00 | 10:03:00 | ₹82.00 | ₹85.56 | ₹6150.00 | **+₹205.97** | Trailing Peak Exit | Angel One Real Traded (NIFTY06OCT2622600CE) |
 | 2026-10-06 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657700CE + BANKNIFTY27OCT2652100PE | 10:05:00 | 10:50:00 | ₹212.66 | ₹206.60 | ₹6379.80 | **-₹242.56** | Time Exit (45m) | Angel One Real Traded (BANKNIFTY27OCT2657700CE + BANKNIFTY27OCT2652100PE) |
+| 2026-10-06 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | 22650CE / 22600PE | 09:48:00 | 10:13:00 | ₹96.35 | ₹92.90 | ₹6262.75 | **-₹331.95** | Max Hold (25m) | Max Hold (25m) | Angel One Real Traded |
+| 2026-10-06 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | 22700CE / 22700PE | 13:06:00 | 13:31:00 | ₹83.60 | ₹77.50 | ₹5434.00 | **-₹502.12** | Max Hold (25m) | Max Hold (25m) | Angel One Real Traded |
 

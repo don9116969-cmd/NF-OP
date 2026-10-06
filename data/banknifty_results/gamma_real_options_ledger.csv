@@ -1,2 +1,5 @@
-strategy,entry_time,exit_time,capital,net_pnl,ret_pct,reason
-Gamma Squeeze Momentum,2026-09-25 13:55,2026-09-25 15:25,11610.0,-496.5,-4.28,EOD_SQUAREOFF
+strategy,entry_time,exit_time,capital,gross_pnl,net_pnl,pnl_pct,close_reason
+Gamma Squeeze Momentum,2026-09-24 09:30,2026-09-24 15:25,12205.5,-1705.5,-1750.5,-14.34,EOD_SQUAREOFF
+Gamma Squeeze Momentum,2026-09-25 09:35,2026-09-25 15:25,13834.5,-2676.0,-2721.0,-19.67,EOD_SQUAREOFF
+Gamma Squeeze Momentum,2026-09-28 09:30,2026-09-28 10:05,10906.5,-3100.5,-3145.5,-28.84,STOP_LOSS (-25%)
+Gamma Squeeze Momentum,2026-09-28 10:10,2026-09-28 15:25,35883.0,-3967.5,-4012.5,-11.18,EOD_SQUAREOFF

@@ -278,14 +278,12 @@ def evaluate_das_for_day(
         pe_strike = None
 
         if has_real_options:
-            # Check candidate strikes in real options data
+            # Check candidate strikes dynamically across all cached options
             for offset in [50, 100, 150, 200, 0]:
                 k = atm + offset
-                # Scan across potential symbol formats
-                syms = [f"NIFTY29SEP26{k}CE", f"NIFTY22SEP26{k}CE"]
-                for sym in syms:
-                    if sym in opt_data and t in opt_data[sym].index:
-                        p = float(opt_data[sym].loc[t, 'close'])
+                for sym, df_o in opt_data.items():
+                    if sym.endswith(f"{k}CE") and t in df_o.index:
+                        p = float(df_o.loc[t, 'close'])
                         if config.DAS_MIN_LEG_PREMIUM <= p <= config.DAS_MAX_LEG_PREMIUM:
                             chosen_ce = sym
                             ce_entry_p = p
@@ -296,10 +294,9 @@ def evaluate_das_for_day(
 
             for offset in [50, 100, 150, 200, 0]:
                 k = atm - offset
-                syms = [f"NIFTY29SEP26{k}PE", f"NIFTY22SEP26{k}PE"]
-                for sym in syms:
-                    if sym in opt_data and t in opt_data[sym].index:
-                        p = float(opt_data[sym].loc[t, 'close'])
+                for sym, df_o in opt_data.items():
+                    if sym.endswith(f"{k}PE") and t in df_o.index:
+                        p = float(df_o.loc[t, 'close'])
                         if config.DAS_MIN_LEG_PREMIUM <= p <= config.DAS_MAX_LEG_PREMIUM:
                             chosen_pe = sym
                             pe_entry_p = p

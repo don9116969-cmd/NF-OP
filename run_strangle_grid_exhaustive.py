@@ -101,7 +101,7 @@ def run_single_simulation_with_data(
     trailing_pct: float = 0.25
 ) -> dict:
     n = len(data)
-    lot_size = 75
+    lot_size = config.LOT_SIZE
     initial_cap = 10000.0
     equity = initial_cap
     trades = []

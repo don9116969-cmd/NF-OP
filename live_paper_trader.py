@@ -354,8 +354,8 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━"
                         )
 
-            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else p_c
-            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else p_p
+            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
             cur_tot = exit_c + exit_p
             comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
             is_time_up = (elapsed_mins >= 45.0) or (ist_now.time() >= dtime(15, 15))
@@ -382,7 +382,7 @@ class LiveQuadPaperTrader:
                 turn = buy_v + sell_v
                 stt = sell_v * 0.001
                 exch = turn * 0.0005
-                charges = round(40.0 + stt + exch + (40.0 + exch) * 0.18, 2)
+                charges = round(80.0 + stt + exch + (80.0 + exch) * 0.18, 2)
                 net = round(gross - charges, 2)
 
                 tr_log = {
@@ -455,9 +455,11 @@ class LiveQuadPaperTrader:
 
                 ce_sym = c_ce["symbol"] if c_ce else f"{k_ce}CE"
                 pe_sym = c_pe["symbol"] if c_pe else f"{k_pe}PE"
+                curr_bar = df_bn.iloc[-1]
+                candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
                 self.active_positions["s5"] = {
-                    "entry_time": ist_now,
+                    "entry_time": candle_ts,
                     "spot_entry": bn_spot,
                     "c_ce": c_ce,
                     "c_pe": c_pe,
@@ -493,10 +495,11 @@ class LiveQuadPaperTrader:
                     win_target_pct=1.00,
                     lose_stop_pct=0.15,
                     max_hold_mins=45,
-                    time_str=ist_now.strftime("%H:%M:%S"),
+                    time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.bn_lot_size
                 )
                 self.daily_trade_count["s5"] += 1
+                self.save_active_positions()
 
     def process_live_strategy_4(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 4 (Nifty DAS)."""
@@ -591,8 +594,8 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━"
                         )
 
-            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else p_c
-            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else p_p
+            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
             cur_tot = exit_c + exit_p
             comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
             is_time_up = (elapsed_mins >= config.DAS_MAX_HOLD_MINS) or (ist_now.time() >= dtime(15, 15))
@@ -698,9 +701,11 @@ class LiveQuadPaperTrader:
 
                 ce_sym = c_ce["symbol"] if c_ce else f"{ce_k}CE"
                 pe_sym = c_pe["symbol"] if c_pe else f"{pe_k}PE"
+                curr_bar = day_bars.iloc[-1]
+                candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
                 self.active_positions["s4"] = {
-                    "entry_time": ist_now,
+                    "entry_time": candle_ts,
                     "spot_entry": spot,
                     "c_ce": c_ce,
                     "c_pe": c_pe,
@@ -736,10 +741,11 @@ class LiveQuadPaperTrader:
                     win_target_pct=config.DAS_WIN_TARGET_PCT,
                     lose_stop_pct=config.DAS_LOSE_STOP_PCT,
                     max_hold_mins=config.DAS_MAX_HOLD_MINS,
-                    time_str=ist_now.strftime("%H:%M:%S"),
+                    time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.lot_size
                 )
                 self.daily_trade_count["s4"] += 1
+                self.save_active_positions()
 
     def process_live_strategy_1(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 1 (15M Box Strangle)."""
@@ -834,13 +840,19 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━"
                         )
 
-            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else p_c
-            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else p_p
+            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
             cur_tot = exit_c + exit_p
             is_time_up = (elapsed_mins >= 120.0) or (ist_now.time() >= dtime(15, 15))
 
+            if is_time_up:
+                if not pos["ce_exited"]:
+                    pos["ce_reason"] = "Time Stop (120m)"
+                if not pos["pe_exited"]:
+                    pos["pe_reason"] = "Time Stop (120m)"
+
             if (pos["ce_exited"] and pos["pe_exited"]) or is_time_up:
-                exit_reason = f"{pos['ce_reason']} | {pos['pe_reason']}" if (pos["ce_exited"] and pos["pe_exited"]) else "Time Stop (120m)"
+                exit_reason = f"{pos['ce_reason']} | {pos['pe_reason']}"
 
                 gross = ((exit_c - pos["ce_entry"]) + (exit_p - pos["pe_entry"])) * self.lot_size
                 buy_v = pos["entry_tot"] * self.lot_size
@@ -906,8 +918,10 @@ class LiveQuadPaperTrader:
 
             upper_trig = box_h + 6.0
             lower_trig = box_l - 6.0
+            curr_bar = day_bars.iloc[-1]
+            candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
-            if spot > upper_trig or spot < lower_trig:
+            if float(curr_bar["high"]) >= upper_trig or float(curr_bar["low"]) <= lower_trig or spot > upper_trig or spot < lower_trig:
                 atm = int(round(spot / 50.0) * 50)
                 ce_k = atm + 150
                 pe_k = atm - 150
@@ -939,7 +953,7 @@ class LiveQuadPaperTrader:
                 pe_sym = c_pe["symbol"] if c_pe else f"{pe_k}PE"
 
                 self.active_positions["s1"] = {
-                    "entry_time": ist_now,
+                    "entry_time": candle_ts,
                     "spot_entry": spot,
                     "c_ce": c_ce,
                     "c_pe": c_pe,
@@ -975,10 +989,11 @@ class LiveQuadPaperTrader:
                     win_target_pct=0.75,
                     lose_stop_pct=0.20,
                     max_hold_mins=120,
-                    time_str=ist_now.strftime("%H:%M:%S"),
+                    time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.lot_size
                 )
                 self.daily_trade_count["s1"] += 1
+                self.save_active_positions()
 
     def process_live_strategy_2(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 2 (Gamma Squeeze)."""
@@ -1123,9 +1138,10 @@ class LiveQuadPaperTrader:
                 return
 
             sym = contract["symbol"] if contract else f"{chosen_k} {opt_type}"
+            candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
             self.active_positions["s2"] = {
-                "entry_time": ist_now,
+                "entry_time": candle_ts,
                 "spot_entry": spot,
                 "contract": contract,
                 "symbol": sym,
@@ -1148,7 +1164,7 @@ class LiveQuadPaperTrader:
                 win_target_pct=0.80,
                 lose_stop_pct=0.25,
                 max_hold_mins=45,
-                time_str=ist_now.strftime("%H:%M:%S"),
+                time_str=candle_ts.strftime("%H:%M:%S"),
                 qty=self.lot_size
             )
             self.daily_trade_count["s2"] += 1
@@ -1292,9 +1308,10 @@ class LiveQuadPaperTrader:
                 return
 
             sym = contract["symbol"] if contract else f"{chosen_k} {opt_type}"
+            candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
             self.active_positions["s3"] = {
-                "entry_time": ist_now,
+                "entry_time": candle_ts,
                 "spot_entry": spot,
                 "contract": contract,
                 "symbol": sym,
@@ -1319,7 +1336,7 @@ class LiveQuadPaperTrader:
                 win_target_pct=0.80,
                 lose_stop_pct=0.15,
                 max_hold_mins=60,
-                time_str=ist_now.strftime("%H:%M:%S"),
+                time_str=candle_ts.strftime("%H:%M:%S"),
                 qty=self.lot_size
             )
             self.daily_trade_count["s3"] += 1
@@ -1478,11 +1495,18 @@ class LiveQuadPaperTrader:
                 if s_res.get("trade_occurred", False):
                     trades_today += s_res.get("num_trades_day", 1)
                     daily_net += s_res.get("net_pnl", 0.0)
-                    if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
-                        for sub_tr in s_res["all_trades"]:
-                            log_trade_to_journal(today, s_name, sub_tr)
-                    else:
-                        log_trade_to_journal(today, s_name, s_res)
+                    trades_to_notify = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
+                    for sub_tr in trades_to_notify:
+                        log_trade_to_journal(today, s_name, sub_tr)
+                        send_trade_exit_alert(
+                            strategy=s_name,
+                            exit_reason=sub_tr.get("exit_reason", "EOD Reconciliation"),
+                            gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
+                            charges=sub_tr.get("charges", 0.0),
+                            net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
+                            details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
+                            time_str=str(sub_tr.get("exit_time", ""))
+                        )
 
         # Read cumulative PnL directly from journal
         total_pnl = 0.0
@@ -1492,9 +1516,9 @@ class LiveQuadPaperTrader:
                 if not df_j.empty and "net_pnl" in df_j.columns:
                     total_pnl = round(float(df_j["net_pnl"].sum()), 2)
             except Exception:
-                total_pnl = 5164.16 + daily_net
+                total_pnl = daily_net
         else:
-            total_pnl = 5164.16 + daily_net
+            total_pnl = daily_net
 
         current_balance = round(10000.0 + total_pnl, 2)
 

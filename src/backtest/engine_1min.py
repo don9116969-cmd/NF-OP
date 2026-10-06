@@ -35,7 +35,7 @@ class Engine1Min:
     def __init__(
         self,
         initial_capital: float = 50000.0,
-        lot_size: int = 75,
+        lot_size: int = config.LOT_SIZE,
         num_lots: int = 1,
         target_pct: float = 0.3,         # 0.3% spot target
         sl_pct: float = 0.2,             # 0.2% spot SL

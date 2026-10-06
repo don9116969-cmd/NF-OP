@@ -100,7 +100,8 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
                         "expiry_date": nearest_exp_dt,
                         "strike": strike,
                         "opt_type": opt_type_upper,
-                        "exch_seg": d.get("exch_seg", "NFO")
+                        "exch_seg": d.get("exch_seg", "NFO"),
+                        "lotsize": int(d.get("lotsize", 65 if underlying == "NIFTY" else 30))
                     }
 
     return None

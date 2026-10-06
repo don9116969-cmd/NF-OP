@@ -55,7 +55,7 @@ jobs:
         run: |
           git config --global user.name "Nifty Bot Cloud Runner"
           git config --global user.email "bot@github-actions.internal"
-          git add data/trade_journal.md data/trade_journal.csv data/live_paper_trades.csv || true
+          git add data/trade_journal.md data/trade_journal.csv data/live_paper_trades.csv data/active_positions.json data/paper_trading_ledger.csv || true
           if git diff --staged --quiet; then
             echo "No journal changes to commit."
           else

@@ -41,7 +41,7 @@ class HedgedStrangleEngine:
     def __init__(
         self,
         initial_capital: float = 10000.0,
-        lot_size: int = 75,
+        lot_size: int = config.LOT_SIZE,
         otm_distance_pts: int = 100,      # E.g. 100 points OTM (Call +100, Put -100)
         combined_target_pct: float = 0.35, # +35% target on combined entry cost
         combined_sl_pct: float = 0.20,     # -20% stop loss on combined entry cost

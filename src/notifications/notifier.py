@@ -118,7 +118,7 @@ def send_trade_entry_alert(
     strike: str = "",
     entry_p: float = 0.0,
     time_str: str = "",
-    qty: int = 75
+    qty: int = 65
 ) -> bool:
     """Formats and sends an instant Trade Entry alert for both single-leg and dual-leg trades."""
     if not time_str:
