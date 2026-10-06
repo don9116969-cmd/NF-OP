@@ -78,37 +78,45 @@ vol_sma20_5m = pd.Series(vols_5m).rolling(20).mean().fillna(1.0).values
 # 2. Real Options Cache Mapping
 print("[Step 2] Indexing Real SmartAPI Traded Option Contracts...")
 opt_files = glob.glob(f"{CACHE_DIR}/*.csv")
-strikes_ce = sorted(list(set([int(os.path.basename(f).replace("BANKNIFTY29SEP26", "").replace("CE.csv", "")) for f in opt_files if "CE.csv" in f])))
-strikes_pe = sorted(list(set([int(os.path.basename(f).replace("BANKNIFTY29SEP26", "").replace("PE.csv", "")) for f in opt_files if "PE.csv" in f])))
-strikes_ce_arr = np.array(strikes_ce)
-strikes_pe_arr = np.array(strikes_pe)
+import re
+strikes_ce = sorted(list(set([int(m.group(1)) for f in opt_files if (m := re.search(r"(\d{5})CE\.csv", f))])))
+strikes_pe = sorted(list(set([int(m.group(1)) for f in opt_files if (m := re.search(r"(\d{5})PE\.csv", f))])))
+strikes_ce_arr = np.array(strikes_ce) if strikes_ce else np.array([])
+strikes_pe_arr = np.array(strikes_pe) if strikes_pe else np.array([])
 
 real_opt_1m = {}
 real_opt_5m = {}
 real_opt_start_date = datetime.date(2026, 9, 21)
-real_opt_end_date = datetime.date(2026, 9, 28)
+real_opt_end_date = datetime.date(2026, 10, 6)
 
 for p in opt_files:
     sym = os.path.basename(p).replace(".csv", "")
-    dfo = pd.read_csv(p)
-    dfo["timestamp"] = pd.to_datetime(dfo["timestamp"]).dt.tz_localize(None)
-    dfo.sort_values("timestamp", inplace=True)
-    dfo.drop_duplicates(subset=["timestamp"], inplace=True)
-    dfo.set_index("timestamp", inplace=True)
-    dfo["close"] = pd.to_numeric(dfo["close"], errors="coerce")
+    try:
+        dfo = pd.read_csv(p)
+        dfo["timestamp"] = pd.to_datetime(dfo["timestamp"]).dt.tz_localize(None)
+        dfo.sort_values("timestamp", inplace=True)
+        dfo.drop_duplicates(subset=["timestamp"], inplace=True)
+        dfo.set_index("timestamp", inplace=True)
+        dfo["close"] = pd.to_numeric(dfo["close"], errors="coerce")
 
-    real_opt_1m[sym] = dfo["close"].reindex(df_1m.index).ffill().values
-    real_opt_5m[sym] = dfo["close"].reindex(df_5m.index).ffill().values
+        real_opt_1m[sym] = dfo["close"].reindex(df_1m.index).ffill().values
+        real_opt_5m[sym] = dfo["close"].reindex(df_5m.index).ffill().values
+    except Exception:
+        pass
 
-print(f"Loaded {len(real_opt_1m)} real contracts (Strikes: {strikes_ce[0]} to {strikes_ce[-1]}).")
+print(f"Loaded {len(real_opt_1m)} real contracts (Strikes: {strikes_ce[0] if strikes_ce else 'N/A'} to {strikes_ce[-1] if strikes_ce else 'N/A'}).")
 
 def get_real_option_array(spot, offset=0, opt_type="CE", timeframe="1m"):
     target = spot + offset
     arr_k = strikes_ce_arr if opt_type == "CE" else strikes_pe_arr
+    if len(arr_k) == 0:
+        return None, 0
     closest_k = arr_k[np.argmin(np.abs(arr_k - target))]
-    sym = f"BANKNIFTY29SEP26{closest_k}{opt_type}"
     container = real_opt_1m if timeframe == "1m" else real_opt_5m
-    return container.get(sym, None), closest_k
+    for sym in container:
+        if sym.endswith(f"{closest_k}{opt_type}"):
+            return container[sym], closest_k
+    return None, closest_k
 
 # 3. Vectorized Synthetic Option Pricing
 print("[Step 3] Vectorizing Black-Scholes Synthetic Grids...")

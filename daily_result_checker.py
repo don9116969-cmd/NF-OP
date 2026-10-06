@@ -180,7 +180,7 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
     trade = res["trades_df"].iloc[0].to_dict()
     feed_label = "Mathematical (BSM)"
-    if api and "ce_strike" in trade and "pe_strike" in trade:
+    if "ce_strike" in trade and "pe_strike" in trade:
         ce_contract = get_active_option_contract(target_date, trade["ce_strike"], "CE")
         pe_contract = get_active_option_contract(target_date, trade["pe_strike"], "PE")
         if ce_contract and pe_contract:
@@ -321,9 +321,8 @@ def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
     trade = res["trades_df"].iloc[0].to_dict()
     feed_label = "Mathematical (BSM)"
-    if api:
-        contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
-        if contract:
+    contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
+    if contract:
             t_min = day_bars["timestamp"].min()
             t_max = day_bars["timestamp"].max()
             df_opt = fetch_real_option_candles(api, contract, t_min, t_max)
@@ -445,9 +444,8 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
     trade = res["trades_df"].iloc[0].to_dict()
     feed_label = "Mathematical (BSM)"
-    if api:
-        contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
-        if contract:
+    contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
+    if contract:
             t_min = day_bars["timestamp"].min()
             t_max = day_bars["timestamp"].max()
             df_opt = fetch_real_option_candles(api, contract, t_min, t_max)

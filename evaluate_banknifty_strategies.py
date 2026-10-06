@@ -61,17 +61,28 @@ def load_banknifty_data():
 
     # Load cached real options
     real_opts = {}
-    for p in glob.glob(f"{CACHE_DIR}/*.csv"):
+    opt_files = set(glob.glob(f"{CACHE_DIR}/*.csv") + glob.glob("data/real_options_cache/BANKNIFTY*.csv"))
+    for p in opt_files:
         sym = os.path.basename(p).replace(".csv", "")
-        df_opt = pd.read_csv(p)
-        df_opt["timestamp"] = pd.to_datetime(df_opt["timestamp"]).dt.tz_localize(None)
-        df_opt.set_index("timestamp", inplace=True)
-        df_opt.sort_index(inplace=True)
-        for col in ["open", "high", "low", "close", "volume"]:
-            df_opt[col] = pd.to_numeric(df_opt[col], errors="coerce")
-        real_opts[sym] = df_opt
+        try:
+            df_opt = pd.read_csv(p)
+            df_opt["timestamp"] = pd.to_datetime(df_opt["timestamp"]).dt.tz_localize(None)
+            df_opt.set_index("timestamp", inplace=True)
+            df_opt.sort_index(inplace=True)
+            for col in ["open", "high", "low", "close", "volume"]:
+                df_opt[col] = pd.to_numeric(df_opt[col], errors="coerce")
+            real_opts[sym] = df_opt
+        except Exception:
+            pass
 
     return df_1m, df_5m, real_opts
+
+def find_real_opt_sym(opts_dict, t, k, opt_type):
+    suffix = f"{k}{opt_type}"
+    for sym, df in opts_dict.items():
+        if sym.endswith(suffix) and t in df.index:
+            return sym
+    return None
 
 # =============================================================================
 # 1. STRATEGY: DECOUPLED ASYMMETRIC STRANGLE (DAS)
@@ -224,8 +235,8 @@ def run_das_backtest(df_spot, real_opts=None, use_real_options=False, iv=0.165):
             pe_cand = None
             for offset in [100, 200, 300, 0]:
                 k_ce = atm_strike + offset
-                s_ce = f"BANKNIFTY29SEP26{k_ce}CE"
-                if s_ce in real_opts and t in real_opts[s_ce].index:
+                s_ce = find_real_opt_sym(real_opts, t, k_ce, "CE")
+                if s_ce and t in real_opts[s_ce].index:
                     p = real_opts[s_ce].loc[t, "close"]
                     if 80 <= p <= 250:
                         ce_cand = (s_ce, k_ce, p)
@@ -233,8 +244,8 @@ def run_das_backtest(df_spot, real_opts=None, use_real_options=False, iv=0.165):
 
             for offset in [100, 200, 300, 0]:
                 k_pe = atm_strike - offset
-                s_pe = f"BANKNIFTY29SEP26{k_pe}PE"
-                if s_pe in real_opts and t in real_opts[s_pe].index:
+                s_pe = find_real_opt_sym(real_opts, t, k_pe, "PE")
+                if s_pe and t in real_opts[s_pe].index:
                     p = real_opts[s_pe].loc[t, "close"]
                     if 80 <= p <= 250:
                         pe_cand = (s_pe, k_pe, p)
@@ -391,8 +402,8 @@ def run_directional_box_backtest(df_spot, real_opts=None, use_real_options=False
                     direction = "CE"
                     atm_k = int(round(spot / 100.0) * 100)
                     if use_real_options:
-                        sym = f"BANKNIFTY29SEP26{atm_k}CE"
-                        if sym in real_opts and t in real_opts[sym].index:
+                        sym = find_real_opt_sym(real_opts, t, atm_k, "CE")
+                        if sym:
                             entry_p = real_opts[sym].loc[t, "close"]
                             in_pos = True
                             pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
@@ -407,8 +418,8 @@ def run_directional_box_backtest(df_spot, real_opts=None, use_real_options=False
                     direction = "PE"
                     atm_k = int(round(spot / 100.0) * 100)
                     if use_real_options:
-                        sym = f"BANKNIFTY29SEP26{atm_k}PE"
-                        if sym in real_opts and t in real_opts[sym].index:
+                        sym = find_real_opt_sym(real_opts, t, atm_k, "PE")
+                        if sym:
                             entry_p = real_opts[sym].loc[t, "close"]
                             in_pos = True
                             pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
@@ -521,8 +532,8 @@ def run_gamma_squeeze_backtest(df_5m, real_opts=None, use_real_options=False, iv
                 direction = "CE"
                 atm_k = int(round(spot / 100.0) * 100)
                 if use_real_options:
-                    sym = f"BANKNIFTY29SEP26{atm_k}CE"
-                    if sym in real_opts and t in real_opts[sym].index:
+                    sym = find_real_opt_sym(real_opts, t, atm_k, "CE")
+                    if sym:
                         entry_p = real_opts[sym].loc[t, "close"]
                         in_pos = True
                         pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
@@ -537,8 +548,8 @@ def run_gamma_squeeze_backtest(df_5m, real_opts=None, use_real_options=False, iv
                 direction = "PE"
                 atm_k = int(round(spot / 100.0) * 100)
                 if use_real_options:
-                    sym = f"BANKNIFTY29SEP26{atm_k}PE"
-                    if sym in real_opts and t in real_opts[sym].index:
+                    sym = find_real_opt_sym(real_opts, t, atm_k, "PE")
+                    if sym:
                         entry_p = real_opts[sym].loc[t, "close"]
                         in_pos = True
                         pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}

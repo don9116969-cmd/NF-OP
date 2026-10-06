@@ -30,15 +30,26 @@ df_5m.set_index("timestamp", inplace=True)
 df_5m.sort_index(inplace=True)
 
 real_opts = {}
-for p in glob.glob(f"{CACHE_DIR}/*.csv"):
+opt_files = set(glob.glob(f"{CACHE_DIR}/*.csv") + glob.glob("data/real_options_cache/BANKNIFTY*.csv"))
+for p in opt_files:
     sym = os.path.basename(p).replace(".csv", "")
-    df_opt = pd.read_csv(p)
-    df_opt["timestamp"] = pd.to_datetime(df_opt["timestamp"]).dt.tz_localize(None)
-    df_opt.set_index("timestamp", inplace=True)
-    df_opt.sort_index(inplace=True)
-    for col in ["open", "high", "low", "close", "volume"]:
-        df_opt[col] = pd.to_numeric(df_opt[col], errors="coerce")
-    real_opts[sym] = df_opt
+    try:
+        df_opt = pd.read_csv(p)
+        df_opt["timestamp"] = pd.to_datetime(df_opt["timestamp"]).dt.tz_localize(None)
+        df_opt.set_index("timestamp", inplace=True)
+        df_opt.sort_index(inplace=True)
+        for col in ["open", "high", "low", "close", "volume"]:
+            df_opt[col] = pd.to_numeric(df_opt[col], errors="coerce")
+        real_opts[sym] = df_opt
+    except Exception:
+        pass
+
+def find_real_opt_sym(opts_dict, t, k, opt_type):
+    suffix = f"{k}{opt_type}"
+    for sym, df in opts_dict.items():
+        if sym.endswith(suffix) and t in df.index:
+            return sym
+    return None
 
 def compute_banknifty_dte(ts: pd.Timestamp) -> float:
     weekday = ts.weekday()
@@ -163,9 +174,9 @@ def eval_das(use_real=False):
                 pe_k = atm_k - 200
 
                 if use_real:
-                    s_ce = f"BANKNIFTY29SEP26{ce_k}CE"
-                    s_pe = f"BANKNIFTY29SEP26{pe_k}PE"
-                    if s_ce in real_opts and s_pe in real_opts and t in real_opts[s_ce].index and t in real_opts[s_pe].index:
+                    s_ce = find_real_opt_sym(real_opts, t, ce_k, "CE")
+                    s_pe = find_real_opt_sym(real_opts, t, pe_k, "PE")
+                    if s_ce and s_pe:
                         p_ce = real_opts[s_ce].loc[t, "close"]
                         p_pe = real_opts[s_pe].loc[t, "close"]
                         in_pos = True
@@ -270,11 +281,11 @@ def eval_box(use_real=False):
                     direction = "CE"
                     atm_k = int(round(spot / 100.0) * 100)
                     if use_real:
-                        sym = f"BANKNIFTY29SEP26{atm_k}CE"
-                        if sym in real_opts and t in real_opts[sym].index:
-                            entry_p = real_opts[sym].loc[t, "close"]
+                        s_call = find_real_opt_sym(real_opts, t, atm_k, "CE")
+                        if s_call:
+                            entry_p = real_opts[s_call].loc[t, "close"]
                             in_pos = True
-                            pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
+                            pos = {"sym": s_call, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
                     else:
                         T = max(1e-4, compute_banknifty_dte(t) / 365.0)
                         entry_p = black_scholes_price(spot, atm_k, T, 0.07, 0.165, "CE")
@@ -286,11 +297,11 @@ def eval_box(use_real=False):
                     direction = "PE"
                     atm_k = int(round(spot / 100.0) * 100)
                     if use_real:
-                        sym = f"BANKNIFTY29SEP26{atm_k}PE"
-                        if sym in real_opts and t in real_opts[sym].index:
-                            entry_p = real_opts[sym].loc[t, "close"]
+                        s_put = find_real_opt_sym(real_opts, t, atm_k, "PE")
+                        if s_put:
+                            entry_p = real_opts[s_put].loc[t, "close"]
                             in_pos = True
-                            pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
+                            pos = {"sym": s_put, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t, "peak_p": entry_p}
                     else:
                         T = max(1e-4, compute_banknifty_dte(t) / 365.0)
                         entry_p = black_scholes_price(spot, atm_k, T, 0.07, 0.165, "PE")
@@ -388,11 +399,11 @@ def eval_gamma(use_real=False):
                 direction = "CE"
                 atm_k = int(round(spot / 100.0) * 100)
                 if use_real:
-                    sym = f"BANKNIFTY29SEP26{atm_k}CE"
-                    if sym in real_opts and t in real_opts[sym].index:
-                        entry_p = real_opts[sym].loc[t, "close"]
+                    s_call = find_real_opt_sym(real_opts, t, atm_k, "CE")
+                    if s_call:
+                        entry_p = real_opts[s_call].loc[t, "close"]
                         in_pos = True
-                        pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t}
+                        pos = {"sym": s_call, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t}
                 else:
                     T = max(1e-4, compute_banknifty_dte(t) / 365.0)
                     entry_p = black_scholes_price(spot, atm_k, T, 0.07, 0.165, "CE")
@@ -403,11 +414,11 @@ def eval_gamma(use_real=False):
                 direction = "PE"
                 atm_k = int(round(spot / 100.0) * 100)
                 if use_real:
-                    sym = f"BANKNIFTY29SEP26{atm_k}PE"
-                    if sym in real_opts and t in real_opts[sym].index:
-                        entry_p = real_opts[sym].loc[t, "close"]
+                    s_put = find_real_opt_sym(real_opts, t, atm_k, "PE")
+                    if s_put:
+                        entry_p = real_opts[s_put].loc[t, "close"]
                         in_pos = True
-                        pos = {"sym": sym, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t}
+                        pos = {"sym": s_put, "strike": atm_k, "direction": direction, "entry_p": entry_p, "entry_time": t}
                 else:
                     T = max(1e-4, compute_banknifty_dte(t) / 365.0)
                     entry_p = black_scholes_price(spot, atm_k, T, 0.07, 0.165, "PE")
@@ -494,9 +505,9 @@ def eval_hedged_strangle(use_real=False):
             pe_k = atm_k - 300
 
             if use_real:
-                s_ce = f"BANKNIFTY29SEP26{ce_k}CE"
-                s_pe = f"BANKNIFTY29SEP26{pe_k}PE"
-                if s_ce in real_opts and s_pe in real_opts and t in real_opts[s_ce].index and t in real_opts[s_pe].index:
+                s_ce = find_real_opt_sym(real_opts, t, ce_k, "CE")
+                s_pe = find_real_opt_sym(real_opts, t, pe_k, "PE")
+                if s_ce and s_pe:
                     p_ce = real_opts[s_ce].loc[t, "close"]
                     p_pe = real_opts[s_pe].loc[t, "close"]
                     in_pos = True

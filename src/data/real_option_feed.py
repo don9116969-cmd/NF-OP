@@ -105,21 +105,113 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
 
     return None
 
-def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: datetime.datetime, to_date: datetime.datetime) -> pd.DataFrame:
-    """
-    Fetches real 1-minute OHLCV candles for the option contract from Angel One SmartAPI.
-    Includes rate-limit retry handling with backoff.
-    """
-    if not api or not contract:
+OPTIONS_CACHE_DIR = os.path.join(BASE_DIR, "data", "real_options_cache")
+BN_LEGACY_CACHE_DIR = os.path.join(BASE_DIR, "data", "banknifty_options_cache")
+os.makedirs(OPTIONS_CACHE_DIR, exist_ok=True)
+
+def load_cached_contract_candles(symbol: str) -> pd.DataFrame:
+    """Loads cached 1-minute OHLCV candles for a contract symbol from disk."""
+    if not symbol:
         return pd.DataFrame()
 
-    import time as time_lib
+    p_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.parquet")
+    if os.path.exists(p_file):
+        try:
+            df = pd.read_parquet(p_file)
+            if not isinstance(df.index, pd.DatetimeIndex):
+                if "timestamp" in df.columns:
+                    df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+                    df.set_index("timestamp", inplace=True)
+            return df
+        except Exception:
+            pass
+
+    c_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.csv")
+    if os.path.exists(c_file):
+        try:
+            df = pd.read_csv(c_file)
+            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+            df.set_index("timestamp", inplace=True)
+            return df
+        except Exception:
+            pass
+
+    # Fallback to legacy banknifty cache if present
+    bn_file = os.path.join(BN_LEGACY_CACHE_DIR, f"{symbol}.csv")
+    if os.path.exists(bn_file):
+        try:
+            df = pd.read_csv(bn_file)
+            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+            df.set_index("timestamp", inplace=True)
+            return df
+        except Exception:
+            pass
+
+    return pd.DataFrame()
+
+def save_contract_candles_to_cache(symbol: str, df_new: pd.DataFrame):
+    """Merges new OHLCV candles with any existing cache and writes to disk."""
+    if df_new.empty or not symbol:
+        return
+    try:
+        df_existing = load_cached_contract_candles(symbol)
+        if not df_existing.empty:
+            df_combined = pd.concat([df_existing, df_new])
+            df_combined = df_combined[~df_combined.index.duplicated(keep="last")]
+            df_combined.sort_index(inplace=True)
+        else:
+            df_combined = df_new[~df_new.index.duplicated(keep="last")].sort_index()
+
+        p_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.parquet")
+        df_combined.to_parquet(p_file)
+        c_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.csv")
+        df_combined.to_csv(c_file)
+        if symbol.startswith("BANKNIFTY"):
+            os.makedirs(BN_LEGACY_CACHE_DIR, exist_ok=True)
+            df_combined.to_csv(os.path.join(BN_LEGACY_CACHE_DIR, f"{symbol}.csv"))
+    except Exception as e:
+        print(f"[WARN] Failed to write option cache for {symbol}: {e}")
+
+def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: datetime.datetime, to_date: datetime.datetime, force_api: bool = False) -> pd.DataFrame:
+    """
+    Fetches real 1-minute OHLCV candles for the option contract.
+    First checks disk cache (data/real_options_cache).
+    If cache misses or API is required, fetches from Angel One SmartAPI and updates cache.
+    """
+    if not contract:
+        return pd.DataFrame()
+
+    sym = contract.get("symbol", "")
     if isinstance(from_date, str):
         from_date = pd.to_datetime(from_date)
     if isinstance(to_date, str):
         to_date = pd.to_datetime(to_date)
+
+    # 1. Check local disk cache first
+    if not force_api and sym:
+        df_cached = load_cached_contract_candles(sym)
+        if not df_cached.empty:
+            min_ts = df_cached.index.min()
+            max_ts = df_cached.index.max()
+            if min_ts <= from_date and max_ts >= to_date:
+                sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+                if not sub.empty:
+                    return sub
+
+    if not api:
+        # Return whatever is in cache if API is offline
+        df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
+        if not df_cached.empty:
+            return df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+        return pd.DataFrame()
+
+    # 2. Fetch from Angel One SmartAPI
+    import time as time_lib
     from_str = from_date.strftime("%Y-%m-%d %H:%M")
-    to_str = to_date.strftime("%Y-%m-%d %H:%M")
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    now_ist = now_ist.replace(tzinfo=None)
+    effective_to = min(to_date, now_ist)
+    to_str = effective_to.strftime("%Y-%m-%d %H:%M")
 
     for attempt in range(4):
         try:
@@ -137,7 +229,10 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
                 df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
                 df.set_index("timestamp", inplace=True)
                 df.sort_index(inplace=True)
-                return df
+
+                # Persist to disk cache
+                save_contract_candles_to_cache(sym, df)
+                return df[(df.index >= from_date) & (df.index <= to_date)]
             elif res and "exceeding access rate" in str(res):
                 time_lib.sleep(1.5 * (attempt + 1))
             else:
@@ -148,5 +243,10 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
             else:
                 print(f"[WARN] Failed to fetch real candles for {contract.get('symbol')}: {e}")
                 break
+
+    # If API returned empty but we have cached data, return cached
+    df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
+    if not df_cached.empty:
+        return df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
 
     return pd.DataFrame()

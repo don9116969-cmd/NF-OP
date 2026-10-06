@@ -261,8 +261,8 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                 if tot_capital > 10000.0:
                     continue
 
-                # Check if real traded option candles can be fetched from Angel One
-                if api and c_ce and c_pe:
+                # Check if real traded option candles can be fetched from cache or Angel One
+                if c_ce and c_pe:
                     t_start = day_slice.iloc[i]["timestamp"]
                     t_end = day_slice["timestamp"].max()
                     print(f"[BANKNIFTY DAS] Signal at {t_start.time().strftime('%H:%M:%S')} (Spot {c:.1f}) -> Testing {c_ce['symbol']} + {c_pe['symbol']}", flush=True)

@@ -18,6 +18,7 @@ venv/
 testing/data/real_options_cache/
 testing/results/
 data/real_options_cache/
+data/banknifty_options_cache/
 data/angel_scrip_master.json
 *.log
 logs/

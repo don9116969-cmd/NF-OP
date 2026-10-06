@@ -85,35 +85,43 @@ print(f"Loaded {n_1m} 1-min bars and {n_5m} 5-min bars.")
 # ---------------------------------------------------------
 print("\n[2/5] Loading Real SmartAPI Option Contracts...")
 opt_files = glob.glob(f"{CACHE_DIR}/*.csv")
-strikes_ce = sorted(list(set([int(os.path.basename(f).replace("BANKNIFTY29SEP26", "").replace("CE.csv", "")) for f in opt_files if "CE.csv" in f])))
-strikes_pe = sorted(list(set([int(os.path.basename(f).replace("BANKNIFTY29SEP26", "").replace("PE.csv", "")) for f in opt_files if "PE.csv" in f])))
-strikes_ce_arr = np.array(strikes_ce)
-strikes_pe_arr = np.array(strikes_pe)
+import re
+strikes_ce = sorted(list(set([int(m.group(1)) for f in opt_files if (m := re.search(r"(\d{5})CE\.csv", f))])))
+strikes_pe = sorted(list(set([int(m.group(1)) for f in opt_files if (m := re.search(r"(\d{5})PE\.csv", f))])))
+strikes_ce_arr = np.array(strikes_ce) if strikes_ce else np.array([])
+strikes_pe_arr = np.array(strikes_pe) if strikes_pe else np.array([])
 
 real_opt_1m = {}
 real_opt_5m = {}
 real_opt_start_date = datetime.date(2026, 9, 21)
-real_opt_end_date = datetime.date(2026, 9, 28)
+real_opt_end_date = datetime.date(2026, 10, 6)
 
 for p in opt_files:
     sym = os.path.basename(p).replace(".csv", "")
-    dfo = pd.read_csv(p)
-    dfo["timestamp"] = pd.to_datetime(dfo["timestamp"]).dt.tz_localize(None)
-    dfo.sort_values("timestamp", inplace=True)
-    dfo.drop_duplicates(subset=["timestamp"], inplace=True)
-    dfo.set_index("timestamp", inplace=True)
-    dfo["close"] = pd.to_numeric(dfo["close"], errors="coerce")
+    try:
+        dfo = pd.read_csv(p)
+        dfo["timestamp"] = pd.to_datetime(dfo["timestamp"]).dt.tz_localize(None)
+        dfo.sort_values("timestamp", inplace=True)
+        dfo.drop_duplicates(subset=["timestamp"], inplace=True)
+        dfo.set_index("timestamp", inplace=True)
+        dfo["close"] = pd.to_numeric(dfo["close"], errors="coerce")
 
-    real_opt_1m[sym] = dfo["close"].reindex(df_1m.index).ffill().values
-    real_opt_5m[sym] = dfo["close"].reindex(df_5m.index).ffill().values
+        real_opt_1m[sym] = dfo["close"].reindex(df_1m.index).ffill().values
+        real_opt_5m[sym] = dfo["close"].reindex(df_5m.index).ffill().values
+    except Exception:
+        pass
 
 def get_real_opt_array(spot, offset, opt_type, tf="1m"):
     target = spot + offset
     arr = strikes_ce_arr if opt_type == "CE" else strikes_pe_arr
+    if len(arr) == 0:
+        return None
     k = arr[np.argmin(np.abs(arr - target))]
-    sym = f"BANKNIFTY29SEP26{k}{opt_type}"
     d = real_opt_1m if tf == "1m" else real_opt_5m
-    return d.get(sym, None)
+    for sym in d:
+        if sym.endswith(f"{k}{opt_type}"):
+            return d[sym]
+    return None
 
 # ---------------------------------------------------------
 # 3. VECTORIZED SYNTHETIC OPTIONS
