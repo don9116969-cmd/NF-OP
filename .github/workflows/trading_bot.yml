@@ -51,6 +51,7 @@ jobs:
           python -u live_paper_trader.py --strategy all
 
       - name: Commit and Push Journal Updates
+        if: always()
         run: |
           git config --global user.name "Nifty Bot Cloud Runner"
           git config --global user.email "bot@github-actions.internal"

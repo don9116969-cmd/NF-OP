@@ -73,14 +73,15 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
         except Exception as e:
             print(f"[WARN] Error reading {local_file}: {e}")
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    now = now.replace(tzinfo=None)
     if last_dt is None:
         from_dt = now - datetime.timedelta(days=30)
     else:
         # Start directly from last recorded candle to minimize data size
         from_dt = last_dt
 
-    if api and (now - last_dt if last_dt is not None else datetime.timedelta(days=1)) > datetime.timedelta(minutes=2):
+    if api and (now - last_dt if last_dt is not None else datetime.timedelta(days=1)) >= datetime.timedelta(minutes=1):
         from_str = from_dt.strftime("%Y-%m-%d %H:%M")
         to_str = now.strftime("%Y-%m-%d %H:%M")
         sym_label = "BankNIFTY" if symbol_token == "99926009" else "NIFTY 50"
@@ -133,8 +134,8 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
 
 def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     data = df_full.copy()
-    if 'date' not in data.columns:
-        data['date'] = pd.to_datetime(data['timestamp']).dt.date
+    data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+    data['date'] = data['timestamp'].dt.date
 
     day_bars = data[data['date'] == target_date].copy()
     if day_bars.empty or len(day_bars) < 15:
@@ -291,8 +292,8 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
 def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     data = df_full.copy()
-    if 'date' not in data.columns:
-        data['date'] = pd.to_datetime(data['timestamp']).dt.date
+    data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+    data['date'] = data['timestamp'].dt.date
 
     day_bars = data[data['date'] == target_date].copy()
     if day_bars.empty or len(day_bars) < 15:
@@ -398,8 +399,8 @@ def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
 def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     data = df_full.copy()
-    if 'date' not in data.columns:
-        data['date'] = pd.to_datetime(data['timestamp']).dt.date
+    data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+    data['date'] = data['timestamp'].dt.date
 
     day_bars = data[data['date'] == target_date].copy()
     if day_bars.empty or len(day_bars) < 25:
@@ -729,6 +730,7 @@ def log_trade_to_journal(target_date: datetime.date, strategy_name: str, trade_r
 def run():
     parser = argparse.ArgumentParser(description="Multi-Strategy Daily Result Checker")
     parser.add_argument("--date", type=str, default=None, help="Date to check (YYYY-MM-DD).")
+    parser.add_argument("--telegram", action="store_true", help="Sync and push complete daily result summary to Telegram.")
     args = parser.parse_args()
 
     api = get_smart_api()
@@ -745,7 +747,7 @@ def run():
         print("[ERROR] No Nifty data available.")
         return
 
-    df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
+    df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)
     if args.date:
         target_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
     else:
@@ -763,6 +765,8 @@ def run():
     print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res, s5_res)
 
     # Automatically record executed trades in the live Trade Journal
+    daily_trades_count = 0
+    daily_net_pnl = 0.0
     for s_name, s_res in [
         ("Strategy 1: Hedged Strangle", s1_res),
         ("Strategy 2: Expiry Gamma Squeeze", s2_res),
@@ -771,11 +775,37 @@ def run():
         ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res)
     ]:
         if s_res.get("trade_occurred", False):
+            daily_trades_count += s_res.get("num_trades_day", 1)
+            daily_net_pnl += s_res.get("net_pnl", 0.0)
             if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
                 for sub_tr in s_res["all_trades"]:
                     log_trade_to_journal(target_date, s_name, sub_tr)
             else:
                 log_trade_to_journal(target_date, s_name, s_res)
+
+    if args.telegram:
+        tot_pnl = 0.0
+        if os.path.exists(TRADE_JOURNAL_CSV):
+            try:
+                df_j = pd.read_csv(TRADE_JOURNAL_CSV)
+                if not df_j.empty and "net_pnl" in df_j.columns:
+                    tot_pnl = round(float(df_j["net_pnl"].sum()), 2)
+            except Exception:
+                tot_pnl = daily_net_pnl
+
+        try:
+            from src.notifications.notifier import send_daily_summary_alert
+            print(f"[TELEGRAM] Pushing daily summary to Telegram for {target_date.strftime('%d-%b-%Y')}...")
+            send_daily_summary_alert(
+                date_str=target_date.strftime("%d-%b-%Y"),
+                trades_count=daily_trades_count,
+                daily_pnl=round(daily_net_pnl, 2),
+                total_pnl=tot_pnl,
+                current_balance=round(10000.0 + tot_pnl, 2)
+            )
+            print("[TELEGRAM] Telegram sync alert delivered successfully!")
+        except Exception as e:
+            print(f"[WARN] Failed to push Telegram sync: {e}")
 
 if __name__ == "__main__":
     run()

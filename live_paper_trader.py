@@ -188,29 +188,6 @@ class LiveQuadPaperTrader:
                 return True
         return False
 
-    def run_live_loop(self):
-        """Continuously monitors live market during trading hours across all active strategies."""
-        print("\n" + "=" * 85)
-        print("   MULTI-INDEX LIVE MARKET TRADING ENGINE ACTIVE")
-        print("   Tracking Strategies: Strategy 1, 2, 3, 4 (Nifty) & Strategy 5 (BankNifty DAS)")
-        print("=" * 85)
-
-        ist_now = get_ist_now()
-        send_telegram_alert(
-            f"🚀 *Option Trading Bot Woke Up (Live Engine Active)*\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
-            f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
-            f"Bot is actively monitoring all 5 quantitative strategies:\n"
-            f"• Strategy 1: Hedged Long Strangle (15M Box - Nifty)\n"
-            f"• Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze (Nifty)\n"
-            f"• Strategy 3: 30M Statistical Directional ITM Breakout (Nifty)\n"
-            f"• Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)\n"
-            f"• Strategy 5: Decoupled Asymmetric Strangle (DAS - BankNifty)\n\n"
-            f"💰 *Capital Limit:* ₹10,000 per trade\n"
-            f"🔔 Instant alerts will be sent here for every trade entry and exit!"
-        )
-
     def save_active_positions(self):
         """Persists in-flight open positions to data/active_positions.json for crash resilience."""
         data_to_save = {}
@@ -544,9 +521,9 @@ class LiveQuadPaperTrader:
                     high_p = float(df_p["high"].max())
                     low_p = float(df_p["low"].min())
             else:
-                t_exp = compute_calendar_dte(ist_now)
-                p_c = black_scholes_price(spot, pos["ce_strike"], t_exp, config.RISK_FREE_RATE, 0.135, "CE")
-                p_p = black_scholes_price(spot, pos["pe_strike"], t_exp, config.RISK_FREE_RATE, 0.135, "PE")
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                p_c = black_scholes_price(spot, pos["ce_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
+                p_p = black_scholes_price(spot, pos["pe_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
                 high_c, low_c = p_c, p_c
                 high_p, low_p = p_p, p_p
 
@@ -681,16 +658,20 @@ class LiveQuadPaperTrader:
                 return
             if not is_trade_window_valid(ist_now.time()):
                 return
-            if df_all.empty or len(df_all) < 15:
+            if df_all.empty:
                 return
 
-            recent_bars = df_all.iloc[-15:]
+            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
+            if day_bars.empty or len(day_bars) < 15:
+                return
+
+            recent_bars = day_bars.iloc[-15:]
             std_val = float(recent_bars["close"].std())
-            vel_val = float(df_all["close"].iloc[-1] - df_all["close"].iloc[-4]) if len(df_all) >= 4 else 0.0
+            vel_val = float(day_bars["close"].iloc[-1] - day_bars["close"].iloc[-4]) if len(day_bars) >= 4 else 0.0
 
             if std_val < 5.0 and abs(vel_val) >= 3.0:
-                t_exp = compute_calendar_dte(ist_now)
-                strike_res = select_affordable_strikes(spot, ist_now, T_years=t_exp, min_prem=35.0, max_prem=68.0, max_budget=10000.0)
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                strike_res = select_affordable_strikes(spot, ist_now, T_years=t_exp_years, min_prem=35.0, max_prem=68.0, max_budget=10000.0)
                 if not strike_res:
                     return
 
@@ -783,9 +764,9 @@ class LiveQuadPaperTrader:
                     high_p = float(df_p["high"].max())
                     low_p = float(df_p["low"].min())
             else:
-                t_exp = compute_calendar_dte(ist_now)
-                p_c = black_scholes_price(spot, pos["ce_strike"], t_exp, config.RISK_FREE_RATE, 0.14, "CE")
-                p_p = black_scholes_price(spot, pos["pe_strike"], t_exp, config.RISK_FREE_RATE, 0.14, "PE")
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                p_c = black_scholes_price(spot, pos["ce_strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, "CE")
+                p_p = black_scholes_price(spot, pos["pe_strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, "PE")
                 high_c, low_c = p_c, p_c
                 high_p, low_p = p_p, p_p
 
@@ -908,7 +889,11 @@ class LiveQuadPaperTrader:
             if df_all.empty:
                 return
 
-            box_bars = df_all[(df_all["timestamp"].dt.time >= dtime(9, 15)) & (df_all["timestamp"].dt.time <= dtime(9, 30))]
+            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
+            if day_bars.empty:
+                return
+
+            box_bars = day_bars[(day_bars["timestamp"].dt.time >= dtime(9, 15)) & (day_bars["timestamp"].dt.time <= dtime(9, 30))]
             if len(box_bars) < 10:
                 return
 
@@ -926,13 +911,13 @@ class LiveQuadPaperTrader:
                 atm = int(round(spot / 50.0) * 50)
                 ce_k = atm + 150
                 pe_k = atm - 150
-                t_exp = compute_calendar_dte(ist_now)
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
 
                 c_ce = get_active_option_contract(today_date, ce_k, "CE", underlying="NIFTY") if self.smart_api else None
                 c_pe = get_active_option_contract(today_date, pe_k, "PE", underlying="NIFTY") if self.smart_api else None
 
-                p_ce = black_scholes_price(spot, ce_k, t_exp, config.RISK_FREE_RATE, 0.14, "CE")
-                p_pe = black_scholes_price(spot, pe_k, t_exp, config.RISK_FREE_RATE, 0.14, "PE")
+                p_ce = black_scholes_price(spot, ce_k, t_exp_years, config.RISK_FREE_RATE, 0.14, "CE")
+                p_pe = black_scholes_price(spot, pe_k, t_exp_years, config.RISK_FREE_RATE, 0.14, "PE")
                 real_ce = p_ce
                 real_pe = p_pe
                 feed_label = "Mathematical (BSM)"
@@ -1012,8 +997,8 @@ class LiveQuadPaperTrader:
                     high_p = float(df_opt["high"].max())
                     low_p = float(df_opt["low"].min())
             else:
-                t_exp = compute_calendar_dte(ist_now)
-                curr_p = black_scholes_price(spot, pos["strike"], t_exp, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                curr_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
                 high_p, low_p = curr_p, curr_p
 
             exit_triggered = False
@@ -1083,7 +1068,11 @@ class LiveQuadPaperTrader:
             if df_all.empty:
                 return
 
-            win_bars = df_all[(df_all["timestamp"].dt.time >= dtime(9, 45)) & (df_all["timestamp"].dt.time <= dtime(11, 30))]
+            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
+            if day_bars.empty:
+                return
+
+            win_bars = day_bars[(day_bars["timestamp"].dt.time >= dtime(9, 45)) & (day_bars["timestamp"].dt.time <= dtime(11, 30))]
             if len(win_bars) < 21:
                 return
 
@@ -1108,19 +1097,19 @@ class LiveQuadPaperTrader:
             else:
                 return
 
-            t_exp = compute_calendar_dte(ist_now)
+            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
             atm = int(round(spot / 50.0) * 50)
             chosen_k = atm
             best_diff = 999.0
             for offset in range(-500, 550, 50):
                 k = atm + offset
-                p_est = black_scholes_price(spot, k, t_exp, config.RISK_FREE_RATE, 0.14, opt_type)
+                p_est = black_scholes_price(spot, k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
                 if abs(p_est - 50.0) < best_diff and p_est * self.lot_size <= 10000.0:
                     best_diff = abs(p_est - 50.0)
                     chosen_k = k
 
             contract = get_active_option_contract(today_date, chosen_k, opt_type, underlying="NIFTY") if self.smart_api else None
-            real_p = black_scholes_price(spot, chosen_k, t_exp, config.RISK_FREE_RATE, 0.14, opt_type)
+            real_p = black_scholes_price(spot, chosen_k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
             feed_label = "Mathematical (BSM)"
 
             if self.smart_api and contract:
@@ -1182,8 +1171,8 @@ class LiveQuadPaperTrader:
                     high_p = float(df_opt["high"].max())
                     low_p = float(df_opt["low"].min())
             else:
-                t_exp = compute_calendar_dte(ist_now)
-                curr_p = black_scholes_price(spot, pos["strike"], t_exp, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                curr_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
                 high_p, low_p = curr_p, curr_p
 
             pos["peak_p"] = max(pos.get("peak_p", pos["entry_p"]), high_p)
@@ -1257,7 +1246,11 @@ class LiveQuadPaperTrader:
             if df_all.empty:
                 return
 
-            box_bars = df_all[(df_all["timestamp"].dt.time >= dtime(9, 15)) & (df_all["timestamp"].dt.time <= dtime(9, 45))]
+            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
+            if day_bars.empty:
+                return
+
+            box_bars = day_bars[(day_bars["timestamp"].dt.time >= dtime(9, 15)) & (day_bars["timestamp"].dt.time <= dtime(9, 45))]
             if len(box_bars) < 15:
                 return
 
@@ -1270,7 +1263,7 @@ class LiveQuadPaperTrader:
 
             upper_trig = box_h + 6.0
             lower_trig = box_l - 6.0
-            curr_bar = df_all.iloc[-1]
+            curr_bar = day_bars.iloc[-1]
 
             opt_type = ""
             atm = int(round(spot / 50.0) * 50)
@@ -1283,9 +1276,9 @@ class LiveQuadPaperTrader:
             else:
                 return
 
-            t_exp = compute_calendar_dte(ist_now)
+            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
             contract = get_active_option_contract(today_date, chosen_k, opt_type, underlying="NIFTY") if self.smart_api else None
-            real_p = black_scholes_price(spot, chosen_k, t_exp, config.RISK_FREE_RATE, 0.14, opt_type)
+            real_p = black_scholes_price(spot, chosen_k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
             feed_label = "Mathematical (BSM)"
 
             if self.smart_api and contract:
@@ -1386,7 +1379,7 @@ class LiveQuadPaperTrader:
                 continue
 
             if not df_all.empty:
-                df_all["timestamp"] = pd.to_datetime(df_all["timestamp"])
+                df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)
                 day_candles = df_all[df_all["timestamp"].dt.date == today_date]
                 spot = float(day_candles["close"].iloc[-1]) if not day_candles.empty else self.get_nifty_spot_price()
             else:
