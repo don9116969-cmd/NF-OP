@@ -50,10 +50,18 @@ from daily_result_checker import (
     evaluate_strategy_4,
     evaluate_strategy_5,
     sync_and_update_candles,
-    log_trade_to_journal,
     CANDLE_FILE,
     BANKNIFTY_CANDLE_FILE
 )
+from src.utils.journal_manager import (
+    load_active_positions,
+    save_active_positions,
+    log_trade_to_journal,
+    refresh_markdown_journal,
+    auto_catchup_missing_trading_days,
+    mark_day_as_audited
+)
+from src.utils.git_sync import git_sync_push
 from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles
 from src.banknifty.banknifty_das import select_banknifty_affordable_strikes, get_banknifty_dte
 from run_strangle_grid_exhaustive import compute_calendar_dte
@@ -115,26 +123,33 @@ class LiveQuadPaperTrader:
     def connect_angel_one(self) -> bool:
         api_key = os.getenv("ANGEL_API_KEY")
         client_code = os.getenv("ANGEL_CLIENT_CODE")
-        pin = os.getenv("ANGEL_PASSWORD") or os.getenv("ANGEL_PIN")
+        pin = os.getenv("ANGEL_PASSWORD") or os.getenv("ANGEL_PIN") or os.getenv("ANGEI_PASSWORD")
         totp_secret = os.getenv("ANGEL_TOTP_SECRET")
 
         if not all([api_key, client_code, pin, totp_secret]):
             print("[INFO] Angel One credentials not fully configured in .env. Running in offline/simulation mode.")
             return False
 
-        try:
-            self.smart_api = SmartConnect(api_key=api_key)
-            totp = pyotp.TOTP(totp_secret).now()
-            data = self.smart_api.generateSession(client_code, pin, totp)
-            if data and data.get("status"):
-                print(f"[SUCCESS] Connected to Angel One SmartAPI for Multi-Index Live Trading. (Client: {client_code})")
-                return True
-            else:
-                print(f"[WARN] Angel One login failed: {data.get('message', 'Unknown error')}")
-                return False
-        except Exception as e:
-            print(f"[ERROR] Angel One connection error: {e}")
-            return False
+        import time as time_lib
+        for attempt in range(3):
+            try:
+                self.smart_api = SmartConnect(api_key=api_key, timeout=30)
+                totp = pyotp.TOTP(totp_secret).now()
+                data = self.smart_api.generateSession(client_code, pin, totp)
+                if data and data.get("status"):
+                    print(f"[SUCCESS] Connected to Angel One SmartAPI for Multi-Index Live Trading. (Client: {client_code})")
+                    return True
+                elif data and "exceeding access rate" in str(data):
+                    time_lib.sleep(1.5)
+                else:
+                    if attempt == 2:
+                        print(f"[WARN] Angel One login failed: {data.get('message', 'Unknown error')}")
+            except Exception as e:
+                if attempt < 2:
+                    time_lib.sleep(1.5)
+                else:
+                    print(f"[ERROR] Angel One connection error: {e}")
+        return False
 
     def get_nifty_spot_price(self) -> float:
         """Fetches live Nifty 50 spot price from Angel One LTP."""
@@ -196,6 +211,13 @@ class LiveQuadPaperTrader:
                 p_copy = dict(pos)
                 if "entry_time" in p_copy and hasattr(p_copy["entry_time"], "isoformat"):
                     p_copy["entry_time"] = p_copy["entry_time"].isoformat()
+                # remove non-serializable objects
+                if "c_ce" in p_copy and isinstance(p_copy["c_ce"], dict):
+                    p_copy["c_ce"] = {k: str(v) for k, v in p_copy["c_ce"].items() if k in ["token", "symbol"]}
+                if "c_pe" in p_copy and isinstance(p_copy["c_pe"], dict):
+                    p_copy["c_pe"] = {k: str(v) for k, v in p_copy["c_pe"].items() if k in ["token", "symbol"]}
+                if "contract" in p_copy and isinstance(p_copy["contract"], dict):
+                    p_copy["contract"] = {k: str(v) for k, v in p_copy["contract"].items() if k in ["token", "symbol"]}
                 data_to_save[s_key] = p_copy
         os.makedirs("data", exist_ok=True)
         try:
@@ -203,6 +225,27 @@ class LiveQuadPaperTrader:
                 json.dump(data_to_save, f, indent=2)
         except Exception as e:
             print(f"[WARN] Failed to save active positions: {e}")
+
+    def on_trade_entry(self, s_key: str, s_name: str, pos: dict):
+        """Called immediately upon trade entry: updates active positions, journal, and pushes to git."""
+        pos["strategy_name"] = s_name
+        self.active_positions[s_key] = pos
+        self.daily_trade_count[s_key] += 1
+        self.save_active_positions()
+        refresh_markdown_journal()
+        sym_str = pos.get("strike") or pos.get("symbol") or f"{pos.get('ce_symbol', '')} + {pos.get('pe_symbol', '')}"
+        print(f"[LIVE JOURNAL] [ENTRY] Active trade logged in trade_journal.md for {s_name} ({sym_str})")
+        git_sync_push(f"Auto-Journal: 🟢 Entry {s_name} ({sym_str})")
+
+    def on_trade_exit(self, s_key: str, s_name: str, tr_log: dict):
+        """Called immediately upon trade exit: clears active position, appends to journal, and pushes to git."""
+        self.active_positions[s_key] = None
+        self.save_active_positions()
+        log_trade_to_journal(tr_log["date"], s_name, tr_log)
+        refresh_markdown_journal()
+        net_val = float(tr_log.get("net_pnl", 0.0))
+        print(f"[LIVE JOURNAL] [EXIT] Trade exit logged in trade_journal.md for {s_name} [PnL: INR {net_val:+.2f}]")
+        git_sync_push(f"Auto-Journal: 🔴 Exit {s_name} [PnL: INR {net_val:+.2f}]")
 
     def load_active_positions(self, today_date):
         """Loads and restores any in-flight open positions for today from data/active_positions.json."""
@@ -401,8 +444,8 @@ class LiveQuadPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                log_trade_to_journal(today_date, "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", tr_log)
-
+                self.cooldown_until["s5"] = ist_now + timedelta(minutes=30)
+                self.on_trade_exit("s5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", tr_log)
                 send_trade_exit_alert(
                     strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
                     exit_reason=exit_reason,
@@ -412,9 +455,6 @@ class LiveQuadPaperTrader:
                     details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
                     time_str=ist_now.strftime("%H:%M:%S")
                 )
-                self.cooldown_until["s5"] = ist_now + timedelta(minutes=30)
-                self.active_positions["s5"] = None
-                self.save_active_positions()
 
         # 2. POSITION IS NOT OPEN -> CHECK FOR LIVE BREAKOUT ENTRY
         else:
@@ -458,7 +498,7 @@ class LiveQuadPaperTrader:
                 curr_bar = df_bn.iloc[-1]
                 candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
-                self.active_positions["s5"] = {
+                pos_data = {
                     "entry_time": candle_ts,
                     "spot_entry": bn_spot,
                     "c_ce": c_ce,
@@ -483,7 +523,7 @@ class LiveQuadPaperTrader:
                     "pe_reason": "",
                     "data_feed": feed_label
                 }
-
+                self.on_trade_entry("s5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", pos_data)
                 send_trade_entry_alert(
                     strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
                     spot=bn_spot,
@@ -498,8 +538,6 @@ class LiveQuadPaperTrader:
                     time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.bn_lot_size
                 )
-                self.daily_trade_count["s5"] += 1
-                self.save_active_positions()
 
     def process_live_strategy_4(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 4 (Nifty DAS)."""
@@ -641,8 +679,8 @@ class LiveQuadPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                log_trade_to_journal(today_date, "Strategy 4: Decoupled Asymmetric Strangle", tr_log)
-
+                self.cooldown_until["s4"] = ist_now + timedelta(minutes=config.DAS_COOLDOWN_BARS)
+                self.on_trade_exit("s4", "Strategy 4: Decoupled Asymmetric Strangle", tr_log)
                 send_trade_exit_alert(
                     strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
                     exit_reason=exit_reason,
@@ -652,9 +690,6 @@ class LiveQuadPaperTrader:
                     details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
                     time_str=ist_now.strftime("%H:%M:%S")
                 )
-                self.cooldown_until["s4"] = ist_now + timedelta(minutes=config.DAS_COOLDOWN_BARS)
-                self.active_positions["s4"] = None
-                self.save_active_positions()
 
         else:
             if self.cooldown_until["s4"] and ist_now < self.cooldown_until["s4"]:
@@ -704,7 +739,7 @@ class LiveQuadPaperTrader:
                 curr_bar = day_bars.iloc[-1]
                 candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
-                self.active_positions["s4"] = {
+                pos_data = {
                     "entry_time": candle_ts,
                     "spot_entry": spot,
                     "c_ce": c_ce,
@@ -729,7 +764,7 @@ class LiveQuadPaperTrader:
                     "pe_reason": "",
                     "data_feed": feed_label
                 }
-
+                self.on_trade_entry("s4", "Strategy 4: Decoupled Asymmetric Strangle", pos_data)
                 send_trade_entry_alert(
                     strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
                     spot=spot,
@@ -744,8 +779,6 @@ class LiveQuadPaperTrader:
                     time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.lot_size
                 )
-                self.daily_trade_count["s4"] += 1
-                self.save_active_positions()
 
     def process_live_strategy_1(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 1 (15M Box Strangle)."""
@@ -879,8 +912,7 @@ class LiveQuadPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                log_trade_to_journal(today_date, "Strategy 1: Hedged Strangle", tr_log)
-
+                self.on_trade_exit("s1", "Strategy 1: Hedged Strangle", tr_log)
                 send_trade_exit_alert(
                     strategy="Strategy 1: Hedged Long Strangle (15M Box)",
                     exit_reason=exit_reason,
@@ -890,8 +922,6 @@ class LiveQuadPaperTrader:
                     details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
                     time_str=ist_now.strftime("%H:%M:%S")
                 )
-                self.active_positions["s1"] = None
-                self.save_active_positions()
 
         else:
             if self.daily_trade_count["s1"] >= 1:
@@ -952,7 +982,7 @@ class LiveQuadPaperTrader:
                 ce_sym = c_ce["symbol"] if c_ce else f"{ce_k}CE"
                 pe_sym = c_pe["symbol"] if c_pe else f"{pe_k}PE"
 
-                self.active_positions["s1"] = {
+                pos_data = {
                     "entry_time": candle_ts,
                     "spot_entry": spot,
                     "c_ce": c_ce,
@@ -977,7 +1007,7 @@ class LiveQuadPaperTrader:
                     "pe_reason": "",
                     "data_feed": feed_label
                 }
-
+                self.on_trade_entry("s1", "Strategy 1: Hedged Strangle", pos_data)
                 send_trade_entry_alert(
                     strategy="Strategy 1: Hedged Long Strangle (15M Box)",
                     spot=spot,
@@ -992,8 +1022,6 @@ class LiveQuadPaperTrader:
                     time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.lot_size
                 )
-                self.daily_trade_count["s1"] += 1
-                self.save_active_positions()
 
     def process_live_strategy_2(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 2 (Gamma Squeeze)."""
@@ -1059,8 +1087,7 @@ class LiveQuadPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                log_trade_to_journal(today_date, "Strategy 2: Expiry Gamma Squeeze", tr_log)
-
+                self.on_trade_exit("s2", "Strategy 2: Expiry Gamma Squeeze", tr_log)
                 send_trade_exit_alert(
                     strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
                     exit_reason=exit_reason,
@@ -1070,8 +1097,6 @@ class LiveQuadPaperTrader:
                     details=f"BUY {pos['symbol']} @ ₹{pos['entry_p']:.2f} exited @ ₹{exit_p:.2f}",
                     time_str=ist_now.strftime("%H:%M:%S")
                 )
-                self.active_positions["s2"] = None
-                self.save_active_positions()
 
         else:
             if today_date.weekday() not in [0, 1]:
@@ -1140,7 +1165,7 @@ class LiveQuadPaperTrader:
             sym = contract["symbol"] if contract else f"{chosen_k} {opt_type}"
             candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
-            self.active_positions["s2"] = {
+            pos_data = {
                 "entry_time": candle_ts,
                 "spot_entry": spot,
                 "contract": contract,
@@ -1153,7 +1178,7 @@ class LiveQuadPaperTrader:
                 "stop_p": round(real_p * 0.75, 2),
                 "data_feed": feed_label
             }
-
+            self.on_trade_entry("s2", "Strategy 2: Expiry Gamma Squeeze", pos_data)
             send_trade_entry_alert(
                 strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
                 spot=spot,
@@ -1167,8 +1192,6 @@ class LiveQuadPaperTrader:
                 time_str=candle_ts.strftime("%H:%M:%S"),
                 qty=self.lot_size
             )
-            self.daily_trade_count["s2"] += 1
-            self.save_active_positions()
 
     def process_live_strategy_3(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 3 (Directional ITM)."""
@@ -1240,8 +1263,7 @@ class LiveQuadPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                log_trade_to_journal(today_date, "Strategy 3: 30M Directional ITM", tr_log)
-
+                self.on_trade_exit("s3", "Strategy 3: 30M Directional ITM", tr_log)
                 send_trade_exit_alert(
                     strategy="Strategy 3: 30M Statistical Directional ITM",
                     exit_reason=exit_reason,
@@ -1251,8 +1273,6 @@ class LiveQuadPaperTrader:
                     details=f"BUY {pos['symbol']} @ ₹{pos['entry_p']:.2f} exited @ ₹{exit_p:.2f}",
                     time_str=ist_now.strftime("%H:%M:%S")
                 )
-                self.active_positions["s3"] = None
-                self.save_active_positions()
 
         else:
             if self.daily_trade_count["s3"] >= 1:
@@ -1310,7 +1330,7 @@ class LiveQuadPaperTrader:
             sym = contract["symbol"] if contract else f"{chosen_k} {opt_type}"
             candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
 
-            self.active_positions["s3"] = {
+            pos_data = {
                 "entry_time": candle_ts,
                 "spot_entry": spot,
                 "contract": contract,
@@ -1325,7 +1345,7 @@ class LiveQuadPaperTrader:
                 "trail_act_p": round(real_p * 1.25, 2),
                 "data_feed": feed_label
             }
-
+            self.on_trade_entry("s3", "Strategy 3: 30M Directional ITM", pos_data)
             send_trade_entry_alert(
                 strategy="Strategy 3: 30M Statistical Directional ITM",
                 spot=spot,
@@ -1339,8 +1359,6 @@ class LiveQuadPaperTrader:
                 time_str=candle_ts.strftime("%H:%M:%S"),
                 qty=self.lot_size
             )
-            self.daily_trade_count["s3"] += 1
-            self.save_active_positions()
 
     def run_live_loop(self):
         """Continuously monitors live market during trading hours across all active strategies in real-time."""
@@ -1574,6 +1592,22 @@ class LiveQuadPaperTrader:
             print(f"[WEEKEND] Today is {now.strftime('%A')}. NSE Market is closed on weekends.")
             self.run_replay_demonstration()
             return
+
+        # On weekdays, automatically catch up any un-audited historical trading days before market open!
+        try:
+            print("\n[STARTUP] Checking for any un-audited historical trading days...")
+            df_all = sync_and_update_candles(self.smart_api, CANDLE_FILE, "99926000") if self.smart_api else (pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame())
+            df_bn = sync_and_update_candles(self.smart_api, BANKNIFTY_CANDLE_FILE, "99926009") if self.smart_api else (pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame())
+            if not df_all.empty:
+                df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)
+                if not df_bn.empty:
+                    df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+                prior_dt = now.date() - timedelta(days=1)
+                caught_up = auto_catchup_missing_trading_days(self.smart_api, df_all, df_bn, up_to_date=prior_dt)
+                if caught_up:
+                    print(f"[STARTUP] Successfully caught up {len(caught_up)} missed day(s): {caught_up}")
+        except Exception as e:
+            print(f"[WARN] Startup catchup error: {e}")
 
         # Weekday Pre-Market (e.g. 08:30 - 09:14 AM IST)
         if now.time() < dtime(9, 15):

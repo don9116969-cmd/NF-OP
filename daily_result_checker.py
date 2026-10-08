@@ -50,14 +50,21 @@ def get_smart_api() -> SmartConnect:
     if not all([api_key, client_code, password, totp_secret]):
         return None
 
-    try:
-        api = SmartConnect(api_key=api_key)
-        totp = pyotp.TOTP(totp_secret).now()
-        session = api.generateSession(client_code, password, totp)
-        if session and session.get("status"):
-            return api
-    except Exception:
-        pass
+    import time as time_lib
+    for attempt in range(3):
+        try:
+            api = SmartConnect(api_key=api_key, timeout=30)
+            totp = pyotp.TOTP(totp_secret).now()
+            session = api.generateSession(client_code, password, totp)
+            if session and session.get("status"):
+                return api
+            elif session and "exceeding access rate" in str(session):
+                time_lib.sleep(1.5)
+        except Exception as e:
+            if attempt < 2:
+                time_lib.sleep(1.5)
+            else:
+                print(f"[WARN] Angel One login connection error: {e}")
     return None
 
 def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, symbol_token: str = "99926000") -> pd.DataFrame:
@@ -89,8 +96,9 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
         
         import time as time_lib
         res = None
-        for attempt in range(3):
+        for attempt in range(4):
             try:
+                time_lib.sleep(0.3)
                 res = api.getCandleData({
                     "exchange": "NSE",
                     "symboltoken": symbol_token,
@@ -101,11 +109,12 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
                 if res and res.get("status"):
                     break
                 elif res and "exceeding access rate" in str(res):
-                    time_lib.sleep(1.5)
+                    time_lib.sleep(1.5 * (attempt + 1))
             except Exception as e:
-                if "exceeding access rate" in str(e):
+                if attempt < 3:
                     time_lib.sleep(1.5)
                 else:
+                    print(f"[WARN] Candle sync error on attempt {attempt+1}: {e}")
                     break
 
         try:
@@ -646,90 +655,22 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
 TRADE_JOURNAL_CSV = os.path.join(BASE_DIR, "data", "trade_journal.csv")
 TRADE_JOURNAL_MD = os.path.join(BASE_DIR, "data", "trade_journal.md")
 
-def log_trade_to_journal(target_date: datetime.date, strategy_name: str, trade_res: dict):
-    parent_dir = os.path.dirname(TRADE_JOURNAL_CSV)
-    if parent_dir:
-        os.makedirs(parent_dir, exist_ok=True)
-    df_j = pd.DataFrame()
-    if os.path.exists(TRADE_JOURNAL_CSV):
-        try:
-            df_j = pd.read_csv(TRADE_JOURNAL_CSV)
-        except Exception:
-            df_j = pd.DataFrame()
-
-    entry_t = str(trade_res.get("entry_time", ""))
-    if not df_j.empty and "entry_time" in df_j.columns and "strategy" in df_j.columns:
-        dup = df_j[(df_j["strategy"] == strategy_name) & (df_j["entry_time"] == entry_t) & (df_j["date"] == str(target_date))]
-        if not dup.empty:
-            return  # Already logged
-
-    row = {
-        "date": str(target_date),
-        "strategy": strategy_name,
-        "leg": trade_res.get("opt_type", "CE+PE"),
-        "strike": trade_res.get("strike", "Dual OTM"),
-        "entry_time": entry_t,
-        "exit_time": str(trade_res.get("exit_time", "")),
-        "entry_p": trade_res.get("entry_p", 0.0),
-        "exit_p": trade_res.get("exit_p", 0.0),
-        "capital_used": trade_res.get("cost", 0.0),
-        "gross_pnl": trade_res.get("gross_pnl", 0.0),
-        "charges": trade_res.get("charges", 0.0),
-        "net_pnl": trade_res.get("net_pnl", 0.0),
-        "exit_reason": trade_res.get("exit_reason", ""),
-        "data_feed": trade_res.get("data_feed", "Angel One Real Traded")
-    }
-
-    df_j = pd.concat([df_j, pd.DataFrame([row])], ignore_index=True)
-    df_j.to_csv(TRADE_JOURNAL_CSV, index=False)
-    print(f"[TRADE JOURNAL] Recorded trade in data/trade_journal.csv & data/trade_journal.md")
-
-    # Keep paper_trading_ledger.csv synchronized
-    if os.path.exists(LEDGER_PATH):
-        try:
-            df_ledger = pd.read_csv(LEDGER_PATH)
-            if str(target_date) not in df_ledger["date"].astype(str).values:
-                last_cum = df_ledger["cum_net"].iloc[-1] if not df_ledger.empty and "cum_net" in df_ledger.columns else 0.0
-                new_cum = round(last_cum + row["net_pnl"], 2)
-                l_row = {
-                    "entry_time": row["entry_time"], "exit_time": row["exit_time"],
-                    "gross": row["gross_pnl"], "charges": row["charges"], "net": row["net_pnl"],
-                    "exit_reason": row["exit_reason"], "bars": 26, "cum_net": new_cum,
-                    "date": row["date"], "net_pnl": row["net_pnl"], "gross_pnl": row["gross_pnl"]
-                }
-                df_ledger = pd.concat([df_ledger, pd.DataFrame([l_row])], ignore_index=True)
-                df_ledger.to_csv(LEDGER_PATH, index=False)
-        except Exception:
-            pass
-
-    # Generate Markdown Journal
-    with open(TRADE_JOURNAL_MD, "w", encoding="utf-8") as f:
-        f.write("# Live Option Trading Journal & Paper Execution Log\n\n")
-        f.write(f"*Last Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
-        tot = len(df_j)
-        wins = len(df_j[df_j["net_pnl"] > 0])
-        losses = len(df_j[df_j["net_pnl"] <= 0])
-        wr = (wins / tot * 100) if tot > 0 else 0.0
-        tot_pnl = df_j["net_pnl"].sum()
-        f.write("### 1. Live Paper Trading Performance Summary\n")
-        f.write(f"- **Starting Capital**: INR 10,000.00\n")
-        f.write(f"- **Total Live Trades**: {tot}\n")
-        f.write(f"- **Win Rate**: {wr:.1f}% ({wins} Wins / {losses} Losses)\n")
-        f.write(f"- **Net Live PnL**: INR {tot_pnl:+,.2f}\n")
-        f.write(f"- **Current Balance**: INR {10000.0 + tot_pnl:+,.2f}\n\n")
-        f.write("### 2. Complete Trade Ledger\n\n")
-        f.write("| Date | Strategy | Leg | Strike | Entry | Exit | Entry P | Exit P | Capital | Net PnL | Exit Reason | Data Feed |\n")
-        f.write("|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---|\n")
-        for _, r in df_j.iterrows():
-            net_str = f"**+₹{r['net_pnl']:.2f}**" if r['net_pnl'] > 0 else f"**-₹{abs(r['net_pnl']):.2f}**"
-            f.write(f"| {r['date']} | {r['strategy']} | {r['leg']} | {r['strike']} | {r['entry_time']} | {r['exit_time']} | ₹{r['entry_p']:.2f} | ₹{r['exit_p']:.2f} | ₹{r['capital_used']:.2f} | {net_str} | {r['exit_reason']} | {r['data_feed']} |\n")
-        f.write("\n")
+def log_trade_to_journal(target_date, strategy_name: str, trade_res: dict):
+    from src.utils.journal_manager import log_trade_to_journal as _log_trade
+    _log_trade(target_date, strategy_name, trade_res)
 
 def run():
     parser = argparse.ArgumentParser(description="Multi-Strategy Daily Result Checker")
     parser.add_argument("--date", type=str, default=None, help="Date to check (YYYY-MM-DD).")
     parser.add_argument("--telegram", action="store_true", help="Sync and push complete daily result summary to Telegram.")
     args = parser.parse_args()
+
+    from src.utils.journal_manager import (
+        auto_catchup_missing_trading_days,
+        mark_day_as_audited,
+        refresh_markdown_journal
+    )
+    from src.utils.git_sync import git_sync_push
 
     api = get_smart_api()
     if api:
@@ -746,13 +687,17 @@ def run():
         return
 
     df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)
+    if not df_bn.empty:
+        df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+
     if args.date:
         target_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
     else:
+        # Determine latest date
         target_date = df_all["timestamp"].dt.date.max()
-
-    if not df_bn.empty:
-        df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+        # Automatically catch up any missed prior trading days in chronological order!
+        prior_date = target_date - datetime.timedelta(days=1)
+        auto_catchup_missing_trading_days(api, df_all, df_bn, up_to_date=prior_date)
 
     s1_res = evaluate_strategy_1(df_all, target_date, api=api)
     s2_res = evaluate_strategy_2(df_all, target_date, api=api)
@@ -780,6 +725,13 @@ def run():
                     log_trade_to_journal(target_date, s_name, sub_tr)
             else:
                 log_trade_to_journal(target_date, s_name, s_res)
+
+    # Mark this day as audited
+    mark_day_as_audited(str(target_date))
+    refresh_markdown_journal()
+
+    # Automatically push journal update to GitHub
+    git_sync_push(f"Daily Result Audit: {target_date.strftime('%d-%b-%Y')}")
 
     if args.telegram:
         tot_pnl = 0.0

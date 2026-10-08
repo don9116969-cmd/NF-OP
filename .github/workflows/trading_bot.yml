@@ -47,7 +47,10 @@ jobs:
           ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git config --global user.name "Nifty Bot Cloud Runner"
+          git config --global user.email "bot@github-actions.internal"
           python -u live_paper_trader.py --strategy all
 
       - name: Commit and Push Journal Updates
@@ -55,7 +58,7 @@ jobs:
         run: |
           git config --global user.name "Nifty Bot Cloud Runner"
           git config --global user.email "bot@github-actions.internal"
-          git add data/trade_journal.md data/trade_journal.csv data/live_paper_trades.csv data/active_positions.json data/paper_trading_ledger.csv || true
+          git add data/trade_journal.md data/trade_journal.csv data/live_paper_trades.csv data/active_positions.json data/audited_days.json data/paper_trading_ledger.csv || true
           if git diff --staged --quiet; then
             echo "No journal changes to commit."
           else
