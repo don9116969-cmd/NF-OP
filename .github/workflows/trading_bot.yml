@@ -4,16 +4,13 @@ on:
   schedule:
     # 03:42 UTC is 09:12 AM Indian Standard Time (IST) - Pre-market startup
     # 09:12 AM IST allows runner 3 mins to boot and standby for 09:15 AM market opening bell
-    # Note: 42 minute avoids standard :00, :15, :30, :45, :50 GitHub Actions queue congestion
     - cron: '42 3 * * 1-5'
-    # 03:48 UTC is 09:18 AM Indian Standard Time (IST) - Backup trigger in case primary was queued
-    - cron: '48 3 * * 1-5'
   workflow_dispatch:
     # Allows manual trigger anytime from GitHub Actions tab OR automated HTTP webhook call
 
 concurrency:
   group: nifty-trading-bot
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -58,10 +55,10 @@ jobs:
         run: |
           git config --global user.name "Nifty Bot Cloud Runner"
           git config --global user.email "bot@github-actions.internal"
-          git add data/trade_journal.md data/trade_journal.csv data/live_paper_trades.csv data/active_positions.json data/audited_days.json data/paper_trading_ledger.csv || true
+          git add data/trade_journal.md data/trade_journal.csv data/live_paper_trades.csv data/active_positions.json data/audited_days.json data/paper_trading_ledger.csv data/nifty_1min_real.csv data/banknifty_1min_real.csv || true
           if git diff --staged --quiet; then
             echo "No journal changes to commit."
           else
-            git commit -m "Auto-update trade journal [skip ci]"
+            git commit -m "Auto-update trade journal and market candles [skip ci]"
             git push
           fi

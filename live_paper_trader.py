@@ -464,14 +464,13 @@ class LiveQuadPaperTrader:
                 return
             if dtime(11, 30) <= ist_now.time() <= dtime(12, 45):
                 return
-            if df_bn.empty or len(df_bn) < 15:
+            if df_bn.empty or len(df_bn) < 20:
                 return
 
-            recent_bars = df_bn.iloc[-15:]
-            std_val = float(recent_bars["close"].std())
+            rolling_std = float(df_bn["close"].rolling(20).std().iloc[-1])
             vel_val = float(df_bn["close"].iloc[-1] - df_bn["close"].iloc[-4]) if len(df_bn) >= 4 else 0.0
 
-            if std_val < 55.0 and abs(vel_val) >= 70.0:
+            if rolling_std < 55.0 and abs(vel_val) >= 70.0:
                 dte = get_banknifty_dte(ist_now, today_date)
                 k_ce, k_pe, p_ce, p_pe, tot_capital, c_ce, c_pe = select_banknifty_affordable_strikes(
                     bn_spot, dte, today_date, api=self.smart_api, max_budget=10000.0
@@ -703,17 +702,22 @@ class LiveQuadPaperTrader:
             if day_bars.empty or len(day_bars) < 15:
                 return
 
-            recent_bars = day_bars.iloc[-15:]
-            std_val = float(recent_bars["close"].std())
-            vel_val = float(day_bars["close"].iloc[-1] - day_bars["close"].iloc[-4]) if len(day_bars) >= 4 else 0.0
+            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+            strike_res = select_affordable_strikes(spot, ist_now, T_years=t_exp_years, min_prem=35.0, max_prem=68.0, max_budget=10000.0)
+            if not strike_res:
+                return
 
-            if std_val < 5.0 and abs(vel_val) >= 3.0:
-                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-                strike_res = select_affordable_strikes(spot, ist_now, T_years=t_exp_years, min_prem=35.0, max_prem=68.0, max_budget=10000.0)
-                if not strike_res:
-                    return
+            ce_k, pe_k, p_ce, p_pe, _ = strike_res
+            recent_spots = day_bars["close"].iloc[-15:].values
+            comb_hist = []
+            for s_val in recent_spots:
+                cp = black_scholes_price(s_val, ce_k, t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
+                pp = black_scholes_price(s_val, pe_k, t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
+                comb_hist.append(cp + pp)
+            comb_hist = np.array(comb_hist)
 
-                ce_k, pe_k, p_ce, p_pe, _ = strike_res
+            triggered, cur_std, cur_vel = check_compression_expansion(comb_hist, config.DAS_STD_THRESH, config.DAS_VEL_THRESH)
+            if triggered:
                 c_ce = get_active_option_contract(today_date, ce_k, "CE", underlying="NIFTY") if self.smart_api else None
                 c_pe = get_active_option_contract(today_date, pe_k, "PE", underlying="NIFTY") if self.smart_api else None
 
@@ -1400,6 +1404,8 @@ class LiveQuadPaperTrader:
                 print(f"[WARN] Nifty candle sync error: {e}")
                 df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
 
+            time.sleep(1.5)  # Enforce 1.5s pause to prevent Angel One rate limit between instruments
+
             try:
                 if self.smart_api:
                     df_bn = sync_and_update_candles(self.smart_api, BANKNIFTY_CANDLE_FILE, "99926009")
@@ -1466,6 +1472,15 @@ class LiveQuadPaperTrader:
 
     def run_eod_accounting(self):
         """Runs end-of-day result check and logs to journal and Telegram."""
+        if self.smart_api:
+            try:
+                print("[EOD] Syncing final candles from Angel One before audit...")
+                sync_and_update_candles(self.smart_api, CANDLE_FILE, "99926000")
+                time.sleep(1.5)
+                sync_and_update_candles(self.smart_api, BANKNIFTY_CANDLE_FILE, "99926009")
+            except Exception as e:
+                print(f"[WARN] EOD candle sync error: {e}")
+
         df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
         df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
         today = get_ist_now().date()
@@ -1597,6 +1612,7 @@ class LiveQuadPaperTrader:
         try:
             print("\n[STARTUP] Checking for any un-audited historical trading days...")
             df_all = sync_and_update_candles(self.smart_api, CANDLE_FILE, "99926000") if self.smart_api else (pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame())
+            time.sleep(1.5)
             df_bn = sync_and_update_candles(self.smart_api, BANKNIFTY_CANDLE_FILE, "99926009") if self.smart_api else (pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame())
             if not df_all.empty:
                 df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)

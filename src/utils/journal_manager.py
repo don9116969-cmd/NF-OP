@@ -325,6 +325,10 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
         s4_res = evaluate_strategy_4(df_all, d, api=api)
         s5_res = evaluate_strategy_5(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
 
+        day_trades_count = 0
+        day_net_pnl = 0.0
+        day_trades = []
+
         # Log any trades that occurred
         for s_name, s_res in [
             ("Strategy 1: Hedged Strangle", s1_res),
@@ -337,7 +341,58 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
                 trades_to_log = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
                 for sub_tr in trades_to_log:
                     log_trade_to_journal(d, s_name, sub_tr)
-                    print(f"  -> Recorded Trade: {s_name} | Net: INR {sub_tr.get('net_pnl', 0.0):+.2f} ({sub_tr.get('exit_reason', '')})")
+                    day_trades_count += 1
+                    sub_net = float(sub_tr.get("net_pnl", sub_tr.get("net", 0.0)))
+                    day_net_pnl += sub_net
+                    day_trades.append((s_name, sub_tr))
+                    print(f"  -> Recorded Trade: {s_name} | Net: INR {sub_net:+.2f} ({sub_tr.get('exit_reason', '')})")
+
+        # Dispatch instant Telegram notifications for caught-up trades
+        try:
+            from src.notifications.notifier import (
+                send_telegram_alert,
+                send_trade_exit_alert,
+                send_daily_summary_alert
+            )
+            if day_trades:
+                send_telegram_alert(
+                    f"📋 *Auto-Catchup Trade Ledger Backfill*\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"📅 *Session Date:* {d.strftime('%A, %d-%b-%Y')}\n"
+                    f"🔔 *Executed Trades:* {day_trades_count}\n"
+                    f"💰 *Session Net PnL:* {'+' if day_net_pnl > 0 else ''}₹{day_net_pnl:.2f}\n"
+                    f"Auto-backfilled missing trading session into ledger and trade journal."
+                )
+                for s_name, sub_tr in day_trades:
+                    send_trade_exit_alert(
+                        strategy=f"{s_name} (Catchup: {d.strftime('%d-%b')})",
+                        exit_reason=sub_tr.get("exit_reason", "Target/SL/Time"),
+                        gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
+                        charges=sub_tr.get("charges", 0.0),
+                        net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
+                        details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
+                        time_str=str(sub_tr.get("exit_time", ""))
+                    )
+
+            # Cumulative PnL calculation
+            tot_pnl = 0.0
+            if os.path.exists(TRADE_JOURNAL_CSV):
+                try:
+                    df_j = pd.read_csv(TRADE_JOURNAL_CSV)
+                    if not df_j.empty and "net_pnl" in df_j.columns:
+                        tot_pnl = round(float(df_j["net_pnl"].sum()), 2)
+                except Exception:
+                    tot_pnl = day_net_pnl
+
+            send_daily_summary_alert(
+                date_str=f"{d.strftime('%d-%b-%Y')} (Auto-Catchup)",
+                trades_count=day_trades_count,
+                daily_pnl=round(day_net_pnl, 2),
+                total_pnl=tot_pnl,
+                current_balance=round(10000.0 + tot_pnl, 2)
+            )
+        except Exception as tel_err:
+            print(f"[WARN] Failed to dispatch auto-catchup Telegram alerts: {tel_err}")
 
         mark_day_as_audited(str(d))
         caught_up.append(str(d))

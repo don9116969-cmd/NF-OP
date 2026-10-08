@@ -22,14 +22,16 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
         subprocess.run(["git", "config", "user.name", "Nifty Bot Cloud Runner"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
         subprocess.run(["git", "config", "user.email", "bot@github-actions.internal"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
 
-        # Stage only journal and execution state tracking files
+        # Stage journal, candle datasets, and execution state tracking files
         files_to_add = [
             "data/trade_journal.csv",
             "data/trade_journal.md",
             "data/active_positions.json",
             "data/live_paper_trades.csv",
             "data/paper_trading_ledger.csv",
-            "data/audited_days.json"
+            "data/audited_days.json",
+            "data/nifty_1min_real.csv",
+            "data/banknifty_1min_real.csv"
         ]
         existing_files = [f for f in files_to_add if os.path.exists(f)]
         if not existing_files:
@@ -49,7 +51,10 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
         # Determine environment and timeouts
         is_ci = bool(os.getenv("GITHUB_ACTIONS"))
         retries = max_retries if is_ci else 1
-        timeout_sec = 15 if is_ci else 4
+        timeout_sec = 15 if is_ci else 6
+
+        git_env = os.environ.copy()
+        git_env["GIT_TERMINAL_PROMPT"] = "0"
 
         # Check for GitHub Actions environment with GITHUB_TOKEN
         remote_target = "origin"

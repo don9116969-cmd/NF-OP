@@ -96,9 +96,9 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
         
         import time as time_lib
         res = None
-        for attempt in range(4):
+        for attempt in range(5):
             try:
-                time_lib.sleep(0.3)
+                time_lib.sleep(1.2 + (attempt * 1.5))
                 res = api.getCandleData({
                     "exchange": "NSE",
                     "symboltoken": symbol_token,
@@ -109,10 +109,15 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
                 if res and res.get("status"):
                     break
                 elif res and "exceeding access rate" in str(res):
-                    time_lib.sleep(1.5 * (attempt + 1))
+                    print(f"[RATE-LIMIT] Angel One rate limit response received ({attempt+1}/5). Backing off...")
+                    time_lib.sleep(2.5 * (attempt + 1))
             except Exception as e:
-                if attempt < 3:
-                    time_lib.sleep(1.5)
+                err_str = str(e)
+                if "exceeding access rate" in err_str or "DataException" in str(type(e)):
+                    print(f"[RATE-LIMIT] Angel One rate limit error ({attempt+1}/5). Backing off...")
+                    time_lib.sleep(2.5 * (attempt + 1))
+                elif attempt < 4:
+                    time_lib.sleep(2.0)
                 else:
                     print(f"[WARN] Candle sync error on attempt {attempt+1}: {e}")
                     break
@@ -662,7 +667,8 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: dict):
 def run():
     parser = argparse.ArgumentParser(description="Multi-Strategy Daily Result Checker")
     parser.add_argument("--date", type=str, default=None, help="Date to check (YYYY-MM-DD).")
-    parser.add_argument("--telegram", action="store_true", help="Sync and push complete daily result summary to Telegram.")
+    parser.add_argument("--telegram", action="store_true", default=True, help="Sync and push complete daily result summary to Telegram (default: True).")
+    parser.add_argument("--no-telegram", action="store_true", help="Disable Telegram push.")
     args = parser.parse_args()
 
     from src.utils.journal_manager import (
@@ -675,7 +681,9 @@ def run():
     api = get_smart_api()
     if api:
         print("[CONNECTED] Angel One SmartAPI connected successfully.")
+        import time as time_lib
         df_all = sync_and_update_candles(api, CANDLE_FILE, "99926000")
+        time_lib.sleep(1.5)  # Enforce 1.5s pause to prevent Angel One rate limit between instruments
         df_bn = sync_and_update_candles(api, BANKNIFTY_CANDLE_FILE, "99926009")
     else:
         print("[OFFLINE] Running with local candle dataset.")
@@ -733,7 +741,8 @@ def run():
     # Automatically push journal update to GitHub
     git_sync_push(f"Daily Result Audit: {target_date.strftime('%d-%b-%Y')}")
 
-    if args.telegram:
+    should_push_telegram = args.telegram and not args.no_telegram
+    if should_push_telegram:
         tot_pnl = 0.0
         if os.path.exists(TRADE_JOURNAL_CSV):
             try:
