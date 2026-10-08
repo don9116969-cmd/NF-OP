@@ -361,17 +361,21 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
                     f"📅 *Session Date:* {d.strftime('%A, %d-%b-%Y')}\n"
                     f"🔔 *Executed Trades:* {day_trades_count}\n"
                     f"💰 *Session Net PnL:* {'+' if day_net_pnl > 0 else ''}₹{day_net_pnl:.2f}\n"
-                    f"Auto-backfilled missing trading session into ledger and trade journal."
+                    f"Auto-backfilled missing trading session into ledger and trade journal.",
+                    alert_key=f"CATCHUP_SUMMARY:{d}"
                 )
                 for s_name, sub_tr in day_trades:
                     send_trade_exit_alert(
-                        strategy=f"{s_name} (Catchup: {d.strftime('%d-%b')})",
+                        strategy=s_name,
                         exit_reason=sub_tr.get("exit_reason", "Target/SL/Time"),
                         gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
                         charges=sub_tr.get("charges", 0.0),
                         net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
                         details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
-                        time_str=str(sub_tr.get("exit_time", ""))
+                        time_str=str(sub_tr.get("exit_time", "")),
+                        date_str=str(d),
+                        entry_time=str(sub_tr.get("entry_time", "")),
+                        strike=str(sub_tr.get("strike", ""))
                     )
 
             # Cumulative PnL calculation
@@ -385,7 +389,7 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
                     tot_pnl = day_net_pnl
 
             send_daily_summary_alert(
-                date_str=f"{d.strftime('%d-%b-%Y')} (Auto-Catchup)",
+                date_str=str(d),
                 trades_count=day_trades_count,
                 daily_pnl=round(day_net_pnl, 2),
                 total_pnl=tot_pnl,

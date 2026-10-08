@@ -772,7 +772,10 @@ def run():
                             charges=sub_tr.get("charges", 0.0),
                             net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
                             details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
-                            time_str=str(sub_tr.get("exit_time", ""))
+                            time_str=str(sub_tr.get("exit_time", "")),
+                            date_str=str(target_date),
+                            entry_time=str(sub_tr.get("entry_time", "")),
+                            strike=str(sub_tr.get("strike", ""))
                         )
 
             send_daily_summary_alert(
@@ -782,7 +785,7 @@ def run():
                 total_pnl=tot_pnl,
                 current_balance=round(10000.0 + tot_pnl, 2)
             )
-            print("[TELEGRAM] All trade alerts and summary delivered successfully!")
+            print("[TELEGRAM] All trade alerts and summary checked & delivered successfully!")
         except Exception as e:
             print(f"[WARN] Failed to push Telegram sync: {e}")
 

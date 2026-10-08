@@ -347,7 +347,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
                             f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+100% Target)\n"
                             f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s5:ce:{pos['ce_reason']}"
                         )
                 elif low_c <= pos["ce_sl"]:
                     pos["ce_exited"] = True
@@ -362,7 +363,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
                             f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-15% SL)\n"
                             f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s5:ce:{pos['ce_reason']}"
                         )
 
             if not pos["pe_exited"]:
@@ -379,7 +381,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+100% Target)\n"
                             f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s5:pe:{pos['pe_reason']}"
                         )
                 elif low_p <= pos["pe_sl"]:
                     pos["pe_exited"] = True
@@ -394,7 +397,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-15% SL)\n"
                             f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s5:pe:{pos['pe_reason']}"
                         )
 
             exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -453,7 +457,10 @@ class LiveQuadPaperTrader:
                     charges=charges,
                     net_pnl=net,
                     details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
-                    time_str=ist_now.strftime("%H:%M:%S")
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    date_str=str(today_date),
+                    entry_time=str(pos["entry_time"]),
+                    strike=f"{pos['ce_symbol']} + {pos['pe_symbol']}"
                 )
 
         # 2. POSITION IS NOT OPEN -> CHECK FOR LIVE BREAKOUT ENTRY
@@ -535,7 +542,8 @@ class LiveQuadPaperTrader:
                     lose_stop_pct=0.15,
                     max_hold_mins=45,
                     time_str=candle_ts.strftime("%H:%M:%S"),
-                    qty=self.bn_lot_size
+                    qty=self.bn_lot_size,
+                    date_str=str(today_date)
                 )
 
     def process_live_strategy_4(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
@@ -581,7 +589,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
                             f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+50% Target)\n"
                             f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s4:ce:{pos['ce_reason']}"
                         )
                 elif low_c <= pos["ce_sl"]:
                     pos["ce_exited"] = True
@@ -596,7 +605,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
                             f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-35% SL)\n"
                             f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s4:ce:{pos['ce_reason']}"
                         )
 
             if not pos["pe_exited"]:
@@ -613,7 +623,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+50% Target)\n"
                             f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s4:pe:{pos['pe_reason']}"
                         )
                 elif low_p <= pos["pe_sl"]:
                     pos["pe_exited"] = True
@@ -628,7 +639,8 @@ class LiveQuadPaperTrader:
                             f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-35% SL)\n"
                             f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s4:pe:{pos['pe_reason']}"
                         )
 
             exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -687,7 +699,10 @@ class LiveQuadPaperTrader:
                     charges=charges,
                     net_pnl=net,
                     details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
-                    time_str=ist_now.strftime("%H:%M:%S")
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    date_str=str(today_date),
+                    entry_time=str(pos["entry_time"]),
+                    strike=f"{pos['ce_symbol']} + {pos['pe_symbol']}"
                 )
 
         else:
@@ -781,7 +796,8 @@ class LiveQuadPaperTrader:
                     lose_stop_pct=config.DAS_LOSE_STOP_PCT,
                     max_hold_mins=config.DAS_MAX_HOLD_MINS,
                     time_str=candle_ts.strftime("%H:%M:%S"),
-                    qty=self.lot_size
+                    qty=self.lot_size,
+                    date_str=str(today_date)
                 )
 
     def process_live_strategy_1(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
@@ -924,7 +940,10 @@ class LiveQuadPaperTrader:
                     charges=charges,
                     net_pnl=net,
                     details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
-                    time_str=ist_now.strftime("%H:%M:%S")
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    date_str=str(today_date),
+                    entry_time=str(pos["entry_time"]),
+                    strike=f"{pos['ce_symbol']} + {pos['pe_symbol']}"
                 )
 
         else:
@@ -1024,7 +1043,8 @@ class LiveQuadPaperTrader:
                     lose_stop_pct=0.20,
                     max_hold_mins=120,
                     time_str=candle_ts.strftime("%H:%M:%S"),
-                    qty=self.lot_size
+                    qty=self.lot_size,
+                    date_str=str(today_date)
                 )
 
     def process_live_strategy_2(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
@@ -1099,7 +1119,10 @@ class LiveQuadPaperTrader:
                     charges=charges,
                     net_pnl=net,
                     details=f"BUY {pos['symbol']} @ ₹{pos['entry_p']:.2f} exited @ ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S")
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    date_str=str(today_date),
+                    entry_time=str(pos["entry_time"]),
+                    strike=str(pos.get("symbol") or pos.get("strike", ""))
                 )
 
         else:
@@ -1194,7 +1217,8 @@ class LiveQuadPaperTrader:
                 lose_stop_pct=0.25,
                 max_hold_mins=45,
                 time_str=candle_ts.strftime("%H:%M:%S"),
-                qty=self.lot_size
+                qty=self.lot_size,
+                date_str=str(today_date)
             )
 
     def process_live_strategy_3(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
@@ -1275,7 +1299,10 @@ class LiveQuadPaperTrader:
                     charges=charges,
                     net_pnl=net,
                     details=f"BUY {pos['symbol']} @ ₹{pos['entry_p']:.2f} exited @ ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S")
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    date_str=str(today_date),
+                    entry_time=str(pos["entry_time"]),
+                    strike=str(pos.get("symbol") or pos.get("strike", ""))
                 )
 
         else:
@@ -1361,7 +1388,8 @@ class LiveQuadPaperTrader:
                 lose_stop_pct=0.15,
                 max_hold_mins=60,
                 time_str=candle_ts.strftime("%H:%M:%S"),
-                qty=self.lot_size
+                qty=self.lot_size,
+                date_str=str(today_date)
             )
 
     def run_live_loop(self):
@@ -1387,7 +1415,8 @@ class LiveQuadPaperTrader:
             f"• Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)\n"
             f"• Strategy 5: Decoupled Asymmetric Strangle (DAS - BankNifty)\n\n"
             f"💰 *Capital Limit:* ₹10,000 per trade\n"
-            f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!"
+            f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!",
+            alert_key=f"WAKEUP:{today_date}"
         )
 
         while get_ist_now().time() <= dtime(15, 25):
@@ -1538,7 +1567,10 @@ class LiveQuadPaperTrader:
                             charges=sub_tr.get("charges", 0.0),
                             net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
                             details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
-                            time_str=str(sub_tr.get("exit_time", ""))
+                            time_str=str(sub_tr.get("exit_time", "")),
+                            date_str=str(today),
+                            entry_time=str(sub_tr.get("entry_time", "")),
+                            strike=str(sub_tr.get("strike", ""))
                         )
 
         # Read cumulative PnL directly from journal
@@ -1602,6 +1634,14 @@ class LiveQuadPaperTrader:
         """Master execution entry point."""
         now = get_ist_now()
 
+        # Launch Interactive Telegram Bot Daemon in non-blocking background thread
+        try:
+            from src.notifications.telegram_interactive_bot import start_interactive_bot_daemon
+            start_interactive_bot_daemon(api=self.smart_api)
+            print("[TELEGRAM] Interactive Telegram Bot Daemon active (Ready for status & PnL queries).")
+        except Exception as e:
+            print(f"[WARN] Failed to start interactive Telegram bot daemon: {e}")
+
         # Weekend check
         if now.weekday() in [5, 6]:
             print(f"[WEEKEND] Today is {now.strftime('%A')}. NSE Market is closed on weekends.")
@@ -1658,7 +1698,8 @@ class LiveQuadPaperTrader:
                 f"⏰ *Started At:* {now.strftime('%I:%M:%S %p')} IST\n"
                 f"📅 *Date:* {now.strftime('%A, %d-%b-%Y')}\n\n"
                 f"The GitHub Actions runner was delayed past market close (15:25 IST).\n"
-                f"Performing final EOD reconciliation report."
+                f"Performing final EOD reconciliation report.",
+                alert_key=f"LATE_START:{today_str}"
             )
             self.run_eod_accounting()
 

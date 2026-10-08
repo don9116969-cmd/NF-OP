@@ -27,6 +27,7 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
             "data/trade_journal.csv",
             "data/trade_journal.md",
             "data/active_positions.json",
+            "data/sent_alerts.json",
             "data/live_paper_trades.csv",
             "data/paper_trading_ledger.csv",
             "data/audited_days.json",
