@@ -1419,7 +1419,7 @@ class LiveQuadPaperTrader:
             alert_key=f"WAKEUP:{today_date}"
         )
 
-        while get_ist_now().time() <= dtime(15, 25):
+        while get_ist_now().time() <= dtime(15, 12):
             ist_now = get_ist_now()
             today_date = ist_now.date()
 
@@ -1495,8 +1495,8 @@ class LiveQuadPaperTrader:
 
             time.sleep(60)
 
-        # Market Close Procedure at 15:25 IST
-        print("[MARKET CLOSE] Squareoff time reached (15:25 IST). Performing EOD audit...")
+        # Market Close Procedure at 15:12 IST
+        print("[MARKET CLOSE] Squareoff time reached (15:12 IST). Performing EOD audit...")
         self.run_eod_accounting()
 
     def run_eod_accounting(self):
@@ -1670,13 +1670,13 @@ class LiveQuadPaperTrader:
             self.wait_for_market_open()
             self.run_live_loop()
 
-        # Weekday Live Trading Session (09:15 - 15:25 IST)
-        elif dtime(9, 15) <= now.time() <= dtime(15, 25):
+        # Weekday Live Trading Session (09:15 - 15:12 IST)
+        elif dtime(9, 15) <= now.time() <= dtime(15, 12):
             self.run_live_loop()
 
-        # Weekday Post-Market (after 15:25 PM IST - e.g. if runner was delayed or backup trigger)
+        # Weekday Post-Market (after 15:12 PM IST - e.g. if runner was delayed or backup trigger)
         else:
-            print(f"[MARKET CLOSED] Runner started at {now.strftime('%I:%M:%S %p')} IST (Market closed at 15:25 IST).")
+            print(f"[MARKET CLOSED] Runner started at {now.strftime('%I:%M:%S %p')} IST (Market closed at 15:12 IST).")
             today_str = str(now.date())
             already_audited = False
             if os.path.exists("data/trade_journal.md"):
@@ -1697,7 +1697,7 @@ class LiveQuadPaperTrader:
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"⏰ *Started At:* {now.strftime('%I:%M:%S %p')} IST\n"
                 f"📅 *Date:* {now.strftime('%A, %d-%b-%Y')}\n\n"
-                f"The GitHub Actions runner was delayed past market close (15:25 IST).\n"
+                f"The GitHub Actions runner was delayed past market close (15:12 IST).\n"
                 f"Performing final EOD reconciliation report.",
                 alert_key=f"LATE_START:{today_str}"
             )

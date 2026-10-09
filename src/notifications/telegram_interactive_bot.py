@@ -236,7 +236,7 @@ def format_today_trades_card() -> tuple[str, dict]:
             f"📜 *TODAY'S TRADE SUMMARY: {ist_now.strftime('%A, %d-%b-%Y')}*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"ℹ️ *No closed trades executed yet today.*\n\n"
-            f"Bot is monitoring live candles during market hours (09:15 to 15:25 IST).\n"
+            f"Bot is monitoring live candles during market hours (09:15 to 15:12 IST).\n"
             f"Tap *'📊 Live Status & PnL'* to check current active open positions."
         )
         return msg, inline_kb
@@ -422,6 +422,7 @@ def handle_incoming_update(update: dict, api=None):
     """Processes a single incoming Telegram update (Message or Inline Button Callback)."""
     token = get_telegram_token()
     user_chat_id = get_or_detect_chat_id()
+    expected_chat_id = str(user_chat_id).strip() if user_chat_id else ""
 
     # 1. Handle Inline Button Callbacks
     if "callback_query" in update:
@@ -429,8 +430,13 @@ def handle_incoming_update(update: dict, api=None):
         cb_id = cb.get("id")
         cb_data = cb.get("data", "")
         msg = cb.get("message", {})
+        sender_id = str(cb.get("from", {}).get("id") or msg.get("chat", {}).get("id") or "")
         chat_id = str(msg.get("chat", {}).get("id") or user_chat_id)
         msg_id = msg.get("message_id")
+
+        if expected_chat_id and sender_id and sender_id != expected_chat_id:
+            answer_callback_query(cb_id, text="⚠️ Unauthorized access.")
+            return
 
         answer_callback_query(cb_id, text="Updating status...")
 
@@ -456,10 +462,15 @@ def handle_incoming_update(update: dict, api=None):
     if "message" in update:
         m = update["message"]
         text_raw = str(m.get("text", "")).strip()
+        sender_id = str(m.get("from", {}).get("id") or m.get("chat", {}).get("id") or "")
         chat_id = str(m.get("chat", {}).get("id") or user_chat_id)
         msg_id = m.get("message_id")
 
         if not text_raw:
+            return
+
+        if expected_chat_id and sender_id and sender_id != expected_chat_id:
+            reply_telegram_message(chat_id, "⚠️ *Access Restricted*\nThis trading bot is restricted to its authorized administrator.")
             return
 
         cmd = text_raw.lower()

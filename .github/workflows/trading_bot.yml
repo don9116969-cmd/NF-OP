@@ -2,9 +2,9 @@ name: Nifty Intraday Trading Bot
 
 on:
   schedule:
-    # 03:42 UTC is 09:12 AM Indian Standard Time (IST) - Pre-market startup
-    # 09:12 AM IST allows runner 3 mins to boot and standby for 09:15 AM market opening bell
-    - cron: '42 3 * * 1-5'
+    # 03:44 UTC is 09:14 AM Indian Standard Time (IST) - Pre-market startup
+    # 09:14 AM IST allows runner 1 min to boot and standby for 09:15 AM market opening bell
+    - cron: '44 3 * * 1-5'
   workflow_dispatch:
     # Allows manual trigger anytime from GitHub Actions tab OR automated HTTP webhook call
 
@@ -18,7 +18,7 @@ permissions:
 jobs:
   trade:
     runs-on: ubuntu-latest
-    timeout-minutes: 380 # Full trading day coverage (09:12 AM to 15:30 PM IST)
+    timeout-minutes: 355 # Full trading day coverage (09:14 AM to 15:12 PM IST, under 360-min cap)
 
     steps:
       - name: Checkout Code
