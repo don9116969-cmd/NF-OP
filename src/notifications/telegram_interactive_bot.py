@@ -96,12 +96,15 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
             f"📈 *Today's Session So Far:*\n"
             f"{today_perf_str}"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Bot is actively scanning 1-minute market candles across all 5 quantitative strategies:\n"
+            f"Bot is actively scanning 1-minute market candles across all 8 quantitative strategies:\n"
             f"• Strategy 1: Hedged Strangle (Nifty 15M Box)\n"
             f"• Strategy 2: Expiry Gamma Squeeze (Nifty Mon/Tue)\n"
             f"• Strategy 3: 30M Statistical Directional ITM (Nifty)\n"
             f"• Strategy 4: Decoupled Strangle (Nifty DAS)\n"
-            f"• Strategy 5: Decoupled Strangle (BankNifty DAS)\n\n"
+            f"• Strategy 5: Decoupled Strangle (BankNifty DAS)\n"
+            f"• Strategy 6: Directional Box Breakout (BankNifty DBB)\n"
+            f"• Strategy 7: Expiry Gamma Squeeze (BankNifty GSM)\n"
+            f"• Strategy 8: Hedged Strangle (BankNifty 15M Box)\n\n"
             f"🔔 *Instant alert will fire the exact second a trade enters!*"
         )
         return msg, inline_kb
@@ -115,7 +118,7 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
 
     for s_key, pos in active_pos.items():
         s_name = pos.get("strategy_name") or f"Strategy {s_key.upper()}"
-        is_banknifty = "banknifty" in s_name.lower() or "s5" in str(s_key).lower()
+        is_banknifty = "bank" in s_name.lower() or any(k in str(s_key).lower() for k in ["s5", "s6", "s7", "s8", "bn"])
         underlying = "BANKNIFTY" if is_banknifty else "NIFTY"
         lot_size = 30 if is_banknifty else 65
 
