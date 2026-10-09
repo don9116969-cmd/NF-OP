@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-09 22:03:34 IST*
+*Last Updated: 2026-10-09 22:11:07 IST*
 
 ---
 
@@ -14,10 +14,10 @@
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 38
-- **Win Rate**: 36.8% (14 Wins / 24 Losses)
-- **Net Realized PnL**: **INR -3,998.61**
-- **Current Account Balance**: **INR +6,001.39** (-40.0% Return)
+- **Total Executed Trades**: 41
+- **Win Rate**: 34.1% (14 Wins / 27 Losses)
+- **Net Realized PnL**: **INR -4,981.88**
+- **Current Account Balance**: **INR +5,018.12** (-49.8% Return)
 
 ---
 
@@ -35,10 +35,13 @@
 | 2026-09-24 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | 23350CE / 23100PE | 10:48:00 | 11:13:00 | ₹125.40 | ₹125.05 | ₹9405.00 | **-₹141.11** | Max Hold (25m) | Max Hold (25m) | Angel One Real Traded |
 | 2026-09-24 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | 23350CE / 23050PE | 13:08:00 | 13:33:00 | ₹112.70 | ₹134.42 | ₹8452.50 | **+₹1513.58** | Max Hold (25m) | PE Target (+50%) | Angel One Real Traded |
 | 2026-09-25 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2655800CE + BANKNIFTY27OCT2655400PE | 09:30:00 | 10:17:00 | ₹1655.23 | ₹1638.17 | ₹49656.90 | **-₹713.64** | Time Exit (45m) | Angel One Real Traded (BANKNIFTY27OCT2655800CE + BANKNIFTY27OCT2655400PE) |
+| 2026-09-25 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2659500CE + BANKNIFTY27OCT2651700PE | 09:30:00 | 10:26:00 | ₹123.11 | ₹125.97 | ₹3693.30 | **-₹16.79** | Time Exit (45m) | Angel One Real Traded (BANKNIFTY27OCT2659500CE + BANKNIFTY27OCT2651700PE) |
 | 2026-09-25 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2659500CE + BANKNIFTY27OCT2651700PE | 10:08:00 | 11:01:00 | ₹120.30 | ₹126.31 | ₹3609.00 | **+₹77.80** | Time Exit (45m) | Angel One Real Traded (BANKNIFTY27OCT2659500CE + BANKNIFTY27OCT2651700PE) |
 | 2026-09-25 | Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM) | CE | BANKNIFTY27OCT2655600CE | 11:05:00 | 15:15:00 | ₹1135.65 | ₹1083.60 | ₹34069.50 | **-₹1686.39** | EOD (15:15 PM) | Angel One Real Traded (BANKNIFTY27OCT2655600CE) |
+| 2026-09-25 | Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM) | CE | 58800 CE | 11:05:00 | 12:40:00 | ₹282.73 | ₹267.75 | ₹8481.79 | **-₹518.95** | Session Mean Reversal | Mathematical (BSM) |
 | 2026-09-25 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | NIFTY29SEP2623250CE / NIFTY29SEP2623050PE | 14:01:00 | 14:26:00 | ₹123.20 | ₹145.62 | ₹9240.00 | **+₹1564.28** | CE Target (+50%) | Max Hold (25m) | Angel One Real Traded |
 | 2026-09-25 | Strategy 6: BankNIFTY Directional Box Breakout (DBB) | CE | BANKNIFTY27OCT2655800CE | 14:03:00 | 15:15:00 | ₹1085.40 | ₹965.15 | ₹32562.00 | **-₹3725.85** | EOD (15:15 PM) | Angel One Real Traded (BANKNIFTY27OCT2655800CE) |
+| 2026-09-25 | Strategy 6: BankNIFTY Directional Box Breakout (DBB) | CE | BANKNIFTY27OCT2659000CE | 14:03:00 | 15:15:00 | ₹72.71 | ₹59.70 | ₹2181.30 | **-₹447.53** | EOD (15:15 PM) | Angel One Real Traded (BANKNIFTY27OCT2659000CE) |
 | 2026-09-28 | Strategy 2: Expiry Gamma Squeeze | PE | 22800 | 10:09:00 | 10:58:00 | ₹56.25 | ₹55.85 | ₹4218.75 | **-₹83.33** | Time Stop (45m) | Angel One Real Traded (NIFTY29SEP2622800PE) |
 | 2026-09-29 | Strategy 2: Expiry Gamma Squeeze | PE | 22600 | 10:11:00 | 10:26:00 | ₹56.01 | ₹41.45 | ₹4200.75 | **-₹1146.71** | SL Hit (-25%) | Mathematical (BSM) |
 | 2026-09-30 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2658100CE + BANKNIFTY27OCT2651300PE | 09:45:00 | 11:29:00 | ₹180.65 | ₹159.36 | ₹5419.50 | **-₹696.66** | Time Cutoff (PE SL (-15%)) | Angel One Real Traded (BANKNIFTY27OCT2658100CE + BANKNIFTY27OCT2651300PE) |
