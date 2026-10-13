@@ -164,7 +164,10 @@ def save_contract_candles_to_cache(symbol: str, df_new: pd.DataFrame):
             df_combined = df_new[~df_new.index.duplicated(keep="last")].sort_index()
 
         p_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.parquet")
-        df_combined.to_parquet(p_file)
+        try:
+            df_combined.to_parquet(p_file)
+        except Exception:
+            pass  # Fall back gracefully if pyarrow/fastparquet engine is unavailable
         c_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.csv")
         df_combined.to_csv(c_file)
         if symbol.startswith("BANKNIFTY"):
@@ -187,6 +190,11 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
         from_date = pd.to_datetime(from_date)
     if isinstance(to_date, str):
         to_date = pd.to_datetime(to_date)
+
+    if hasattr(from_date, "tzinfo") and from_date.tzinfo is not None:
+        from_date = from_date.replace(tzinfo=None)
+    if hasattr(to_date, "tzinfo") and to_date.tzinfo is not None:
+        to_date = to_date.replace(tzinfo=None)
 
     # 1. Check local disk cache first
     if not force_api and sym:

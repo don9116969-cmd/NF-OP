@@ -103,7 +103,7 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
         res = None
         for attempt in range(5):
             try:
-                time_lib.sleep(1.2 + (attempt * 1.5))
+                time_lib.sleep(1.5 + (attempt * 2.0))
                 res = api.getCandleData({
                     "exchange": "NSE",
                     "symboltoken": symbol_token,
@@ -115,14 +115,14 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
                     break
                 elif res and "exceeding access rate" in str(res):
                     print(f"[RATE-LIMIT] Angel One rate limit response received ({attempt+1}/5). Backing off...")
-                    time_lib.sleep(2.5 * (attempt + 1))
+                    time_lib.sleep(3.0 * (attempt + 1))
             except Exception as e:
                 err_str = str(e)
                 if "exceeding access rate" in err_str or "DataException" in str(type(e)):
                     print(f"[RATE-LIMIT] Angel One rate limit error ({attempt+1}/5). Backing off...")
-                    time_lib.sleep(2.5 * (attempt + 1))
+                    time_lib.sleep(3.0 * (attempt + 1))
                 elif attempt < 4:
-                    time_lib.sleep(2.0)
+                    time_lib.sleep(2.5)
                 else:
                     print(f"[WARN] Candle sync error on attempt {attempt+1}: {e}")
                     break

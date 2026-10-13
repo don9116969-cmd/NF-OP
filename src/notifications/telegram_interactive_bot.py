@@ -32,8 +32,8 @@ NIFTY_CANDLE_FILE = os.path.join(DATA_DIR, "nifty_1min_real.csv")
 BANKNIFTY_CANDLE_FILE = os.path.join(DATA_DIR, "banknifty_1min_real.csv")
 
 def get_ist_now() -> datetime:
-    """Returns current datetime in Indian Standard Time (IST)."""
-    return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+    """Returns current datetime in Indian Standard Time (IST) as a timezone-naive datetime."""
+    return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).replace(tzinfo=None)
 
 def get_latest_spot_price(underlying: str = "NIFTY") -> float:
     """Gets the latest recorded spot price from local candle datasets."""

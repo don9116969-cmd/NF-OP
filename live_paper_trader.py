@@ -76,8 +76,8 @@ from run_strangle_grid_exhaustive import compute_calendar_dte
 load_dotenv()
 
 def get_ist_now() -> datetime:
-    """Returns the current datetime in Indian Standard Time (IST, UTC+5:30)."""
-    return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+    """Returns the current datetime in Indian Standard Time (IST, UTC+5:30) as a timezone-naive datetime."""
+    return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).replace(tzinfo=None)
 
 class LiveQuadPaperTrader:
     """
@@ -273,7 +273,9 @@ class LiveQuadPaperTrader:
                 for s_key, p in data.items():
                     if s_key in self.active_positions and p:
                         if "entry_time" in p and isinstance(p["entry_time"], str):
-                            p["entry_time"] = datetime.fromisoformat(p["entry_time"])
+                            p["entry_time"] = datetime.fromisoformat(p["entry_time"].replace("Z", ""))
+                        if hasattr(p["entry_time"], "tzinfo") and p["entry_time"].tzinfo is not None:
+                            p["entry_time"] = p["entry_time"].replace(tzinfo=None)
                         if p["entry_time"].date() == today_date:
                             self.active_positions[s_key] = p
                             print(f"[RECOVERY] Restored in-flight position for {s_key} entered at {p['entry_time']}")
@@ -1937,7 +1939,7 @@ class LiveQuadPaperTrader:
                 print(f"[WARN] Nifty candle sync error: {e}")
                 df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
 
-            time.sleep(1.5)  # Enforce 1.5s pause to prevent Angel One rate limit between instruments
+            time.sleep(2.0)  # Enforce 2.0s pause to prevent Angel One rate limit between instruments
 
             try:
                 if self.smart_api:

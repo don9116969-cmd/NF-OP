@@ -60,5 +60,6 @@ jobs:
             echo "No journal changes to commit."
           else
             git commit -m "Auto-update trade journal and market candles [skip ci]"
-            git push
+            git pull --rebase --autostash origin main || true
+            git push origin main || echo "Git push deferred."
           fi
