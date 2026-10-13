@@ -10,10 +10,11 @@ on:
 
 concurrency:
   group: nifty-trading-bot
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   trade:
@@ -63,3 +64,15 @@ jobs:
             git pull --rebase --autostash origin main || true
             git push origin main || echo "Git push deferred."
           fi
+
+      - name: Clean Up Redundant Queued Runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run list --workflow trading_bot.yml --status waiting --json databaseId --jq '.[].databaseId' | while read -r run_id; do
+            if [ -n "$run_id" ]; then
+              echo "Cancelling redundant queued run: $run_id"
+              gh run cancel "$run_id" || true
+            fi
+          done
