@@ -1,23 +1,24 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-14 12:59:38 IST*
+*Last Updated: 2026-10-14 13:00:03 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 5: BankNIFTY Decoupled Strangle (DAS)** | `CE+PE` | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653400PE | 12:59:00 | ₹188.24 | CE: ₹163.6 | PE: ₹212.9 | CE: ₹69.5 | PE: ₹90.5 | ₹5647.20 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 58
-- **Win Rate**: 34.5% (20 Wins / 38 Losses)
-- **Net Realized PnL**: **INR -5,223.15**
-- **Current Account Balance**: **INR +4,776.85** (-52.2% Return)
+- **Total Executed Trades**: 59
+- **Win Rate**: 33.9% (20 Wins / 39 Losses)
+- **Net Realized PnL**: **INR -6,038.98**
+- **Current Account Balance**: **INR +3,961.02** (-60.4% Return)
 
 ---
 
@@ -83,4 +84,5 @@
 | 2026-10-14 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653400PE | 09:31:23 | 10:16:53 | ₹281.26 | ₹199.19 | ₹8437.80 | **-₹2570.98** | Time Exit (45m) | Mathematical (BSM) |
 | 2026-10-14 | Strategy 6: BankNIFTY Directional Box Breakout (DBB) | CE | BANKNIFTY27OCT2657100CE | 09:36:30 | 10:09:12 | ₹160.02 | ₹127.00 | ₹4800.60 | **-₹1052.59** | SL Hit (-20%) | Angel One Real Traded (BANKNIFTY27OCT2657100CE) |
 | 2026-10-14 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657500CE + BANKNIFTY27OCT2653500PE | 09:53:00 | 10:38:50 | ₹281.06 | ₹256.12 | ₹8431.80 | **-₹859.74** | Time Cutoff (CE SL (-15%)) | Mathematical (BSM) |
+| 2026-10-14 | Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM) | CE | BANKNIFTY27OCT2657000CE | 12:09:34 | 12:59:10 | ₹158.00 | ₹132.88 | ₹4740.00 | **-₹815.83** | Session Mean Reversal | Angel One Real Traded (BANKNIFTY27OCT2657000CE) |
 
