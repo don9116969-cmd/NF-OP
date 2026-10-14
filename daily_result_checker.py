@@ -80,15 +80,18 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
     if os.path.exists(local_file):
         try:
             df_existing = pd.read_csv(local_file)
-            df_existing["timestamp"] = pd.to_datetime(df_existing["timestamp"]).dt.tz_localize(None)
-            last_dt = df_existing["timestamp"].max()
+            if not df_existing.empty and "timestamp" in df_existing.columns:
+                df_existing["timestamp"] = pd.to_datetime(df_existing["timestamp"], errors="coerce").dt.tz_localize(None)
+                df_existing.dropna(subset=["timestamp"], inplace=True)
+                if not df_existing.empty:
+                    last_dt = df_existing["timestamp"].max()
         except Exception as e:
             print(f"[WARN] Error reading {local_file}: {e}")
 
     now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
     now = now.replace(tzinfo=None)
     if last_dt is None:
-        from_dt = now - datetime.timedelta(days=30)
+        from_dt = now - datetime.timedelta(days=5)
     else:
         # Start directly from last recorded candle to minimize data size
         from_dt = last_dt
