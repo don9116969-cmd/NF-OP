@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-14 10:17:25 IST*
+*Last Updated: 2026-10-14 10:39:10 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 5: BankNIFTY Decoupled Strangle (DAS)** | `CE+PE` | BANKNIFTY27OCT2657500CE + BANKNIFTY27OCT2653500PE | 09:53:00 | ₹281.06 | CE: ₹342.1 | PE: ₹220.1 | CE: ₹145.4 | PE: ₹93.5 | ₹8431.80 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 57
-- **Win Rate**: 35.1% (20 Wins / 37 Losses)
-- **Net Realized PnL**: **INR -4,363.41**
-- **Current Account Balance**: **INR +5,636.59** (-43.6% Return)
+- **Total Executed Trades**: 58
+- **Win Rate**: 34.5% (20 Wins / 38 Losses)
+- **Net Realized PnL**: **INR -5,223.15**
+- **Current Account Balance**: **INR +4,776.85** (-52.2% Return)
 
 ---
 
@@ -83,4 +82,5 @@
 | 2026-10-13 | Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM) | CE | BANKNIFTY27OCT2656700CE | 14:29:18 | 14:49:54 | ₹176.05 | ₹244.50 | ₹5281.50 | **+₹1985.62** | Target Hit (+40%) | Angel One Real Traded (BANKNIFTY27OCT2656700CE) |
 | 2026-10-14 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653400PE | 09:31:23 | 10:16:53 | ₹281.26 | ₹199.19 | ₹8437.80 | **-₹2570.98** | Time Exit (45m) | Mathematical (BSM) |
 | 2026-10-14 | Strategy 6: BankNIFTY Directional Box Breakout (DBB) | CE | BANKNIFTY27OCT2657100CE | 09:36:30 | 10:09:12 | ₹160.02 | ₹127.00 | ₹4800.60 | **-₹1052.59** | SL Hit (-20%) | Angel One Real Traded (BANKNIFTY27OCT2657100CE) |
+| 2026-10-14 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657500CE + BANKNIFTY27OCT2653500PE | 09:53:00 | 10:38:50 | ₹281.06 | ₹256.12 | ₹8431.80 | **-₹859.74** | Time Cutoff (CE SL (-15%)) | Mathematical (BSM) |
 
