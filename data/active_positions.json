@@ -1,9 +1,25 @@
 {
-  "s6": {
-    "entry_time": "2026-10-13T14:29:18.600326",
-    "spot_entry": 55246.3,
-    "c_opt": {
-      "token": "49487",
-      "symbol": "BANKNIFTY27OCT2656700CE",
-      "expiry": "27OCT2026",
-      "expiry_date": 
+  "s8": {
+    "entry_time": "2026-10-14T09:31:23.032564",
+    "spot_entry": 55417.55,
+    "c_ce": {
+      "token": "49503",
+      "symbol": "BANKNIFTY27OCT2657400CE"
+    },
+    "c_pe": {
+      "token": "49402",
+      "symbol": "BANKNIFTY27OCT2653400PE"
+    },
+    "ce_strike": 57400,
+    "pe_strike": 53400,
+    "ce_entry": 170.65250045276298,
+    "pe_entry": 110.60973397971429,
+    "entry_tot": 281.26,
+    "symbol": "BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653400PE",
+    "cost": 8437.8,
+    "target_tot": 478.14,
+    "stop_tot": 196.88,
+    "data_feed": "Mathematical (BSM)",
+    "strategy_name": "Strategy 8: BankNIFTY Hedged Long Strangle"
+  }
+}
