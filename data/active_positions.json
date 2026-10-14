@@ -1,1 +1,9 @@
-{}
+{
+  "s7": {
+    "entry_time": "2026-10-14T12:09:34.336964",
+    "spot_entry": 55549.7,
+    "c_opt": {
+      "token": "49495",
+      "symbol": "BANKNIFTY27OCT2657000CE",
+      "expiry": "27OCT2026",
+      "expiry_date": 
