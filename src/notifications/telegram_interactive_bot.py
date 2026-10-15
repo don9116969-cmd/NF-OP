@@ -20,7 +20,8 @@ from .notifier import (
     get_or_detect_chat_id,
     get_main_keyboard_markup,
     get_inline_status_markup,
-    send_telegram_alert
+    send_telegram_alert,
+    send_telegram_document
 )
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
@@ -319,8 +320,186 @@ def format_portfolio_summary_card() -> tuple[str, dict]:
     )
     return msg, inline_kb
 
-def format_journal_recent_card() -> tuple[str, dict]:
-    """Generates the latest 5 closed trades from the journal."""
+def format_journal_paginated_card(page: int = 1, page_size: int = 6) -> tuple[str, dict]:
+    """
+    Generates an interactive, paginated view of the complete trade journal.
+    Shows trades sorted newest-first, with interactive inline navigation buttons.
+    """
+    default_kb = get_inline_status_markup()
+    if not os.path.exists(JOURNAL_CSV_FILE):
+        return "ℹ️ *No trade journal found yet.*", default_kb
+
+    try:
+        df = pd.read_csv(JOURNAL_CSV_FILE)
+    except Exception as e:
+        return f"[WARN] Failed to read trade journal: {e}", default_kb
+
+    if df.empty:
+        return "ℹ️ *No closed trades logged yet.*", default_kb
+
+    tot_trades = len(df)
+    tot_pages = max(1, (tot_trades + page_size - 1) // page_size)
+    page = max(1, min(page, tot_pages))
+
+    tot_pnl = float(df["net_pnl"].sum()) if "net_pnl" in df.columns else 0.0
+    wins = len(df[df["net_pnl"] > 0]) if "net_pnl" in df.columns else 0
+    losses = len(df[df["net_pnl"] <= 0]) if "net_pnl" in df.columns else 0
+    wr = (wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+    pnl_sign = "+" if tot_pnl >= 0 else ""
+
+    # Reverse order so newest trades appear first
+    df_rev = df.iloc[::-1].reset_index(drop=True)
+    start_idx = (page - 1) * page_size
+    end_idx = min(start_idx + page_size, tot_trades)
+    page_trades = df_rev.iloc[start_idx:end_idx]
+
+    msg = (
+        f"📖 *MULTI-INDEX TRADE JOURNAL (Page {page} of {tot_pages})*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔢 *Total Trades:* {tot_trades} | Win Rate: *{wr:.1f}%* ({wins}W / {losses}L)\n"
+        f"💎 *Cumulative Net PnL:* *{pnl_sign}₹{tot_pnl:+,.2f}* (Starting: ₹10,000)\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"*Trade Logs (Showing #{tot_trades - start_idx} to #{tot_trades - end_idx + 1}):*\n\n"
+    )
+
+    for i, (_, r) in enumerate(page_trades.iterrows()):
+        actual_trade_num = tot_trades - (start_idx + i)
+        net = float(r.get("net_pnl", 0.0))
+        sign = "+" if net > 0 else ""
+        emoji = "🟢" if net > 0 else "🔴"
+        date_str = str(r.get("date", ""))
+        strat = str(r.get("strategy", "")).replace("Strategy ", "S")
+        strike = str(r.get("strike", ""))
+        e_time = str(r.get("entry_time", ""))
+        x_time = str(r.get("exit_time", ""))
+        e_p = float(r.get("entry_p", 0.0))
+        x_p = float(r.get("exit_p", 0.0))
+        cost = float(r.get("capital_used", 0.0))
+        reason = str(r.get("exit_reason", ""))
+        ret_pct = ((net / cost) * 100.0) if cost > 0 else 0.0
+        ret_sign = "+" if ret_pct >= 0 else ""
+
+        msg += (
+            f"{emoji} *#{actual_trade_num} | {date_str}* • `{strat}`\n"
+            f"   • Strike: `{strike}`\n"
+            f"   • Time: {e_time} → {x_time}\n"
+            f"   • Prices: ₹{e_p:.2f} → ₹{x_p:.2f} (Cost: ₹{cost:,.2f})\n"
+            f"   • Net PnL: *{sign}₹{net:,.2f}* ({ret_sign}{ret_pct:.1f}%) | `{reason}`\n\n"
+        )
+
+    prev_p = max(1, page - 1)
+    next_p = min(tot_pages, page + 1)
+    inline_kb = {
+        "inline_keyboard": [
+            [
+                {"text": "◀️ Newer" if page > 1 else "⏺️ Top", "callback_data": f"jp_{prev_p}" if page > 1 else "noop"},
+                {"text": f"📄 {page}/{tot_pages}", "callback_data": "noop"},
+                {"text": "Older ▶️" if page < tot_pages else "⏺️ End", "callback_data": f"jp_{next_p}" if page < tot_pages else "noop"}
+            ],
+            [
+                {"text": "📑 Full Chat Log", "callback_data": "all_trades_full"},
+                {"text": "📥 Download Files", "callback_data": "download_files"}
+            ],
+            [
+                {"text": "📊 Live Status", "callback_data": "status"},
+                {"text": "🔄 Refresh", "callback_data": f"jp_{page}"}
+            ]
+        ]
+    }
+    return msg, inline_kb
+
+def send_all_trade_logs(chat_id: str):
+    """Sends the complete trade journal history to the user in clean sequential message batches."""
+    if not os.path.exists(JOURNAL_CSV_FILE):
+        reply_telegram_message(chat_id, "ℹ️ *No trade journal found yet.*")
+        return
+
+    try:
+        df = pd.read_csv(JOURNAL_CSV_FILE)
+    except Exception as e:
+        reply_telegram_message(chat_id, f"[WARN] Failed to read trade journal: {e}")
+        return
+
+    if df.empty:
+        reply_telegram_message(chat_id, "ℹ️ *No trades logged yet.*")
+        return
+
+    tot_trades = len(df)
+    tot_pnl = float(df["net_pnl"].sum()) if "net_pnl" in df.columns else 0.0
+    wins = len(df[df["net_pnl"] > 0]) if "net_pnl" in df.columns else 0
+    losses = len(df[df["net_pnl"] <= 0]) if "net_pnl" in df.columns else 0
+    wr = (wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
+    pnl_sign = "+" if tot_pnl >= 0 else ""
+    current_bal = round(10000.0 + tot_pnl, 2)
+    ret_pct = ((current_bal - 10000.0) / 10000.0) * 100.0
+    ret_sign = "+" if ret_pct >= 0 else ""
+
+    intro_msg = (
+        f"📑 *COMPLETE MULTI-INDEX TRADE JOURNAL LOGS*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔢 *Total Trades Taken:* {tot_trades}\n"
+        f"🎯 *Win Rate:* *{wr:.1f}%* ({wins} Wins / {losses} Losses)\n"
+        f"💎 *Cumulative Net PnL:* *{pnl_sign}₹{tot_pnl:+,.2f}*\n"
+        f"💰 *Current Capital Balance:* *₹{current_bal:+,.2f}* ({ret_sign}{ret_pct:.1f}%)\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⬇️ *Sending all {tot_trades} executed trades chronologically below:*"
+    )
+    reply_telegram_message(chat_id, intro_msg)
+    time.sleep(0.4)
+
+    batch_size = 8
+    num_batches = (tot_trades + batch_size - 1) // batch_size
+
+    for b in range(num_batches):
+        b_df = df.iloc[b * batch_size : (b + 1) * batch_size]
+        batch_msg = (
+            f"📜 *TRADE LOGS: #{b * batch_size + 1} to #{min(tot_trades, (b + 1) * batch_size)} (Part {b+1}/{num_batches})*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        )
+        for i, (_, r) in enumerate(b_df.iterrows(), start=b * batch_size + 1):
+            net = float(r.get("net_pnl", 0.0))
+            sign = "+" if net > 0 else ""
+            emoji = "🟢" if net > 0 else "🔴"
+            date_str = str(r.get("date", ""))
+            strat = str(r.get("strategy", ""))
+            strike = str(r.get("strike", ""))
+            e_time = str(r.get("entry_time", ""))
+            x_time = str(r.get("exit_time", ""))
+            e_p = float(r.get("entry_p", 0.0))
+            x_p = float(r.get("exit_p", 0.0))
+            cost = float(r.get("capital_used", 0.0))
+            reason = str(r.get("exit_reason", ""))
+
+            batch_msg += (
+                f"{emoji} *#{i} | {date_str}* • `{strat}`\n"
+                f"   • Strikes: `{strike}`\n"
+                f"   • Time: {e_time} → {x_time}\n"
+                f"   • Prices: ₹{e_p:.2f} → ₹{x_p:.2f} (Cost: ₹{cost:,.2f})\n"
+                f"   • Net PnL: *{sign}₹{net:,.2f}* | `{reason}`\n\n"
+            )
+        reply_telegram_message(chat_id, batch_msg)
+        time.sleep(0.5)
+
+    send_journal_files(chat_id)
+
+def send_journal_files(chat_id: str):
+    """Sends the actual trade_journal.md and trade_journal.csv files directly to the chat."""
+    sent_any = False
+    if os.path.exists(JOURNAL_MD_FILE):
+        caption = "📄 *Complete Multi-Index Markdown Trade Journal*\nContains live active positions, performance table, and full trade ledger."
+        if reply_telegram_document(chat_id, JOURNAL_MD_FILE, caption=caption):
+            sent_any = True
+    time.sleep(0.4)
+    if os.path.exists(JOURNAL_CSV_FILE):
+        caption = "📊 *Raw Trade Ledger (CSV)*\nReady for Excel, Google Sheets, or custom data analytics."
+        if reply_telegram_document(chat_id, JOURNAL_CSV_FILE, caption=caption):
+            sent_any = True
+
+    if not sent_any:
+        reply_telegram_message(chat_id, "ℹ️ *Journal files not found on disk yet.*")
+
+def format_day_trades_card(query_date_str: str) -> tuple[str, dict]:
+    """Generates a detailed trade log card for a specific date."""
     inline_kb = get_inline_status_markup()
     if not os.path.exists(JOURNAL_CSV_FILE):
         return "ℹ️ *No trade journal found yet.*", inline_kb
@@ -330,25 +509,94 @@ def format_journal_recent_card() -> tuple[str, dict]:
     except Exception as e:
         return f"[WARN] Failed to read trade journal: {e}", inline_kb
 
-    if df.empty:
-        return "ℹ️ *No closed trades logged yet.*", inline_kb
+    if df.empty or "date" not in df.columns:
+        return "ℹ️ *No trades found.*", inline_kb
 
-    recent = df.tail(5).iloc[::-1]
+    q = query_date_str.strip().lower()
+    ist_now = get_ist_now()
+    if q in ["today", "now"]:
+        target_date = str(ist_now.date())
+    elif q in ["yesterday", "prev"]:
+        target_date = str((ist_now - timedelta(days=1)).date())
+    else:
+        target_date = query_date_str
+        all_dates = df["date"].astype(str).unique().tolist()
+        matched = [d for d in all_dates if q in d.lower()]
+        if matched:
+            target_date = matched[-1]
+
+    day_trades = df[df["date"].astype(str) == target_date]
+    if day_trades.empty:
+        avail_dates = ", ".join(df["date"].astype(str).unique()[-6:])
+        return f"ℹ️ *No trades found for date:* `{query_date_str}`\n\n*Available recent dates:* {avail_dates}", inline_kb
+
+    count = len(day_trades)
+    net_pnl = float(day_trades["net_pnl"].sum())
+    gross_pnl = float(day_trades["gross_pnl"].sum()) if "gross_pnl" in day_trades.columns else net_pnl
+    charges = float(day_trades["charges"].sum()) if "charges" in day_trades.columns else 0.0
+    wins = len(day_trades[day_trades["net_pnl"] > 0])
+    losses = len(day_trades[day_trades["net_pnl"] <= 0])
+    p_sign = "+" if net_pnl > 0 else ""
+
     msg = (
-        f"📖 *LATEST 5 CLOSED TRADES (TRADE JOURNAL)*\n"
+        f"📜 *TRADE LOGS FOR {target_date}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔢 *Executed Trades:* {count} ({wins} Wins / {losses} Losses)\n"
+        f"💵 *Gross PnL:* ₹{gross_pnl:+,.2f}\n"
+        f"📉 *Charges & Brokerage:* ₹{charges:,.2f}\n"
+        f"💎 *DAY NET PnL:* *{p_sign}₹{net_pnl:+,.2f}*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"*Executed Trades:*\n\n"
     )
-    for _, r in recent.iterrows():
-        net = float(r.get("net_pnl", 0.0))
-        sign = "+" if net > 0 else ""
-        emoji = "🟢" if net > 0 else "🔴"
+
+    for i, (_, r) in enumerate(day_trades.iterrows(), 1):
+        tr_net = float(r.get("net_pnl", 0.0))
+        tr_sign = "+" if tr_net > 0 else ""
+        tr_emoji = "🟢" if tr_net > 0 else "🔴"
+        s_name = str(r.get("strategy", ""))
+        strike_str = str(r.get("strike", ""))
+        entry_t = str(r.get("entry_time", ""))
+        exit_t = str(r.get("exit_time", ""))
+        e_p = float(r.get("entry_p", 0.0))
+        x_p = float(r.get("exit_p", 0.0))
+        cost = float(r.get("capital_used", 0.0))
+        reason = str(r.get("exit_reason", ""))
+
         msg += (
-            f"{emoji} *{r.get('date')}* | `{r.get('strategy')}`\n"
-            f"   • Strikes: `{r.get('strike')}`\n"
-            f"   • Times: {r.get('entry_time')} → {r.get('exit_time')}\n"
-            f"   • Net PnL: *{sign}₹{net:,.2f}* | Reason: `{r.get('exit_reason')}`\n\n"
+            f"{tr_emoji} *Trade {i}:* `{s_name}`\n"
+            f"   • Strikes: `{strike_str}`\n"
+            f"   • Time: {entry_t} → {exit_t}\n"
+            f"   • Prices: ₹{e_p:.2f} → ₹{x_p:.2f} (Cost: ₹{cost:,.2f})\n"
+            f"   • Net PnL: *{tr_sign}₹{tr_net:,.2f}* | `{reason}`\n\n"
         )
+
     return msg, inline_kb
+
+def reply_telegram_document(chat_id: str, file_path: str, caption: str = "", reply_to_message_id: int = None) -> bool:
+    """Sends a document in response to a user command or button tap."""
+    token = get_telegram_token()
+    if not token or not chat_id or not os.path.exists(file_path):
+        return False
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    for attempt in range(3):
+        try:
+            with open(file_path, "rb") as f:
+                files = {"document": (os.path.basename(file_path), f)}
+                data = {"chat_id": chat_id, "caption": caption, "parse_mode": "Markdown"}
+                if reply_to_message_id:
+                    data["reply_to_message_id"] = reply_to_message_id
+                r = requests.post(url, data=data, files=files, timeout=30)
+                if r.status_code == 200:
+                    return True
+                elif "can't parse entities" in r.text or "Bad Request" in r.text:
+                    data["parse_mode"] = ""
+                    f.seek(0)
+                    r2 = requests.post(url, data=data, files=files, timeout=30)
+                    if r2.status_code == 200:
+                        return True
+        except Exception:
+            time.sleep(1.0)
+    return False
 
 def reply_telegram_message(chat_id: str, text: str, reply_markup: dict = None, reply_to_message_id: int = None) -> bool:
     """Sends a direct response to the user's command or button tap."""
@@ -451,7 +699,21 @@ def handle_incoming_update(update: dict, api=None):
         elif cb_data in ["summary", "balance"]:
             text, markup = format_portfolio_summary_card()
         elif cb_data == "journal":
-            text, markup = format_journal_recent_card()
+            text, markup = format_journal_paginated_card(page=1)
+        elif cb_data.startswith("jp_"):
+            try:
+                p_num = int(cb_data.split("_")[1])
+            except Exception:
+                p_num = 1
+            text, markup = format_journal_paginated_card(page=p_num)
+        elif cb_data == "all_trades_full":
+            send_all_trade_logs(chat_id)
+            return
+        elif cb_data == "download_files":
+            send_journal_files(chat_id)
+            return
+        elif cb_data == "noop":
+            return
 
         if text:
             edited = False
@@ -490,8 +752,35 @@ def handle_incoming_update(update: dict, api=None):
             resp, markup = format_portfolio_summary_card()
             reply_telegram_message(chat_id, resp, reply_markup=markup, reply_to_message_id=msg_id)
 
-        elif any(cmd.startswith(x) for x in ["/journal", "journal", "📖 trade journal", "📖"]):
-            resp, markup = format_journal_recent_card()
+        elif any(cmd.startswith(x) for x in ["/alltrades", "/fulllog", "📑 all trade logs", "📑"]):
+            send_all_trade_logs(chat_id)
+
+        elif any(cmd.startswith(x) for x in ["/download", "/export", "/files", "/file", "📥 download journal files", "📥"]):
+            send_journal_files(chat_id)
+
+        elif cmd.startswith("/day"):
+            parts = text_raw.split(maxsplit=1)
+            date_arg = parts[1] if len(parts) > 1 else "today"
+            resp, markup = format_day_trades_card(date_arg)
+            reply_telegram_message(chat_id, resp, reply_markup=markup, reply_to_message_id=msg_id)
+
+        elif any(cmd.startswith(x) for x in ["/journal", "journal", "/trades", "trades", "/logs", "logs", "📖 trade journal", "📖"]):
+            parts = text_raw.split()
+            page_arg = 1
+            if len(parts) > 1:
+                arg_str = parts[1].lower()
+                if arg_str in ["all", "full"]:
+                    send_all_trade_logs(chat_id)
+                    return
+                elif arg_str in ["download", "file", "csv", "md"]:
+                    send_journal_files(chat_id)
+                    return
+                else:
+                    try:
+                        page_arg = int(arg_str)
+                    except Exception:
+                        page_arg = 1
+            resp, markup = format_journal_paginated_card(page=page_arg)
             reply_telegram_message(chat_id, resp, reply_markup=markup, reply_to_message_id=msg_id)
 
         elif any(cmd.startswith(x) for x in ["/start", "/help", "/menu", "help", "menu"]):
@@ -500,13 +789,20 @@ def handle_incoming_update(update: dict, api=None):
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"Welcome! Use the permanent buttons below or type commands anytime:\n\n"
                 f"• *📊 Live Status & PnL* (`/status`, `/pnl`)\n"
-                f"  Check if a trade is currently running, entry prices, targets, and live PnL.\n\n"
+                f"  Check active in-flight trades, entry prices, targets, SL, and live PnL.\n\n"
                 f"• *📜 Today's Trades* (`/today`)\n"
                 f"  View all trades executed today and daily net return.\n\n"
                 f"• *💼 Portfolio Balance* (`/summary`, `/balance`)\n"
-                f"  View starting capital, cumulative PnL, and current balance.\n\n"
-                f"• *📖 Trade Journal* (`/journal`)\n"
-                f"  View recent closed trades from the permanent trade ledger.\n"
+                f"  View capital, cumulative PnL, win rate, and total return.\n\n"
+                f"• *📖 Trade Journal* (`/journal`, `/trades`)\n"
+                f"  Browse complete trade history with interactive ◀️ Newer / Older ▶️ buttons!\n"
+                f"  *Tip:* Jump to any page with `/journal 2` or `/trades 3`.\n\n"
+                f"• *📑 All Trade Logs* (`/alltrades`, `/fulllog`)\n"
+                f"  Sends the entire complete trade journal directly into Telegram.\n\n"
+                f"• *📥 Download Journal Files* (`/download`, `/export`)\n"
+                f"  Sends `trade_journal.md` and `trade_journal.csv` files to your device.\n\n"
+                f"• *📅 Specific Day Trades* (`/day YYYY-MM-DD`)\n"
+                f"  View all trades for any date (e.g. `/day today`, `/day 2026-10-15`).\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"🔔 *All entry and exit alerts are pushed instantly with 0 duplicates!*"
             )

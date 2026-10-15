@@ -93,7 +93,8 @@ def get_main_keyboard_markup() -> dict:
     return {
         "keyboard": [
             [{"text": "📊 Live Status & PnL"}, {"text": "📜 Today's Trades"}],
-            [{"text": "💼 Portfolio Balance"}, {"text": "📖 Trade Journal"}]
+            [{"text": "💼 Portfolio Balance"}, {"text": "📖 Trade Journal"}],
+            [{"text": "📑 All Trade Logs"}, {"text": "📥 Download Journal Files"}]
         ],
         "resize_keyboard": True,
         "is_persistent": True
@@ -406,4 +407,32 @@ def send_daily_summary_alert(
         alert_key = f"SUMMARY:{norm_date}"
 
     return send_telegram_alert(msg, alert_key=alert_key, force=force)
+
+def send_telegram_document(file_path: str, caption: str = "") -> bool:
+    """Sends a document (e.g. trade_journal.md or trade_journal.csv) to the Telegram user."""
+    token = get_telegram_token()
+    chat_id = get_or_detect_chat_id()
+    if not token or not chat_id or not os.path.exists(file_path):
+        return False
+
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    for attempt in range(3):
+        try:
+            with open(file_path, "rb") as f:
+                files = {"document": (os.path.basename(file_path), f)}
+                data = {"chat_id": chat_id, "caption": caption, "parse_mode": "Markdown"}
+                r = requests.post(url, data=data, files=files, timeout=30)
+                if r.status_code == 200:
+                    return True
+                elif "can't parse entities" in r.text or "Bad Request" in r.text:
+                    data["parse_mode"] = ""
+                    f.seek(0)
+                    r2 = requests.post(url, data=data, files=files, timeout=30)
+                    if r2.status_code == 200:
+                        return True
+        except Exception as e:
+            print(f"[WARN] Failed to send Telegram document {file_path}: {e}")
+            import time as time_lib
+            time_lib.sleep(1.0)
+    return False
 
