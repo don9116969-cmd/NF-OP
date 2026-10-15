@@ -31,27 +31,11 @@
     "data_feed": "Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653600PE)",
     "strategy_name": "Strategy 5: BankNIFTY Decoupled Strangle (DAS)"
   },
-  "s8": {
-    "entry_time": "2026-10-15T09:30:16.584462",
-    "spot_entry": 55413.05,
-    "c_ce": {
-      "token": "49501",
-      "symbol": "BANKNIFTY27OCT2657300CE"
-    },
-    "c_pe": {
-      "token": "49404",
-      "symbol": "BANKNIFTY27OCT2653500PE"
-    },
-    "ce_strike": 57300,
-    "pe_strike": 53500,
-    "ce_entry": 165.61269298456682,
-    "pe_entry": 110.33605846619685,
-    "entry_tot": 275.95,
-    "symbol": "BANKNIFTY27OCT2657300CE + BANKNIFTY27OCT2653500PE",
-    "cost": 8278.5,
-    "target_tot": 469.11,
-    "stop_tot": 193.16,
-    "data_feed": "Mathematical (BSM)",
-    "strategy_name": "Strategy 8: BankNIFTY Hedged Long Strangle"
-  }
-}
+  "s6": {
+    "entry_time": "2026-10-15T09:54:18.586187",
+    "spot_entry": 55603.45,
+    "c_opt": {
+      "token": "49495",
+      "symbol": "BANKNIFTY27OCT2657000CE",
+      "expiry": "27OCT2026",
+      "expiry_date": 
