@@ -30,5 +30,12 @@
     "pe_reason": "PE SL (-15%)",
     "data_feed": "Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE)",
     "strategy_name": "Strategy 5: BankNIFTY Decoupled Strangle (DAS)"
-  }
-}
+  },
+  "s7": {
+    "entry_time": "2026-10-16T10:18:03.622064",
+    "spot_entry": 55841.75,
+    "c_opt": {
+      "token": "49497",
+      "symbol": "BANKNIFTY27OCT2657100CE",
+      "expiry": "27OCT2026",
+      "expiry_date": 
