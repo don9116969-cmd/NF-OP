@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-16 12:58:10 IST*
+*Last Updated: 2026-10-16 13:43:41 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 5: BankNIFTY Decoupled Strangle (DAS)** | `CE+PE` | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2654000PE | 12:57:00 | ₹182.50 | CE: ₹160.8 | PE: ₹204.2 | CE: ₹68.3 | PE: ₹86.8 | ₹5475.00 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 75
-- **Win Rate**: 34.7% (26 Wins / 49 Losses)
-- **Net Realized PnL**: **INR -5,492.10**
-- **Current Account Balance**: **INR +4,507.90** (-54.9% Return)
+- **Total Executed Trades**: 76
+- **Win Rate**: 34.2% (26 Wins / 50 Losses)
+- **Net Realized PnL**: **INR -5,894.96**
+- **Current Account Balance**: **INR +4,105.04** (-58.9% Return)
 
 ---
 
@@ -101,4 +100,5 @@
 | 2026-10-16 | Strategy 6: BankNIFTY Directional Box Breakout (DBB) | PE | BANKNIFTY27OCT2654600PE | 09:53:09 | 10:03:35 | ₹216.97 | ₹172.19 | ₹6509.10 | **-₹1408.55** | SL Hit (-20%) | Angel One Real Traded (BANKNIFTY27OCT2654600PE) |
 | 2026-10-16 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE | 09:56:00 | 10:42:32 | ₹178.42 | ₹173.25 | ₹5352.60 | **-₹260.92** | Time Cutoff (PE SL (-15%)) | Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE) |
 | 2026-10-16 | Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM) | CE | BANKNIFTY27OCT2657100CE | 10:18:03 | 10:46:06 | ₹154.17 | ₹122.35 | ₹4625.10 | **-₹1016.26** | SL Hit (-20%) | Angel One Real Traded (BANKNIFTY27OCT2657100CE) |
+| 2026-10-16 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2654000PE | 12:57:00 | 13:43:25 | ₹182.50 | ₹172.60 | ₹5475.00 | **-₹402.86** | Time Cutoff (PE SL (-15%)) | Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2654000PE) |
 
