@@ -408,6 +408,10 @@ def format_journal_paginated_card(page: int = 1, page_size: int = 6) -> tuple[st
     }
     return msg, inline_kb
 
+def format_journal_recent_card(page: int = 1) -> tuple[str, dict]:
+    """Alias for backwards compatibility with test harnesses and callers."""
+    return format_journal_paginated_card(page=page)
+
 def send_all_trade_logs(chat_id: str):
     """Sends the complete trade journal history to the user in clean sequential message batches."""
     if not os.path.exists(JOURNAL_CSV_FILE):

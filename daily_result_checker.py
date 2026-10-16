@@ -839,42 +839,27 @@ def run():
                 tot_pnl = daily_net_pnl
 
         try:
-            from src.notifications.notifier import send_daily_summary_alert, send_trade_exit_alert
-            print(f"[TELEGRAM] Pushing daily summary and executed trades to Telegram for {target_date.strftime('%d-%b-%Y')}...")
-            for s_name, s_res in [
-                ("Strategy 1: Hedged Strangle (15M Box)", s1_res),
-                ("Strategy 2: 0-DTE / 1-DTE Gamma Squeeze", s2_res),
-                ("Strategy 3: 30M Directional ITM", s3_res),
-                ("Strategy 4: Decoupled Asymmetric Strangle (DAS - Nifty)", s4_res),
-                ("Strategy 5: Decoupled Asymmetric Strangle (DAS - BankNifty)", s5_res),
-                ("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res),
-                ("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res),
-                ("Strategy 8: BankNIFTY Hedged Long Strangle", s8_res)
-            ]:
-                if s_res.get("trade_occurred", False):
-                    trades_to_notify = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
-                    for sub_tr in trades_to_notify:
-                        send_trade_exit_alert(
-                            strategy=s_name,
-                            exit_reason=sub_tr.get("exit_reason", "Target/SL/Time"),
-                            gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
-                            charges=sub_tr.get("charges", 0.0),
-                            net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
-                            details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
-                            time_str=str(sub_tr.get("exit_time", "")),
-                            date_str=str(target_date),
-                            entry_time=str(sub_tr.get("entry_time", "")),
-                            strike=str(sub_tr.get("strike", ""))
-                        )
-
-            send_daily_summary_alert(
-                date_str=target_date.strftime("%d-%b-%Y"),
-                trades_count=daily_trades_count,
-                daily_pnl=round(daily_net_pnl, 2),
-                total_pnl=tot_pnl,
-                current_balance=round(10000.0 + tot_pnl, 2)
+            from src.notifications.notifier import (
+                send_daily_summary_alert,
+                is_alert_already_sent,
+                mark_alert_as_sent
             )
-            print("[TELEGRAM] All trade alerts and summary checked & delivered successfully!")
+            # Live trade exits are exclusively delivered in real-time by live_paper_trader.py.
+            # daily_result_checker.py is an audit tool and must NOT spam real-time exit alerts!
+            summary_key = f"SUMMARY:{target_date}"
+            if not is_alert_already_sent(summary_key):
+                print(f"[TELEGRAM] Pushing daily portfolio summary to Telegram for {target_date.strftime('%d-%b-%Y')}...")
+                send_daily_summary_alert(
+                    date_str=target_date.strftime("%d-%b-%Y"),
+                    trades_count=daily_trades_count,
+                    daily_pnl=round(daily_net_pnl, 2),
+                    total_pnl=tot_pnl,
+                    current_balance=round(10000.0 + tot_pnl, 2)
+                )
+                mark_alert_as_sent(summary_key)
+                print("[TELEGRAM] Daily summary delivered successfully!")
+            else:
+                print(f"[TELEGRAM] Daily summary for {target_date} was already sent today. Skipping duplicate.")
         except Exception as e:
             print(f"[WARN] Failed to push Telegram sync: {e}")
 

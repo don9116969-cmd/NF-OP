@@ -41,7 +41,9 @@ from src.notifications.notifier import (
     send_telegram_alert,
     send_trade_entry_alert,
     send_trade_exit_alert,
-    send_daily_summary_alert
+    send_daily_summary_alert,
+    is_alert_already_sent,
+    mark_alert_as_sent
 )
 from daily_result_checker import (
     evaluate_strategy_1,
@@ -232,13 +234,15 @@ class LiveQuadPaperTrader:
                     p_copy["c_ce"] = {k: str(v) for k, v in p_copy["c_ce"].items() if k in ["token", "symbol"]}
                 if "c_pe" in p_copy and isinstance(p_copy["c_pe"], dict):
                     p_copy["c_pe"] = {k: str(v) for k, v in p_copy["c_pe"].items() if k in ["token", "symbol"]}
+                if "c_opt" in p_copy and isinstance(p_copy["c_opt"], dict):
+                    p_copy["c_opt"] = {k: str(v) for k, v in p_copy["c_opt"].items() if k in ["token", "symbol", "expiry"]}
                 if "contract" in p_copy and isinstance(p_copy["contract"], dict):
                     p_copy["contract"] = {k: str(v) for k, v in p_copy["contract"].items() if k in ["token", "symbol"]}
                 data_to_save[s_key] = p_copy
         os.makedirs("data", exist_ok=True)
         try:
             with open("data/active_positions.json", "w", encoding="utf-8") as f:
-                json.dump(data_to_save, f, indent=2)
+                json.dump(data_to_save, f, indent=2, default=str)
         except Exception as e:
             print(f"[WARN] Failed to save active positions: {e}")
 
@@ -2117,13 +2121,18 @@ class LiveQuadPaperTrader:
 
         current_balance = round(10000.0 + total_pnl, 2)
 
-        send_daily_summary_alert(
-            date_str=today.strftime("%d-%b-%Y"),
-            trades_count=trades_today,
-            daily_pnl=daily_net,
-            total_pnl=total_pnl,
-            current_balance=current_balance
-        )
+        summary_key = f"SUMMARY:{today}"
+        if not is_alert_already_sent(summary_key):
+            send_daily_summary_alert(
+                date_str=today.strftime("%d-%b-%Y"),
+                trades_count=trades_today,
+                daily_pnl=daily_net,
+                total_pnl=total_pnl,
+                current_balance=current_balance
+            )
+            mark_alert_as_sent(summary_key)
+        else:
+            print(f"[EOD] Daily summary for {today} was already sent. Skipping duplicate.")
 
     def run_replay_demonstration(self):
         """Simulates all 8 strategies on the latest market session for offline testing."""

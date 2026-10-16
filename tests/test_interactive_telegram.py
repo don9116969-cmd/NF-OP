@@ -18,7 +18,7 @@ from src.notifications.telegram_interactive_bot import (
     format_live_status_card,
     format_today_trades_card,
     format_portfolio_summary_card,
-    format_journal_recent_card,
+    format_journal_paginated_card,
     load_live_active_positions
 )
 
@@ -86,5 +86,5 @@ msg_summary, kb_summary = format_portfolio_summary_card()
 print(msg_summary)
 
 print("\n=== 7. Test Recent Journal Card ===")
-msg_journal, kb_journal = format_journal_recent_card()
+msg_journal, kb_journal = format_journal_paginated_card()
 print(msg_journal)

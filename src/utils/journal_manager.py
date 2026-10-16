@@ -93,9 +93,13 @@ def save_active_positions(positions: Dict[str, Any]):
                 c["c_ce"] = {k1: str(v1) for k1, v1 in c["c_ce"].items() if k1 in ["token", "symbol"]}
             if "c_pe" in c and isinstance(c["c_pe"], dict):
                 c["c_pe"] = {k1: str(v1) for k1, v1 in c["c_pe"].items() if k1 in ["token", "symbol"]}
+            if "c_opt" in c and isinstance(c["c_opt"], dict):
+                c["c_opt"] = {k1: str(v1) for k1, v1 in c["c_opt"].items() if k1 in ["token", "symbol", "expiry"]}
+            if "contract" in c and isinstance(c["contract"], dict):
+                c["contract"] = {k1: str(v1) for k1, v1 in c["contract"].items() if k1 in ["token", "symbol"]}
             clean_pos[k] = c
     with open(ACTIVE_POSITIONS_JSON, "w", encoding="utf-8") as f:
-        json.dump(clean_pos, f, indent=2)
+        json.dump(clean_pos, f, indent=2, default=str)
 
 def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, Any]):
     """
@@ -114,16 +118,30 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
     leg_str = str(trade_res.get("leg", trade_res.get("opt_type", "CE+PE")))
     strike_str = str(trade_res.get("strike", ""))
 
-    # Deduplication check
-    if not df_j.empty and "date" in df_j.columns and "entry_time" in df_j.columns:
-        dup = df_j[
+    # Robust Deduplication check
+    if not df_j.empty and "date" in df_j.columns:
+        sub = df_j[
             (df_j["date"].astype(str) == str(target_date)) &
-            (df_j["strategy"] == strategy_name) &
-            (df_j["entry_time"].astype(str) == entry_t) &
-            (df_j["strike"].astype(str) == strike_str)
+            (df_j["strategy"] == strategy_name)
         ]
-        if not dup.empty:
-            return
+        if not sub.empty:
+            # Single-trade per day strategies (Strategies 1, 2, 3, 6, 7, 8)
+            single_strats = ["Strategy 1", "Strategy 2", "Strategy 3", "Strategy 6", "Strategy 7", "Strategy 8"]
+            if any(s in strategy_name for s in single_strats):
+                # Already logged today!
+                return
+            # Multi-trade strategies (Strategy 4 & 5): check 15m time window or exact match
+            if (sub["entry_time"].astype(str) == entry_t).any():
+                return
+            try:
+                from datetime import datetime as _dt
+                t_new = _dt.strptime(str(entry_t)[:8], "%H:%M:%S")
+                for exist_t in sub["entry_time"].astype(str):
+                    t_old = _dt.strptime(exist_t[:8], "%H:%M:%S")
+                    if abs((t_new - t_old).total_seconds()) < 900: # 15 minutes
+                        return
+            except Exception:
+                pass
 
     row = {
         "date": str(target_date),
@@ -309,11 +327,21 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
     if up_to_date is not None:
         available_dates = [d for d in available_dates if d <= up_to_date]
 
-    audited_days = load_audited_days()
+    audited_days = set(load_audited_days())
+    # Also include any days already present in trade_journal.csv to prevent double-logging
+    if os.path.exists(TRADE_JOURNAL_CSV):
+        try:
+            df_existing_j = pd.read_csv(TRADE_JOURNAL_CSV)
+            if not df_existing_j.empty and "date" in df_existing_j.columns:
+                for existing_d in df_existing_j["date"].dropna().astype(str).unique():
+                    audited_days.add(str(existing_d).strip())
+        except Exception:
+            pass
+
     missed_dates = [d for d in available_dates if str(d) not in audited_days]
 
     if not missed_dates:
-        print(f"[AUTO-CATCHUP] All {len(available_dates)} historical trading days are already audited. Up to date!")
+        print(f"[AUTO-CATCHUP] All {len(available_dates)} historical trading days are already audited in journal. Up to date!")
         return []
 
     print(f"\n[AUTO-CATCHUP] [NOTICE] Found {len(missed_dates)} un-audited historical trading day(s): {[str(d) for d in missed_dates]}")
@@ -356,13 +384,10 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
                     day_trades.append((s_name, sub_tr))
                     print(f"  -> Recorded Trade: {s_name} | Net: INR {sub_net:+.2f} ({sub_tr.get('exit_reason', '')})")
 
-        # Dispatch instant Telegram notifications for caught-up trades
+        # In Auto-Catchup for historical missed days, do NOT spam real-time exit sirens!
+        # Send at most one clean backfill notification per day.
         try:
-            from src.notifications.notifier import (
-                send_telegram_alert,
-                send_trade_exit_alert,
-                send_daily_summary_alert
-            )
+            from src.notifications.notifier import send_telegram_alert
             if day_trades:
                 send_telegram_alert(
                     f"📋 *Auto-Catchup Trade Ledger Backfill*\n"
@@ -370,40 +395,9 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
                     f"📅 *Session Date:* {d.strftime('%A, %d-%b-%Y')}\n"
                     f"🔔 *Executed Trades:* {day_trades_count}\n"
                     f"💰 *Session Net PnL:* {'+' if day_net_pnl > 0 else ''}₹{day_net_pnl:.2f}\n"
-                    f"Auto-backfilled missing trading session into ledger and trade journal.",
+                    f"Backfilled historical session into ledger and trade journal.",
                     alert_key=f"CATCHUP_SUMMARY:{d}"
                 )
-                for s_name, sub_tr in day_trades:
-                    send_trade_exit_alert(
-                        strategy=s_name,
-                        exit_reason=sub_tr.get("exit_reason", "Target/SL/Time"),
-                        gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
-                        charges=sub_tr.get("charges", 0.0),
-                        net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
-                        details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
-                        time_str=str(sub_tr.get("exit_time", "")),
-                        date_str=str(d),
-                        entry_time=str(sub_tr.get("entry_time", "")),
-                        strike=str(sub_tr.get("strike", ""))
-                    )
-
-            # Cumulative PnL calculation
-            tot_pnl = 0.0
-            if os.path.exists(TRADE_JOURNAL_CSV):
-                try:
-                    df_j = pd.read_csv(TRADE_JOURNAL_CSV)
-                    if not df_j.empty and "net_pnl" in df_j.columns:
-                        tot_pnl = round(float(df_j["net_pnl"].sum()), 2)
-                except Exception:
-                    tot_pnl = day_net_pnl
-
-            send_daily_summary_alert(
-                date_str=str(d),
-                trades_count=day_trades_count,
-                daily_pnl=round(day_net_pnl, 2),
-                total_pnl=tot_pnl,
-                current_balance=round(10000.0 + tot_pnl, 2)
-            )
         except Exception as tel_err:
             print(f"[WARN] Failed to dispatch auto-catchup Telegram alerts: {tel_err}")
 
