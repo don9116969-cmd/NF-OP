@@ -23,19 +23,35 @@
     "pe_tgt": 198.58,
     "pe_sl": 84.4,
     "ce_exited": false,
-    "pe_exited": false,
+    "pe_exited": true,
     "ce_exit_p": null,
-    "pe_exit_p": null,
+    "pe_exit_p": 83.72,
     "ce_reason": "",
-    "pe_reason": "",
+    "pe_reason": "PE SL (-15%)",
     "data_feed": "Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE)",
     "strategy_name": "Strategy 5: BankNIFTY Decoupled Strangle (DAS)"
   },
-  "s6": {
-    "entry_time": "2026-10-16T09:53:09.447286",
-    "spot_entry": 55539.6,
-    "c_opt": {
-      "token": "49428",
-      "symbol": "BANKNIFTY27OCT2654600PE",
-      "expiry": "27OCT2026",
-      "expiry_date": 
+  "s8": {
+    "entry_time": "2026-10-16T09:30:47.090132",
+    "spot_entry": 55593.8,
+    "c_ce": {
+      "token": "49503",
+      "symbol": "BANKNIFTY27OCT2657400CE"
+    },
+    "c_pe": {
+      "token": "49412",
+      "symbol": "BANKNIFTY27OCT2653800PE"
+    },
+    "ce_strike": 57400,
+    "pe_strike": 53800,
+    "ce_entry": 78.88,
+    "pe_entry": 105.24,
+    "entry_tot": 184.12,
+    "symbol": "BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE",
+    "cost": 5523.6,
+    "target_tot": 313.0,
+    "stop_tot": 128.88,
+    "data_feed": "Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE)",
+    "strategy_name": "Strategy 8: BankNIFTY Hedged Long Strangle"
+  }
+}
