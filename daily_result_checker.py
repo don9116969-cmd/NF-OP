@@ -565,14 +565,16 @@ def evaluate_strategy_5(df_banknifty: pd.DataFrame, target_date: datetime.date, 
     Strategy 5: BankNIFTY Decoupled Asymmetric Strangle (DAS)
     Delta-Neutral Volatility Compression & Kinetic Expansion on BankNIFTY.
     Instrument: 1 Lot = 30 Qty.
-    Exit: +100% Target on surging leg, -15% SL on decaying leg, -15% Combined SL, 45-min hold.
+    Fine-tuned Exit: +55% Target on surging leg, -12% SL on decaying leg, -12% Combined SL, 35-min hold.
+    Entry Window: 09:45 - 11:00 AM IST (Max 1 trade/day).
     """
     return evaluate_banknifty_das_for_day(df_banknifty, target_date, api=api)
 
 def evaluate_strategy_6(df_banknifty: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     """
     Strategy 6: BankNIFTY Directional Box Breakout (DBB)
-    15M Box Breakout (09:15-09:30 IST), +60% Target, -20% SL, EOD 15:15 IST.
+    15M Box Breakout (09:15-09:30 IST) with Institutional VWAP confirmation (20-pt buffer).
+    Fine-tuned Exit: +40% Target, -20% SL, EOD 15:15 IST.
     Budget <= INR 8,500 (fits INR 10,000 account limit).
     """
     return evaluate_banknifty_box_for_day(df_banknifty, target_date, api=api)
@@ -580,7 +582,8 @@ def evaluate_strategy_6(df_banknifty: pd.DataFrame, target_date: datetime.date, 
 def evaluate_strategy_7(df_banknifty: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     """
     Strategy 7: BankNIFTY Expiry Gamma Squeeze Momentum (GSM)
-    5M Session Mean + 1.2x ATR(14) Breakout (09:30-14:30 IST), +40% Target, -20% SL, Mean Reversal.
+    Tuesday (1-DTE) & Wednesday (0-DTE) Expiry Sessions Only.
+    5M Session Mean + 2.0x ATR(14) Breakout (09:30-14:30 IST), +40% Target, -20% SL, Mean Reversal.
     Budget <= INR 8,500 (fits INR 10,000 account limit).
     """
     return evaluate_banknifty_gamma_for_day(df_banknifty, target_date, api=api)
@@ -588,6 +591,7 @@ def evaluate_strategy_7(df_banknifty: pd.DataFrame, target_date: datetime.date, 
 def evaluate_strategy_8(df_banknifty: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     """
     Strategy 8: BankNIFTY Hedged Long Strangle (15M Box)
+    Tuesday (1-DTE) & Wednesday (0-DTE) Expiry Sessions with Opening Compression (<0.35%).
     15M Box OTM Strangle at 09:30 IST, +70% Target, -30% Basket SL, 45-min hold.
     Budget <= INR 8,500 (fits INR 10,000 account limit).
     """
