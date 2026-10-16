@@ -371,7 +371,7 @@ class LiveQuadPaperTrader:
                 if high_c >= pos["ce_tgt"]:
                     pos["ce_exited"] = True
                     pos["ce_exit_p"] = round(pos["ce_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = "CE Target (+100%)"
+                    pos["ce_reason"] = "CE Target (+55%)"
                     self.save_active_positions()
                     if not pos["pe_exited"]:
                         send_telegram_alert(
@@ -379,7 +379,7 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━\n"
                             f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+100% Target)\n"
+                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+55% Target)\n"
                             f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
                             alert_key=f"LEG_EXIT:{today_date}:s5:ce:{pos['ce_reason']}"
@@ -387,7 +387,7 @@ class LiveQuadPaperTrader:
                 elif low_c <= pos["ce_sl"]:
                     pos["ce_exited"] = True
                     pos["ce_exit_p"] = round(pos["ce_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = "CE SL (-15%)"
+                    pos["ce_reason"] = "CE SL (-12%)"
                     self.save_active_positions()
                     if not pos["pe_exited"]:
                         send_telegram_alert(
@@ -395,7 +395,7 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━\n"
                             f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-15% SL)\n"
+                            f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-12% SL)\n"
                             f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
                             alert_key=f"LEG_EXIT:{today_date}:s5:ce:{pos['ce_reason']}"
@@ -405,7 +405,7 @@ class LiveQuadPaperTrader:
                 if high_p >= pos["pe_tgt"]:
                     pos["pe_exited"] = True
                     pos["pe_exit_p"] = round(pos["pe_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = "PE Target (+100%)"
+                    pos["pe_reason"] = "PE Target (+55%)"
                     self.save_active_positions()
                     if not pos["ce_exited"]:
                         send_telegram_alert(
@@ -413,7 +413,7 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━\n"
                             f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+100% Target)\n"
+                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+55% Target)\n"
                             f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
                             alert_key=f"LEG_EXIT:{today_date}:s5:pe:{pos['pe_reason']}"
@@ -421,7 +421,7 @@ class LiveQuadPaperTrader:
                 elif low_p <= pos["pe_sl"]:
                     pos["pe_exited"] = True
                     pos["pe_exit_p"] = round(pos["pe_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = "PE SL (-15%)"
+                    pos["pe_reason"] = "PE SL (-12%)"
                     self.save_active_positions()
                     if not pos["ce_exited"]:
                         send_telegram_alert(
@@ -429,7 +429,7 @@ class LiveQuadPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━\n"
                             f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
                             f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-15% SL)\n"
+                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-12% SL)\n"
                             f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
                             alert_key=f"LEG_EXIT:{today_date}:s5:pe:{pos['pe_reason']}"
@@ -439,23 +439,23 @@ class LiveQuadPaperTrader:
             exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
             cur_tot = exit_c + exit_p
             comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
-            is_time_up = (elapsed_mins >= 45.0) or (ist_now.time() >= dtime(15, 15))
-            is_comb_stop = comb_ret <= -0.15
+            is_time_up = (elapsed_mins >= 35.0) or (ist_now.time() >= dtime(15, 15))
+            is_comb_stop = comb_ret <= -0.12
 
             if (pos["ce_exited"] and pos["pe_exited"]) or is_time_up or is_comb_stop:
                 if is_comb_stop:
-                    exit_reason = "Combined Capital SL (-15%)"
+                    exit_reason = "Combined Capital SL (-12%)"
                 elif pos["ce_exited"] and pos["pe_exited"]:
                     exit_reason = f"{pos['ce_reason']} & {pos['pe_reason']}"
                 elif is_time_up:
                     active_reasons = []
                     if pos["ce_exited"]: active_reasons.append(pos["ce_reason"])
                     if pos["pe_exited"]: active_reasons.append(pos["pe_reason"])
-                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (45m)"
+                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (35m)"
                 elif pos["ce_exited"] or pos["pe_exited"]:
                     exit_reason = pos["ce_reason"] if pos["ce_exited"] else pos["pe_reason"]
                 else:
-                    exit_reason = "Time Exit (45m)"
+                    exit_reason = "Time Exit (35m)"
 
                 gross = ((exit_c - pos["ce_entry"]) + (exit_p - pos["pe_entry"])) * self.bn_lot_size
                 buy_v = pos["entry_tot"] * self.bn_lot_size
@@ -499,9 +499,11 @@ class LiveQuadPaperTrader:
 
         # 2. POSITION IS NOT OPEN -> CHECK FOR LIVE BREAKOUT ENTRY
         else:
+            if self.daily_trade_count["s5"] >= 1:
+                return
             if self.cooldown_until["s5"] and ist_now < self.cooldown_until["s5"]:
                 return
-            if ist_now.time() < dtime(9, 45) or ist_now.time() > dtime(13, 30):
+            if ist_now.time() < dtime(9, 45) or ist_now.time() > dtime(11, 0):
                 return
             if dtime(11, 30) <= ist_now.time() <= dtime(12, 45):
                 return
@@ -551,10 +553,10 @@ class LiveQuadPaperTrader:
                     "pe_entry": real_pe,
                     "entry_tot": entry_tot,
                     "cost": cost,
-                    "ce_tgt": round(real_ce * 2.0, 2),
-                    "ce_sl": round(real_ce * 0.85, 2),
-                    "pe_tgt": round(real_pe * 2.0, 2),
-                    "pe_sl": round(real_pe * 0.85, 2),
+                    "ce_tgt": round(real_ce * 1.55, 2),
+                    "ce_sl": round(real_ce * 0.88, 2),
+                    "pe_tgt": round(real_pe * 1.55, 2),
+                    "pe_sl": round(real_pe * 0.88, 2),
                     "ce_exited": False,
                     "pe_exited": False,
                     "ce_exit_p": None,
@@ -572,9 +574,9 @@ class LiveQuadPaperTrader:
                     ce_p=real_ce,
                     pe_p=real_pe,
                     tot_cost=cost,
-                    win_target_pct=1.00,
-                    lose_stop_pct=0.15,
-                    max_hold_mins=45,
+                    win_target_pct=0.55,
+                    lose_stop_pct=0.12,
+                    max_hold_mins=35,
                     time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.bn_lot_size,
                     date_str=str(today_date)
@@ -609,7 +611,7 @@ class LiveQuadPaperTrader:
             if high_p >= pos["target_p"]:
                 exit_triggered = True
                 exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Target Hit (+60%)"
+                exit_reason = "Target Hit (+40%)"
             elif low_p <= pos["stop_p"]:
                 exit_triggered = True
                 exit_p = round(pos["stop_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -683,9 +685,15 @@ class LiveQuadPaperTrader:
             if box_pct > 1.2:
                 return
 
-            # Check if current bar triggers breakout
-            is_ce = bn_spot >= (box_h + 30.0)
-            is_pe = bn_spot <= (box_l - 30.0)
+            # Calculate intraday typical price and VWAP for trend confirmation
+            tp = (day_df["high"] + day_df["low"] + day_df["close"]) / 3.0
+            vol = day_df["volume"] if "volume" in day_df.columns else pd.Series(1.0, index=day_df.index)
+            day_df["vwap"] = (tp * vol).cumsum() / vol.cumsum().clip(lower=1)
+            vwap_val = float(day_df["vwap"].iloc[-1])
+
+            # Check if current bar triggers breakout with VWAP confirmation (20-pt buffer)
+            is_ce = (bn_spot >= (box_h + 20.0)) and (bn_spot > vwap_val)
+            is_pe = (bn_spot <= (box_l - 20.0)) and (bn_spot < vwap_val)
             if not (is_ce or is_pe):
                 return
 
@@ -715,7 +723,7 @@ class LiveQuadPaperTrader:
                 "symbol": sym,
                 "entry_p": real_p,
                 "cost": cost,
-                "target_p": round(real_p * 1.60, 2),
+                "target_p": round(real_p * 1.40, 2),
                 "stop_p": round(real_p * 0.80, 2),
                 "data_feed": feed_label
             }
@@ -728,7 +736,7 @@ class LiveQuadPaperTrader:
                 ce_p=real_p if opt_type == "CE" else 0.0,
                 pe_p=real_p if opt_type == "PE" else 0.0,
                 tot_cost=cost,
-                win_target_pct=0.60,
+                win_target_pct=0.40,
                 lose_stop_pct=0.20,
                 max_hold_mins=120,
                 time_str=ist_now.strftime("%H:%M:%S"),
@@ -827,6 +835,8 @@ class LiveQuadPaperTrader:
                 return
 
         if pos is None:
+            if today_date.weekday() not in [1, 2]:
+                return
             if self.daily_trade_count["s7"] >= 1:
                 return
             if self.cooldown_until["s7"] and ist_now < self.cooldown_until["s7"]:
@@ -855,8 +865,8 @@ class LiveQuadPaperTrader:
 
             prev = day_5m.iloc[-2]
             cur = day_5m.iloc[-1]
-            f_ce = (float(prev["close"]) <= float(prev["session_mean"]) + 1.2 * float(prev["atr"])) and (float(cur["close"]) > float(cur["session_mean"]) + 1.2 * float(cur["atr"]))
-            f_pe = (float(prev["close"]) >= float(prev["session_mean"]) - 1.2 * float(prev["atr"])) and (float(cur["close"]) < float(cur["session_mean"]) - 1.2 * float(cur["atr"]))
+            f_ce = (float(prev["close"]) <= float(prev["session_mean"]) + 2.0 * float(prev["atr"])) and (float(cur["close"]) > float(cur["session_mean"]) + 2.0 * float(cur["atr"]))
+            f_pe = (float(prev["close"]) >= float(prev["session_mean"]) - 2.0 * float(prev["atr"])) and (float(cur["close"]) < float(cur["session_mean"]) - 2.0 * float(cur["atr"]))
 
             if not (f_ce or f_pe):
                 return
@@ -991,12 +1001,24 @@ class LiveQuadPaperTrader:
                 return
 
         if pos is None:
+            if today_date.weekday() not in [1, 2]:
+                return
             if self.daily_trade_count["s8"] >= 1:
                 return
             if self.cooldown_until["s8"] and ist_now < self.cooldown_until["s8"]:
                 return
             if not (dtime(9, 30) <= ist_now.time() <= dtime(10, 30)):
                 return
+
+            df = df_bn.copy()
+            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+            day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
+            box15 = day_df[(day_df["timestamp"].dt.time >= dtime(9, 15)) & (day_df["timestamp"].dt.time <= dtime(9, 30))]
+            if len(box15) >= 8:
+                b_rng = float(box15["high"].max() - box15["low"].min())
+                b_pct = (b_rng / float(box15["close"].iloc[0])) * 100.0
+                if b_pct > 0.35:
+                    return
 
             dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
             k_ce, k_pe, p_ce, p_pe, c_ce, c_pe = select_banknifty_strangle_strikes(bn_spot, dte_y, today_date, api=self.smart_api)

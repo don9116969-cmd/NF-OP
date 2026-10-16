@@ -173,33 +173,33 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
 
             if not ce_exited:
                 r_ce = (c_ce - ce_entry) / max(0.1, ce_entry)
-                if r_ce >= 1.0:
+                if r_ce >= 0.55:
                     ce_exited = True
                     ce_exit_p = c_ce
-                    ce_reason = "CE Target (+100%)"
-                elif r_ce <= -0.15:
+                    ce_reason = "CE Target (+55%)"
+                elif r_ce <= -0.12:
                     ce_exited = True
                     ce_exit_p = c_ce
-                    ce_reason = "CE SL (-15%)"
+                    ce_reason = "CE SL (-12%)"
 
             if not pe_exited:
                 r_pe = (c_pe - pe_entry) / max(0.1, pe_entry)
-                if r_pe >= 1.0:
+                if r_pe >= 0.55:
                     pe_exited = True
                     pe_exit_p = c_pe
-                    pe_reason = "PE Target (+100%)"
-                elif r_pe <= -0.15:
+                    pe_reason = "PE Target (+55%)"
+                elif r_pe <= -0.12:
                     pe_exited = True
                     pe_exit_p = c_pe
-                    pe_reason = "PE SL (-15%)"
+                    pe_reason = "PE SL (-12%)"
 
             cur_tot = (ce_exit_p if ce_exited else c_ce) + (pe_exit_p if pe_exited else c_pe)
             entry_tot = ce_entry + pe_entry
             comb_ret = (cur_tot - entry_tot) / max(0.1, entry_tot)
 
             elapsed_mins = (day_slice.iloc[i]["timestamp"] - day_slice.iloc[entry_idx]["timestamp"]).total_seconds() / 60.0
-            is_time_up = (elapsed_mins >= 45.0) or (tm >= datetime.time(15, 15))
-            is_comb_stop = comb_ret <= -0.15
+            is_time_up = (elapsed_mins >= 35.0) or (tm >= datetime.time(15, 15))
+            is_comb_stop = comb_ret <= -0.12
 
             if (ce_exited and pe_exited) or is_time_up or is_comb_stop:
                 p_c = ce_exit_p if ce_exited else c_ce
@@ -208,18 +208,18 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                 net = gross - FEE_STRANGLE
 
                 if is_comb_stop:
-                    exit_reason = "Combined Capital SL (-15%)"
+                    exit_reason = "Combined Capital SL (-12%)"
                 elif ce_exited and pe_exited:
                     exit_reason = f"{ce_reason} & {pe_reason}"
                 elif is_time_up:
                     active_reasons = []
                     if ce_exited: active_reasons.append(ce_reason)
                     if pe_exited: active_reasons.append(pe_reason)
-                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (45m)"
+                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (35m)"
                 elif ce_exited or pe_exited:
                     exit_reason = ce_reason if ce_exited else pe_reason
                 else:
-                    exit_reason = "Time Exit (45m)"
+                    exit_reason = "Time Exit (35m)"
 
                 trades_list.append({
                     "date": str(target_date),
@@ -239,12 +239,14 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                 })
                 in_pos = False
                 last_exit_idx = i
+                # Enforce max 1 trade per day for Strategy 5
+                break
 
         else:
-            # Entry window: 09:45 to 13:30, exclude 11:30–12:45
-            if tm < datetime.time(9, 45) or tm > datetime.time(13, 30):
-                continue
-            if datetime.time(11, 30) <= tm <= datetime.time(12, 45):
+            # Fine-tuned Entry window: 09:45 to 11:00 AM (avoids midday chop completely)
+            if trades_list:
+                break
+            if tm < datetime.time(9, 45) or tm > datetime.time(11, 0):
                 continue
             if (i - last_exit_idx) < 30:
                 continue
@@ -275,10 +277,10 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                         entry_tot = round(real_ce_entry + real_pe_entry, 2)
                         cost = round(entry_tot * LOT_SIZE, 2)
 
-                        ce_tgt = real_ce_entry * 2.0
-                        ce_sl = real_ce_entry * 0.85
-                        pe_tgt = real_pe_entry * 2.0
-                        pe_sl = real_pe_entry * 0.85
+                        ce_tgt = real_ce_entry * 1.55
+                        ce_sl = real_ce_entry * 0.88
+                        pe_tgt = real_pe_entry * 1.55
+                        pe_sl = real_pe_entry * 0.88
 
                         ce_exited, pe_exited = False, False
                         ce_exit_p, pe_exit_p = real_ce_entry, real_pe_entry
@@ -296,27 +298,27 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                                 if c_bar["high"] >= ce_tgt:
                                     ce_exited = True
                                     ce_exit_p = round(ce_tgt * (1.0 - SLIPPAGE_PCT), 2)
-                                    ce_reason = "CE Target (+100%)"
+                                    ce_reason = "CE Target (+55%)"
                                 elif c_bar["low"] <= ce_sl:
                                     ce_exited = True
                                     ce_exit_p = round(ce_sl * (1.0 - SLIPPAGE_PCT), 2)
-                                    ce_reason = "CE SL (-15%)"
+                                    ce_reason = "CE SL (-12%)"
 
                             if not pe_exited:
                                 if p_bar["high"] >= pe_tgt:
                                     pe_exited = True
                                     pe_exit_p = round(pe_tgt * (1.0 - SLIPPAGE_PCT), 2)
-                                    pe_reason = "PE Target (+100%)"
+                                    pe_reason = "PE Target (+55%)"
                                 elif p_bar["low"] <= pe_sl:
                                     pe_exited = True
                                     pe_exit_p = round(pe_sl * (1.0 - SLIPPAGE_PCT), 2)
-                                    pe_reason = "PE SL (-15%)"
+                                    pe_reason = "PE SL (-12%)"
 
                             cur_tot = (ce_exit_p if ce_exited else float(c_bar["close"])) + (pe_exit_p if pe_exited else float(p_bar["close"]))
                             comb_ret = (cur_tot - entry_tot) / entry_tot
                             elapsed_mins = (ts_idx - t_start).total_seconds() / 60.0
-                            is_time_up = (elapsed_mins >= 45.0) or (ts_idx.time() >= datetime.time(15, 15))
-                            is_comb_stop = comb_ret <= -0.15
+                            is_time_up = (elapsed_mins >= 35.0) or (ts_idx.time() >= datetime.time(15, 15))
+                            is_comb_stop = comb_ret <= -0.12
 
                             if (ce_exited and pe_exited) or is_time_up or is_comb_stop:
                                 exit_ts = ts_idx

@@ -121,14 +121,21 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
         info["reason"] = "No candles post-box window"
         return info
 
+    # Calculate intraday typical price and VWAP for trend confirmation
+    tp = (day_df["high"] + day_df["low"] + day_df["close"]) / 3.0
+    vol = day_df["volume"] if "volume" in day_df.columns else pd.Series(1.0, index=day_df.index)
+    day_df["vwap"] = (tp * vol).cumsum() / vol.cumsum().clip(lower=1)
+
     for _, bar in post_box.iterrows():
         h = float(bar["high"])
         l = float(bar["low"])
         c = float(bar["close"])
         ts = bar["timestamp"]
+        vwap_val = float(bar["vwap"]) if "vwap" in bar else float(bar["close"])
 
-        is_call_break = h >= (box_h + 30.0)
-        is_put_break = l <= (box_l - 30.0)
+        # Fine-tuned 20-pt buffer with institutional VWAP confirmation
+        is_call_break = (h >= (box_h + 20.0)) and (c > vwap_val)
+        is_put_break = (l <= (box_l - 20.0)) and (c < vwap_val)
 
         if not (is_call_break or is_put_break):
             continue
@@ -156,8 +163,8 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
                         info["reason"] = f"Breakout triggered, but real option contract {c_opt['symbol']} cost (INR {cost:.2f}) exceeded INR 8,500 budget limit."
                         return info
 
-                    target_p = entry_p * 1.60
-                    sl_p = entry_p * 0.80
+                    target_p = entry_p * 1.40  # Fine-tuned +40% target
+                    sl_p = entry_p * 0.80      # -20% stop loss
 
                     exit_p = entry_p
                     exit_ts = sub_opt.index[-1]
@@ -171,7 +178,7 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
                         if o_h >= target_p:
                             exit_p = round(target_p * (1.0 - SLIPPAGE_PCT), 2)
                             exit_ts = o_ts
-                            exit_reason = "Target Hit (+60%)"
+                            exit_reason = "Target Hit (+40%)"
                             break
                         elif o_l <= sl_p:
                             exit_p = round(sl_p * (1.0 - SLIPPAGE_PCT), 2)
@@ -213,8 +220,8 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
         # Mathematical BSM Mode
         entry_p = chosen_p
         cost = round(entry_p * LOT_SIZE, 2)
-        target_p = entry_p * 1.60
-        sl_p = entry_p * 0.80
+        target_p = entry_p * 1.40  # Fine-tuned +40% target
+        sl_p = entry_p * 0.80      # -20% stop loss
 
         exit_p = entry_p
         exit_ts = day_df["timestamp"].max()
@@ -229,7 +236,7 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
             if cur_p >= target_p:
                 exit_p = target_p
                 exit_ts = sub_ts
-                exit_reason = "Target Hit (+60%)"
+                exit_reason = "Target Hit (+40%)"
                 break
             elif cur_p <= sl_p:
                 exit_p = sl_p
@@ -273,12 +280,19 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
 def evaluate_banknifty_gamma_for_day(df_bn: pd.DataFrame, target_date: datetime.date, api=None) -> dict:
     """
     Strategy 7: BankNIFTY Expiry Gamma Squeeze Momentum (GSM)
-    - Window: 09:30 to 14:30 IST.
-    - Session Mean (expanding typical price) + 1.2x ATR(14) breakout.
+    - Expiry Days Only: Tuesday (1-DTE) and Wednesday (0-DTE).
+    - Window: 09:30 to 13:30 IST.
+    - Session Mean (expanding typical price) + 2.0x ATR(14) breakout.
     - Strike: Affordable ATM/OTM Strike (budget <= Rs 8,500).
     - Exit: Target +40%, Stop Loss -20%, Mean Reversal, or 15:15 EOD.
     """
     info = {"trade_occurred": False, "status": "NO_DATA"}
+    # Restrict to Tuesday (1-DTE) and Wednesday (0-DTE) only
+    if target_date.weekday() not in [1, 2]:
+        info["status"] = "FILTERED_NON_EXPIRY"
+        info["reason"] = f"BankNIFTY Gamma Squeeze restricted to Tue/Wed expiry sessions (Day {target_date.weekday()} is non-expiry)."
+        return info
+
     if df_bn.empty:
         info["reason"] = "No market data available"
         return info
@@ -308,7 +322,7 @@ def evaluate_banknifty_gamma_for_day(df_bn: pd.DataFrame, target_date: datetime.
     tr3 = (day_5m["low"] - day_5m["close"].shift(1)).abs()
     day_5m["atr"] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1).rolling(14, min_periods=5).mean().bfill()
 
-    valid_window = day_5m[(day_5m["timestamp"].dt.time >= datetime.time(9, 30)) & (day_5m["timestamp"].dt.time <= datetime.time(14, 30))]
+    valid_window = day_5m[(day_5m["timestamp"].dt.time >= datetime.time(9, 30)) & (day_5m["timestamp"].dt.time <= datetime.time(13, 30))]
 
     for i in range(1, len(valid_window)):
         prev = valid_window.iloc[i-1]
@@ -322,8 +336,9 @@ def evaluate_banknifty_gamma_for_day(df_bn: pd.DataFrame, target_date: datetime.
         prev_atr = float(prev["atr"])
         prev_spot = float(prev["close"])
 
-        f_ce = (prev_spot <= prev_s_mean + 1.2 * prev_atr) and (spot > s_mean + 1.2 * atr)
-        f_pe = (prev_spot >= prev_s_mean - 1.2 * prev_atr) and (spot < s_mean - 1.2 * atr)
+        # Fine-tuned to 2.0x ATR to eliminate false chop
+        f_ce = (prev_spot <= prev_s_mean + 2.0 * prev_atr) and (spot > s_mean + 2.0 * atr)
+        f_pe = (prev_spot >= prev_s_mean - 2.0 * prev_atr) and (spot < s_mean - 2.0 * atr)
 
         if not (f_ce or f_pe):
             continue
@@ -492,6 +507,21 @@ def evaluate_banknifty_strangle_for_day(df_bn: pd.DataFrame, target_date: dateti
     if len(day_df) < 15:
         info["reason"] = "Insufficient bars (<15 bars) for 15M box"
         return info
+
+    # Fine-tuned Protection: Restrict Strangle to Tue/Wed and require opening 15m compression (< 0.35%)
+    if target_date.weekday() not in [1, 2]:
+        info["status"] = "FILTERED_NON_EXPIRY"
+        info["reason"] = f"BankNIFTY Hedged Strangle disabled on non-expiry days (Day {target_date.weekday()}) to prevent theta decay."
+        return info
+
+    box15 = day_df[(day_df["timestamp"].dt.time >= datetime.time(9, 15)) & (day_df["timestamp"].dt.time <= datetime.time(9, 30))]
+    if len(box15) >= 8:
+        b_rng = float(box15["high"].max() - box15["low"].min())
+        b_pct = (b_rng / float(box15["close"].iloc[0])) * 100.0
+        if b_pct > 0.35:
+            info["status"] = "FILTERED_WIDE_BOX"
+            info["reason"] = f"BankNIFTY 15m opening range {b_rng:.1f} pts ({b_pct:.2f}% > 0.35%). Strangle skipped to prevent theta crush."
+            return info
 
     entry_bars = day_df[day_df["timestamp"].dt.time >= datetime.time(9, 30)]
     if entry_bars.empty:
