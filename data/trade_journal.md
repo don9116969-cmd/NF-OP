@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-16 10:19:39 IST*
+*Last Updated: 2026-10-16 10:43:14 IST*
 
 ---
 
@@ -14,10 +14,10 @@
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 73
-- **Win Rate**: 35.6% (26 Wins / 47 Losses)
-- **Net Realized PnL**: **INR -4,214.92**
-- **Current Account Balance**: **INR +5,785.08** (-42.1% Return)
+- **Total Executed Trades**: 74
+- **Win Rate**: 35.1% (26 Wins / 48 Losses)
+- **Net Realized PnL**: **INR -4,475.84**
+- **Current Account Balance**: **INR +5,524.16** (-44.8% Return)
 
 ---
 
@@ -98,4 +98,5 @@
 | 2026-10-15 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657700CE + BANKNIFTY27OCT2653900PE | 11:28:00 | 12:13:00 | ₹208.44 | ₹200.64 | ₹6253.20 | **-₹341.57** | Time Exit (45m) | Angel One Real Traded (BANKNIFTY27OCT2657700CE + BANKNIFTY27OCT2653900PE) |
 | 2026-10-16 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE | 09:30:47 | 10:16:24 | ₹184.12 | ₹176.23 | ₹5523.60 | **-₹342.77** | Time Exit (45m) | Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE) |
 | 2026-10-16 | Strategy 6: BankNIFTY Directional Box Breakout (DBB) | PE | BANKNIFTY27OCT2654600PE | 09:53:09 | 10:03:35 | ₹216.97 | ₹172.19 | ₹6509.10 | **-₹1408.55** | SL Hit (-20%) | Angel One Real Traded (BANKNIFTY27OCT2654600PE) |
+| 2026-10-16 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE | 09:56:00 | 10:42:32 | ₹178.42 | ₹173.25 | ₹5352.60 | **-₹260.92** | Time Cutoff (PE SL (-15%)) | Angel One Real Traded (BANKNIFTY27OCT2657400CE + BANKNIFTY27OCT2653800PE) |
 
