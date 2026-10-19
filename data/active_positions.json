@@ -1,21 +1,4 @@
 {
-  "s2": {
-    "entry_time": "2026-10-19T10:23:00",
-    "spot_entry": 23100.6,
-    "contract": {
-      "token": "47169",
-      "symbol": "NIFTY19OCT2623150CE"
-    },
-    "symbol": "NIFTY19OCT2623150CE",
-    "opt_type": "CE",
-    "strike": 23150,
-    "entry_p": 42.84,
-    "cost": 2784.6,
-    "target_p": 77.11,
-    "stop_p": 32.13,
-    "data_feed": "Angel One Real Traded (NIFTY19OCT2623150CE)",
-    "strategy_name": "Strategy 2: Expiry Gamma Squeeze"
-  },
   "s4": {
     "entry_time": "2026-10-19T10:11:00",
     "spot_entry": 23074.3,
