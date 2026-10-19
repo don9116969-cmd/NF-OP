@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-19 09:56:26 IST*
+*Last Updated: 2026-10-19 10:12:46 IST*
 
 ---
 
@@ -8,6 +8,7 @@
 
 | Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
 |:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 4: Decoupled Asymmetric Strangle** | `CE+PE` | NIFTY19OCT2623100CE + NIFTY19OCT2623000PE | 10:11:00 | ₹93.49 | CE: ₹82.0 | PE: ₹58.3 | CE: ₹35.5 | PE: ₹25.3 | ₹6076.85 | `🟢 ACTIVE / IN-PROGRESS` |
 | **Strategy 5: BankNIFTY Decoupled Strangle (DAS)** | `CE+PE` | BANKNIFTY27OCT2656900CE + BANKNIFTY27OCT2654100PE | 09:55:00 | ₹194.24 | CE: ₹146.4 | PE: ₹154.7 | CE: ₹83.1 | PE: ₹87.8 | ₹5827.20 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---

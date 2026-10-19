@@ -1,4 +1,36 @@
 {
+  "s4": {
+    "entry_time": "2026-10-19T10:11:00",
+    "spot_entry": 23074.3,
+    "c_ce": {
+      "token": "47167",
+      "symbol": "NIFTY19OCT2623100CE"
+    },
+    "c_pe": {
+      "token": "47162",
+      "symbol": "NIFTY19OCT2623000PE"
+    },
+    "ce_strike": 23100,
+    "pe_strike": 23000,
+    "ce_symbol": "NIFTY19OCT2623100CE",
+    "pe_symbol": "NIFTY19OCT2623000PE",
+    "ce_entry": 54.63,
+    "pe_entry": 38.86,
+    "entry_tot": 93.49,
+    "cost": 6076.85,
+    "ce_tgt": 81.95,
+    "ce_sl": 35.51,
+    "pe_tgt": 58.29,
+    "pe_sl": 25.26,
+    "ce_exited": false,
+    "pe_exited": false,
+    "ce_exit_p": null,
+    "pe_exit_p": null,
+    "ce_reason": "",
+    "pe_reason": "",
+    "data_feed": "Angel One Real Traded (NIFTY19OCT2623100CE + NIFTY19OCT2623000PE)",
+    "strategy_name": "Strategy 4: Decoupled Asymmetric Strangle"
+  },
   "s5": {
     "entry_time": "2026-10-19T09:55:00",
     "spot_entry": 55504.05,
