@@ -1,13 +1,14 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-16 21:09:11 IST*
+*Last Updated: 2026-10-19 09:56:26 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 5: BankNIFTY Decoupled Strangle (DAS)** | `CE+PE` | BANKNIFTY27OCT2656900CE + BANKNIFTY27OCT2654100PE | 09:55:00 | ₹194.24 | CE: ₹146.4 | PE: ₹154.7 | CE: ₹83.1 | PE: ₹87.8 | ₹5827.20 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 
