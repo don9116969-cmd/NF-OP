@@ -95,3 +95,27 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
     except Exception as e:
         print(f"[GIT-SYNC] Auto-sync notice: {e}")
         return False
+
+def git_sync_pull() -> bool:
+    """
+    Pulls latest remote commits from GitHub to ensure local journal and candles
+    are synchronized with cloud live trading sessions.
+    """
+    try:
+        git_env = os.environ.copy()
+        git_env["GIT_TERMINAL_PROMPT"] = "0"
+        for remote in ["cloud", "origin"]:
+            res = subprocess.run(
+                ["git", "pull", "--rebase", "--autostash", remote, "main"],
+                capture_output=True,
+                text=True,
+                check=False,
+                env=git_env,
+                timeout=10
+            )
+            if res.returncode == 0:
+                print(f"[GIT-SYNC] Synchronized with remote GitHub repository ({remote}/main).")
+                return True
+    except Exception as e:
+        print(f"[GIT-SYNC] Pull notice: {e}")
+    return False

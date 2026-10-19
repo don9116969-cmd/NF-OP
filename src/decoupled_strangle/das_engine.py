@@ -114,9 +114,8 @@ def evaluate_das_for_day(
         spot_h = float(bar_spot['high'])
         spot_l = float(bar_spot['low'])
 
-        # Time-to-expiry in years
-        tte_sec = max(60, (expiry_dt - t).total_seconds())
-        T_years = tte_sec / (365.0 * 24.0 * 3600.0)
+        from run_strangle_grid_exhaustive import compute_calendar_dte
+        T_years = max(1e-4, compute_calendar_dte(t) / 365.0)
         iv = 0.135
 
         # -------------------------------------------------------------
@@ -306,24 +305,9 @@ def evaluate_das_for_day(
                     break
         else:
             # Mathematical BSM Mode
-            for offset in [50, 100, 150, 200, 0]:
-                k_ce = atm + offset
-                k_pe = atm - offset
-                c_p = black_scholes_price(spot, k_ce, T_years, config.RISK_FREE_RATE, iv, "CE")
-                p_p = black_scholes_price(spot, k_pe, T_years, config.RISK_FREE_RATE, iv, "PE")
-                if (c_p + p_p) * lot_size <= config.INITIAL_CAPITAL and (config.DAS_MIN_LEG_PREMIUM <= c_p <= config.DAS_MAX_LEG_PREMIUM) and (config.DAS_MIN_LEG_PREMIUM <= p_p <= config.DAS_MAX_LEG_PREMIUM):
-                    ce_strike = k_ce
-                    pe_strike = k_pe
-                    ce_entry_p = c_p
-                    pe_entry_p = p_p
-                    break
-
-        if not ce_entry_p or not pe_entry_p:
-            continue
-
-        tot_cap = (ce_entry_p + pe_entry_p) * lot_size
-        if tot_cap > config.INITIAL_CAPITAL:
-            continue
+            strike_res = select_affordable_strikes(spot, t, T_years=T_years, min_prem=config.DAS_MIN_LEG_PREMIUM, max_prem=config.DAS_MAX_LEG_PREMIUM, max_budget=config.INITIAL_CAPITAL)
+            if strike_res:
+                ce_strike, pe_strike, ce_entry_p, pe_entry_p, _ = strike_res
 
         # Check Rolling Premium Volatility Compression & Kinetic Expansion
         if has_real_options and chosen_ce and chosen_pe:

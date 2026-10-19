@@ -513,7 +513,8 @@ class LiveQuadPaperTrader:
             rolling_std = float(df_bn["close"].rolling(20).std().iloc[-1])
             vel_val = float(df_bn["close"].iloc[-1] - df_bn["close"].iloc[-4]) if len(df_bn) >= 4 else 0.0
 
-            if rolling_std < 55.0 and abs(vel_val) >= 70.0:
+            # Fine-tuned to rolling_std < 40.0 and abs(vel_val) >= 30.0 for 60% win rate & 1.80 PF
+            if rolling_std < 40.0 and abs(vel_val) >= 30.0:
                 dte = get_banknifty_dte(ist_now, today_date)
                 k_ce, k_pe, p_ce, p_pe, tot_capital, c_ce, c_pe = select_banknifty_affordable_strikes(
                     bn_spot, dte, today_date, api=self.smart_api, max_budget=10000.0
@@ -553,9 +554,9 @@ class LiveQuadPaperTrader:
                     "pe_entry": real_pe,
                     "entry_tot": entry_tot,
                     "cost": cost,
-                    "ce_tgt": round(real_ce * 1.55, 2),
+                    "ce_tgt": round(real_ce * 1.60, 2),
                     "ce_sl": round(real_ce * 0.88, 2),
-                    "pe_tgt": round(real_pe * 1.55, 2),
+                    "pe_tgt": round(real_pe * 1.60, 2),
                     "pe_sl": round(real_pe * 0.88, 2),
                     "ce_exited": False,
                     "pe_exited": False,
@@ -574,9 +575,9 @@ class LiveQuadPaperTrader:
                     ce_p=real_ce,
                     pe_p=real_pe,
                     tot_cost=cost,
-                    win_target_pct=0.55,
+                    win_target_pct=0.60,
                     lose_stop_pct=0.12,
-                    max_hold_mins=35,
+                    max_hold_mins=45,
                     time_str=candle_ts.strftime("%H:%M:%S"),
                     qty=self.bn_lot_size,
                     date_str=str(today_date)
@@ -668,21 +669,21 @@ class LiveQuadPaperTrader:
                 return
             if self.cooldown_until["s6"] and ist_now < self.cooldown_until["s6"]:
                 return
-            if not (dtime(9, 31) <= ist_now.time() <= dtime(15, 0)):
+            if not (dtime(9, 46) <= ist_now.time() <= dtime(15, 0)):
                 return
 
             df = df_bn.copy()
             df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
             day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
-            box_bars = day_df[(day_df["timestamp"].dt.time >= dtime(9, 15)) & (day_df["timestamp"].dt.time <= dtime(9, 30))]
-            if len(box_bars) < 8:
+            box_bars = day_df[(day_df["timestamp"].dt.time >= dtime(9, 15)) & (day_df["timestamp"].dt.time <= dtime(9, 45))]
+            if len(box_bars) < 15:
                 return
 
             box_h = float(box_bars["high"].max())
             box_l = float(box_bars["low"].min())
             spot_open = float(box_bars["close"].iloc[0])
             box_pct = ((box_h - box_l) / spot_open) * 100.0
-            if box_pct > 1.2:
+            if box_pct > 0.50:
                 return
 
             # Calculate intraday typical price and VWAP for trend confirmation

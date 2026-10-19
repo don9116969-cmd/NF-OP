@@ -92,10 +92,10 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
         info["reason"] = "Insufficient candles (<15 bars) for BankNIFTY box formation"
         return info
 
-    box_bars = day_df[(day_df["timestamp"].dt.time >= datetime.time(9, 15)) & (day_df["timestamp"].dt.time <= datetime.time(9, 30))]
-    if len(box_bars) < 8:
+    box_bars = day_df[(day_df["timestamp"].dt.time >= datetime.time(9, 15)) & (day_df["timestamp"].dt.time <= datetime.time(9, 45))]
+    if len(box_bars) < 15:
         info["status"] = "INCOMPLETE"
-        info["reason"] = "15-minute box is still forming"
+        info["reason"] = "30-minute box is still forming"
         return info
 
     box_h = float(box_bars["high"].max())
@@ -107,15 +107,15 @@ def evaluate_banknifty_box_for_day(df_bn: pd.DataFrame, target_date: datetime.da
     info["box_low"] = round(box_l, 2)
     info["box_range"] = round(box_h - box_l, 2)
     info["box_pct"] = round(box_pct, 2)
-    info["upper_trigger"] = round(box_h + 30.0, 2)
-    info["lower_trigger"] = round(box_l - 30.0, 2)
+    info["upper_trigger"] = round(box_h + 20.0, 2)
+    info["lower_trigger"] = round(box_l - 20.0, 2)
 
-    if box_pct > 1.2:
+    if box_pct > 0.5:
         info["status"] = "FILTERED_WIDE_BOX"
-        info["reason"] = f"Box width {box_h - box_l:.1f} pts ({box_pct:.2f}% > 1.2%). Filtered out to avoid chop."
+        info["reason"] = f"30M Box width {box_h - box_l:.1f} pts ({box_pct:.2f}% > 0.50%). Filtered out to avoid chop."
         return info
 
-    post_box = day_df[(day_df["timestamp"].dt.time > datetime.time(9, 30)) & (day_df["timestamp"].dt.time <= datetime.time(15, 15))]
+    post_box = day_df[(day_df["timestamp"].dt.time > datetime.time(9, 45)) & (day_df["timestamp"].dt.time <= datetime.time(15, 15))]
     if post_box.empty:
         info["status"] = "NO_BREAKOUT"
         info["reason"] = "No candles post-box window"

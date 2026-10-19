@@ -602,143 +602,123 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     print(f"      MULTI-INDEX QUANT PORTFOLIO DAILY RESULT CHECKER: {target_date.strftime('%A, %d-%b-%Y')}")
     print("=" * 95)
 
-    # 1. Strategy 1 Box
-    print(f"[STRATEGY 1: HEDGED LONG STRANGLE (15M BOX BREAKOUT - NIFTY)]")
-    if s1.get("trade_occurred", False):
-        p_col = "+" if s1["net_pnl"] > 0 else ""
-        print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s1['net_pnl']:.2f}")
-        print(f"   Entry: {s1['entry_time']} | Exit: {s1['exit_time']} | Reason: {s1['exit_reason']}")
-        print(f"   Gross PnL: INR {s1['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s1['charges']:.2f}")
-    else:
-        print(f"-> STATUS: NO TRADE TODAY ({s1.get('status', 'IDLE')})")
-        print(f"   Reason: {s1.get('reason', '')}")
-
-    print("-" * 95)
-
-    # 2. Strategy 2 Box
-    print(f"[STRATEGY 2: 0-DTE / 1-DTE EXPIRY GAMMA SQUEEZE (NIFTY TUESDAY EXPIRY)]")
-    if s2.get("trade_occurred", False):
-        p_col = "+" if s2["net_pnl"] > 0 else ""
-        print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s2['net_pnl']:.2f}")
-        print(f"   Leg Traded: BUY {s2['strike']} {s2['opt_type']} @ INR {s2['entry_p']:.2f} (Capital: INR {s2['cost']:.2f})")
-        print(f"   Entry: {s2['entry_time']} | Exit: {s2['exit_time']} @ INR {s2['exit_p']:.2f} | Reason: {s2['exit_reason']}")
-        print(f"   Gross PnL: INR {s2['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s2['charges']:.2f}")
-        print(f"   Option Data Feed: {s2.get('data_feed', 'Mathematical (BSM)')}")
-    else:
-        print(f"-> STATUS: NO TRADE TODAY ({s2.get('status', 'IDLE')})")
-        print(f"   Reason: {s2.get('reason', '')}")
-
-    print("-" * 95)
-
-    # 3. Strategy 3 Box
-    print(f"[STRATEGY 3: 30-MINUTE STATISTICAL BOX BREAKOUT (DIRECTIONAL ITM_50 - NIFTY)]")
-    if s3.get("trade_occurred", False):
-        p_col = "+" if s3["net_pnl"] > 0 else ""
-        print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s3['net_pnl']:.2f}")
-        print(f"   Leg Traded: BUY {s3['strike']} {s3['opt_type']} @ INR {s3['entry_p']:.2f} (Capital: INR {s3['cost']:.2f})")
-        print(f"   Entry: {s3['entry_time']} | Exit: {s3['exit_time']} @ INR {s3['exit_p']:.2f} | Reason: {s3['exit_reason']}")
-        print(f"   Gross PnL: INR {s3['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s3['charges']:.2f}")
-        print(f"   Option Data Feed: {s3.get('data_feed', 'Mathematical (BSM)')}")
-    else:
-        print(f"-> STATUS: NO TRADE TODAY ({s3.get('status', 'IDLE')})")
-        print(f"   Reason: {s3.get('reason', '')}")
-
-    print("-" * 95)
-
-    # 4. Strategy 4 Box
-    print(f"[STRATEGY 4: DECOUPLED ASYMMETRIC STRANGLE (DAS - NIFTY)]")
-    if s4.get("trade_occurred", False):
-        p_col = "+" if s4["net_pnl"] > 0 else ""
-        print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s4['net_pnl']:.2f}")
-        print(f"   Strikes Traded: BUY {s4['strike']} @ INR {s4['entry_p']:.2f} (Capital: INR {s4['cost']:.2f})")
-        print(f"   Entry: {s4['entry_time']} | Exit: {s4['exit_time']} @ INR {s4['exit_p']:.2f} | Reason: {s4['exit_reason']}")
-        print(f"   Gross PnL: INR {s4['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s4['charges']:.2f}")
-        print(f"   Option Data Feed: {s4.get('data_feed', 'Angel One Real Traded')}")
-        if s4.get("num_trades_day", 1) > 1:
-            print(f"   (Total Trades on this Day: {s4['num_trades_day']} trades executed)")
-    else:
-        print(f"-> STATUS: NO TRADE TODAY ({s4.get('status', 'IDLE')})")
-        print(f"   Reason: {s4.get('reason', '')}")
-
-    print("-" * 95)
-
-    # 5. Strategy 5 Box
-    print(f"[STRATEGY 5: DECOUPLED ASYMMETRIC STRANGLE (DAS - BANKNIFTY)]")
-    if s5.get("trade_occurred", False):
-        p_col = "+" if s5["net_pnl"] > 0 else ""
-        print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s5['net_pnl']:.2f}")
-        print(f"   Strikes Traded: BUY {s5['strike']} @ INR {s5['entry_p']:.2f} (Capital: INR {s5['cost']:.2f} | 30 Qty)")
-        print(f"   Entry: {s5['entry_time']} | Exit: {s5['exit_time']} @ INR {s5['exit_p']:.2f} | Reason: {s5['exit_reason']}")
-        print(f"   Gross PnL: INR {s5['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s5['charges']:.2f}")
-        print(f"   Option Data Feed: {s5.get('data_feed', 'Mathematical (BSM)')}")
-        if s5.get("num_trades_day", 1) > 1:
-            print(f"   (Total Trades on this Day: {s5['num_trades_day']} trades executed)")
-    else:
-        print(f"-> STATUS: NO TRADE TODAY ({s5.get('status', 'IDLE')})")
-        print(f"   Reason: {s5.get('reason', '')}")
-
-    # 6. Strategy 6 Box
-    if s6 is not None:
-        print("-" * 95)
-        print(f"[STRATEGY 6: DIRECTIONAL BOX BREAKOUT (DBB - BANKNIFTY)]")
-        if s6.get("trade_occurred", False):
-            p_col = "+" if s6["net_pnl"] > 0 else ""
-            print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s6['net_pnl']:.2f}")
-            print(f"   Leg Traded: BUY {s6['strike']} @ INR {s6['entry_p']:.2f} (Capital: INR {s6['cost']:.2f} | 30 Qty)")
-            print(f"   Entry: {s6['entry_time']} | Exit: {s6['exit_time']} @ INR {s6['exit_p']:.2f} | Reason: {s6['exit_reason']}")
-            print(f"   Gross PnL: INR {s6['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s6['charges']:.2f}")
-            print(f"   Option Data Feed: {s6.get('data_feed', 'Mathematical (BSM)')}")
+    def print_strategy_box(title, s):
+        print(f"[{title}]")
+        if s.get("trade_occurred", False):
+            p_col = "+" if s.get("net_pnl", 0) > 0 else ""
+            n_trades = s.get("num_trades_day", 1)
+            t_str = f" ({n_trades} Trades Executed Today)" if n_trades > 1 else ""
+            print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s.get('net_pnl', 0.0):.2f}{t_str}")
+            
+            all_t = s.get("all_trades") if (s.get("all_trades") and len(s.get("all_trades")) > 1) else [s]
+            for idx, tr in enumerate(all_t):
+                prefix = f"   Trade {idx+1}: " if len(all_t) > 1 else "   "
+                tr_pnl = float(tr.get("net_pnl", tr.get("net", 0.0)))
+                p_c = "+" if tr_pnl > 0 else ""
+                leg_str = f"BUY {tr.get('strike', '')} ({tr.get('opt_type', tr.get('leg', ''))})"
+                print(f"{prefix}{leg_str} @ INR {float(tr.get('entry_p', 0)):.2f} (Capital: INR {float(tr.get('cost', tr.get('capital_used', 0))):.2f})")
+                print(f"   Entry: {tr.get('entry_time')} | Exit: {tr.get('exit_time')} @ INR {float(tr.get('exit_p', 0)):.2f} | Reason: {tr.get('exit_reason')}")
+                print(f"   Gross PnL: INR {float(tr.get('gross_pnl', tr.get('gross', 0))):.2f} | Brokerage+Govt Charges: INR {float(tr.get('charges', 0)):.2f} | Net: INR {p_c}{tr_pnl:.2f}")
+                if "data_feed" in tr:
+                    print(f"   Option Data Feed: {tr.get('data_feed')}")
         else:
-            print(f"-> STATUS: NO TRADE TODAY ({s6.get('status', 'IDLE')})")
-            print(f"   Reason: {s6.get('reason', '')}")
-
-    # 7. Strategy 7 Box
-    if s7 is not None:
+            print(f"-> STATUS: NO TRADE TODAY ({s.get('status', 'IDLE')})")
+            print(f"   Reason: {s.get('reason', '')}")
         print("-" * 95)
-        print(f"[STRATEGY 7: EXPIRY GAMMA SQUEEZE MOMENTUM (GSM - BANKNIFTY)]")
-        if s7.get("trade_occurred", False):
-            p_col = "+" if s7["net_pnl"] > 0 else ""
-            print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s7['net_pnl']:.2f}")
-            print(f"   Leg Traded: BUY {s7['strike']} @ INR {s7['entry_p']:.2f} (Capital: INR {s7['cost']:.2f} | 30 Qty)")
-            print(f"   Entry: {s7['entry_time']} | Exit: {s7['exit_time']} @ INR {s7['exit_p']:.2f} | Reason: {s7['exit_reason']}")
-            print(f"   Gross PnL: INR {s7['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s7['charges']:.2f}")
-            print(f"   Option Data Feed: {s7.get('data_feed', 'Mathematical (BSM)')}")
-        else:
-            print(f"-> STATUS: NO TRADE TODAY ({s7.get('status', 'IDLE')})")
-            print(f"   Reason: {s7.get('reason', '')}")
 
-    # 8. Strategy 8 Box
-    if s8 is not None:
-        print("-" * 95)
-        print(f"[STRATEGY 8: HEDGED LONG STRANGLE (15M BOX - BANKNIFTY)]")
-        if s8.get("trade_occurred", False):
-            p_col = "+" if s8["net_pnl"] > 0 else ""
-            print(f"-> STATUS: TRADE EXECUTED | Net PnL: INR {p_col}{s8['net_pnl']:.2f}")
-            print(f"   Strikes Traded: BUY {s8['strike']} @ INR {s8['entry_p']:.2f} (Capital: INR {s8['cost']:.2f} | 30 Qty)")
-            print(f"   Entry: {s8['entry_time']} | Exit: {s8['exit_time']} @ INR {s8['exit_p']:.2f} | Reason: {s8['exit_reason']}")
-            print(f"   Gross PnL: INR {s8['gross_pnl']:.2f} | Brokerage+Govt Charges: INR {s8['charges']:.2f}")
-            print(f"   Option Data Feed: {s8.get('data_feed', 'Mathematical (BSM)')}")
-        else:
-            print(f"-> STATUS: NO TRADE TODAY ({s8.get('status', 'IDLE')})")
-            print(f"   Reason: {s8.get('reason', '')}")
+    print_strategy_box("STRATEGY 1: HEDGED LONG STRANGLE (15M BOX BREAKOUT - NIFTY)", s1)
+    print_strategy_box("STRATEGY 2: 0-DTE / 1-DTE EXPIRY GAMMA SQUEEZE (NIFTY TUESDAY EXPIRY)", s2)
+    print_strategy_box("STRATEGY 3: 30-MINUTE STATISTICAL BOX BREAKOUT (DIRECTIONAL ITM_50 - NIFTY)", s3)
+    print_strategy_box("STRATEGY 4: DECOUPLED ASYMMETRIC STRANGLE (DAS - NIFTY)", s4)
+    print_strategy_box("STRATEGY 5: DECOUPLED ASYMMETRIC STRANGLE (DAS - BANKNIFTY)", s5)
+    if s6 is not None: print_strategy_box("STRATEGY 6: DIRECTIONAL BOX BREAKOUT (DBB - BANKNIFTY)", s6)
+    if s7 is not None: print_strategy_box("STRATEGY 7: EXPIRY GAMMA SQUEEZE MOMENTUM (GSM - BANKNIFTY)", s7)
+    if s8 is not None: print_strategy_box("STRATEGY 8: HEDGED LONG STRANGLE (15M BOX - BANKNIFTY)", s8)
 
-    print("=" * 95)
+    # Dynamic computation of portfolio table directly from trade_journal.csv
+    portfolio_table = []
+    tot_trades_all = 0
+    tot_wins_all = 0
+    tot_net_all = 0.0
+    tot_gross_win_all = 0.0
+    tot_gross_loss_all = 0.0
 
-    # Overall Unified 8-Strategy Multi-Index Portfolio Performance Table
-    portfolio_table = [
-        ["Strategy 1: Hedged Strangle (15M Box - NIFTY)", "10 Trades", "70.0% Win Rate", "8.99 PF", "Max DD: INR 683", "+INR 5,723.17 (+57.2%)"],
-        ["Strategy 2: Expiry Gamma Squeeze (NIFTY)", "11 Trades", "45.5% Win Rate", "3.73 PF", "Max DD: INR 1,029", "+INR 6,212.17 (+62.1%)"],
-        ["Strategy 3: 30M Directional ITM (NIFTY)", "6 Trades", "50.0% Win Rate", "1.92 PF", "Max DD: INR 1,795", "+INR 2,707.31 (+27.1%)"],
-        ["Strategy 4: Decoupled Strangle (DAS - NIFTY)", "7 Trades", "71.4% Win Rate", "3.35 PF", "Max DD: INR 467", "+INR 2,866.25 (+28.7%)"],
-        ["Strategy 5: Decoupled Strangle (DAS - BANKNIFTY)", "10 Trades", "40.0% Win Rate", "2.30 PF", "Max DD: INR 1,663", "+INR 7,787.91 (+77.9%)"],
-        ["Strategy 6: Directional Box Breakout (DBB - BANKNIFTY)", "8 Trades", "62.5% Win Rate", "3.85 PF", "Max DD: INR 1,250", "+INR 6,420.00 (+64.2%)"],
-        ["Strategy 7: Expiry Gamma Squeeze (GSM - BANKNIFTY)", "6 Trades", "50.0% Win Rate", "2.75 PF", "Max DD: INR 1,400", "+INR 4,890.00 (+48.9%)"],
-        ["Strategy 8: Hedged Long Strangle (15M Box - BANKNIFTY)", "7 Trades", "57.1% Win Rate", "2.90 PF", "Max DD: INR 1,520", "+INR 5,203.50 (+52.0%)"],
-        ["COMBINED 8-STRATEGY MULTI-INDEX PORTFOLIO", "65 Trades", "56.9% Win Rate", "3.42 PF", "Max DD: INR 2,140", "+INR 41,810.31 (+418.1%)"]
+    if os.path.exists(TRADE_JOURNAL_CSV):
+        try:
+            df_j = pd.read_csv(TRADE_JOURNAL_CSV)
+        except Exception:
+            df_j = pd.DataFrame()
+    else:
+        df_j = pd.DataFrame()
+
+    strat_list = [
+        ("Strategy 1", "Strategy 1: Hedged Strangle (15M Box - NIFTY)"),
+        ("Strategy 2", "Strategy 2: Expiry Gamma Squeeze (NIFTY)"),
+        ("Strategy 3", "Strategy 3: 30M Directional ITM (NIFTY)"),
+        ("Strategy 4", "Strategy 4: Decoupled Strangle (DAS - NIFTY)"),
+        ("Strategy 5", "Strategy 5: Decoupled Strangle (DAS - BANKNIFTY)"),
+        ("Strategy 6", "Strategy 6: Directional Box Breakout (DBB - BANKNIFTY)"),
+        ("Strategy 7", "Strategy 7: Expiry Gamma Squeeze (GSM - BANKNIFTY)"),
+        ("Strategy 8", "Strategy 8: Hedged Long Strangle (15M Box - BANKNIFTY)"),
     ]
+
+    for key_pattern, label in strat_list:
+        if not df_j.empty and "strategy" in df_j.columns:
+            g = df_j[df_j["strategy"].str.contains(key_pattern, na=False, case=False)]
+        else:
+            g = pd.DataFrame()
+
+        t_count = len(g)
+        if t_count > 0:
+            wins = len(g[g["net_pnl"] > 0])
+            wr = (wins / t_count) * 100.0
+            g_win = float(g[g["net_pnl"] > 0]["net_pnl"].sum())
+            g_loss = float(abs(g[g["net_pnl"] <= 0]["net_pnl"].sum()))
+            pf = round(g_win / g_loss, 2) if g_loss > 0 else (99.0 if g_win > 0 else 0.0)
+            net_val = float(g["net_pnl"].sum())
+            cum = g["net_pnl"].cumsum()
+            peak = cum.cummax()
+            dd = float((peak - cum).max()) if not cum.empty else 0.0
+            
+            tot_trades_all += t_count
+            tot_wins_all += wins
+            tot_net_all += net_val
+            tot_gross_win_all += g_win
+            tot_gross_loss_all += g_loss
+            
+            p_sign = "+" if net_val >= 0 else ""
+            portfolio_table.append([
+                label,
+                f"{t_count} Trades",
+                f"{wr:.1f}% Win Rate",
+                f"{pf:.2f} PF",
+                f"Max DD: INR {dd:,.0f}",
+                f"{p_sign}INR {net_val:,.2f}"
+            ])
+        else:
+            portfolio_table.append([label, "0 Trades", "0.0% Win Rate", "0.00 PF", "Max DD: INR 0", "INR 0.00"])
+
+    comb_wr = (tot_wins_all / tot_trades_all * 100.0) if tot_trades_all > 0 else 0.0
+    comb_pf = round(tot_gross_win_all / tot_gross_loss_all, 2) if tot_gross_loss_all > 0 else 0.0
+    comb_cum = df_j["net_pnl"].cumsum() if not df_j.empty and "net_pnl" in df_j.columns else pd.Series([0.0])
+    comb_dd = float((comb_cum.cummax() - comb_cum).max()) if not comb_cum.empty else 0.0
+    comb_sign = "+" if tot_net_all >= 0 else ""
+
+    portfolio_table.append([
+        "COMBINED 8-STRATEGY MULTI-INDEX PORTFOLIO",
+        f"{tot_trades_all} Trades",
+        f"{comb_wr:.1f}% Win Rate",
+        f"{comb_pf:.2f} PF",
+        f"Max DD: INR {comb_dd:,.0f}",
+        f"{comb_sign}INR {tot_net_all:,.2f}"
+    ])
+
     print("\n" + " " * 20 + "--- CUMULATIVE INR 10,000 MULTI-INDEX PORTFOLIO SUMMARY ---")
     print(tabulate(portfolio_table, headers=["Strategy", "Trades", "Win Rate", "Profit Factor", "Risk (Max DD)", "Net Return"], tablefmt="grid"))
-    print("\nAccount Capital: INR 10,000.00  -->  Current Multi-Index Balance: INR 51,810.31 (+418.1% Growth)")
+    curr_bal = 10000.0 + tot_net_all
+    ret_pct = (tot_net_all / 10000.0) * 100.0
+    r_sign = "+" if ret_pct >= 0 else ""
+    print(f"\nAccount Capital: INR 10,000.00  -->  Current Multi-Index Balance: INR {curr_bal:,.2f} ({r_sign}{ret_pct:.1f}% Growth)")
     print("=" * 95 + "\n")
 
 TRADE_JOURNAL_CSV = os.path.join(BASE_DIR, "data", "trade_journal.csv")
@@ -760,7 +740,10 @@ def run():
         mark_day_as_audited,
         refresh_markdown_journal
     )
-    from src.utils.git_sync import git_sync_push
+    from src.utils.git_sync import git_sync_push, git_sync_pull
+
+    # 1. First ensure local state is synchronized with remote live trader commits
+    git_sync_pull()
 
     api = get_smart_api()
     if api:
@@ -785,46 +768,84 @@ def run():
     if args.date:
         target_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
     else:
-        # Determine latest date
         target_date = df_all["timestamp"].dt.date.max()
-        # Automatically catch up any missed prior trading days in chronological order!
         prior_date = target_date - datetime.timedelta(days=1)
         auto_catchup_missing_trading_days(api, df_all, df_bn, up_to_date=prior_date)
 
-    s1_res = evaluate_strategy_1(df_all, target_date, api=api)
-    s2_res = evaluate_strategy_2(df_all, target_date, api=api)
-    s3_res = evaluate_strategy_3(df_all, target_date, api=api)
-    s4_res = evaluate_strategy_4(df_all, target_date, api=api)
-    s5_res = evaluate_strategy_5(df_bn, target_date, api=api) if not df_bn.empty else {"status": "NO_DATA", "reason": "No BankNIFTY data"}
-    s6_res = evaluate_strategy_6(df_bn, target_date, api=api) if not df_bn.empty else {"status": "NO_DATA", "reason": "No BankNIFTY data"}
-    s7_res = evaluate_strategy_7(df_bn, target_date, api=api) if not df_bn.empty else {"status": "NO_DATA", "reason": "No BankNIFTY data"}
-    s8_res = evaluate_strategy_8(df_bn, target_date, api=api) if not df_bn.empty else {"status": "NO_DATA", "reason": "No BankNIFTY data"}
+    # Check if live trades were already recorded today in trade_journal.csv
+    today_live_trades = []
+    if os.path.exists(TRADE_JOURNAL_CSV):
+        try:
+            df_j = pd.read_csv(TRADE_JOURNAL_CSV)
+            if not df_j.empty and "date" in df_j.columns:
+                today_live_trades = df_j[df_j["date"].astype(str) == str(target_date)].to_dict("records")
+        except Exception:
+            today_live_trades = []
+
+    def get_strategy_evaluation(strat_key, strat_full_name, eval_func, df_candles, is_bn=False):
+        # Check if actual live trades occurred today for this strategy
+        strat_trades = [t for t in today_live_trades if strat_key.lower() in str(t.get("strategy", "")).lower()]
+        if strat_trades:
+            net_tot = round(sum(float(t.get("net_pnl", 0.0)) for t in strat_trades), 2)
+            gross_tot = round(sum(float(t.get("gross_pnl", 0.0)) for t in strat_trades), 2)
+            charges_tot = round(sum(float(t.get("charges", 0.0)) for t in strat_trades), 2)
+            cost_tot = round(sum(float(t.get("capital_used", 0.0)) for t in strat_trades), 2)
+            reasons = " | ".join(str(t.get("exit_reason", "")) for t in strat_trades)
+            return {
+                "trade_occurred": True,
+                "status": "TRADE_EXECUTED",
+                "strategy": strat_full_name,
+                "num_trades_day": len(strat_trades),
+                "entry_time": strat_trades[0].get("entry_time"),
+                "exit_time": strat_trades[-1].get("exit_time"),
+                "strike": strat_trades[0].get("strike"),
+                "opt_type": strat_trades[0].get("leg", "CE+PE"),
+                "entry_p": strat_trades[0].get("entry_p"),
+                "exit_p": strat_trades[-1].get("exit_p"),
+                "cost": cost_tot,
+                "gross_pnl": gross_tot,
+                "charges": charges_tot,
+                "net_pnl": net_tot,
+                "exit_reason": reasons,
+                "data_feed": strat_trades[0].get("data_feed", "Angel One Real Traded"),
+                "all_trades": strat_trades
+            }
+        # Fallback to simulation to provide explanation why no trade occurred
+        if df_candles.empty:
+            return {"status": "NO_DATA", "trade_occurred": False, "reason": "No market data available"}
+        return eval_func(df_candles, target_date, api=api)
+
+    s1_res = get_strategy_evaluation("Strategy 1", "Strategy 1: Hedged Strangle", evaluate_strategy_1, df_all)
+    s2_res = get_strategy_evaluation("Strategy 2", "Strategy 2: Expiry Gamma Squeeze", evaluate_strategy_2, df_all)
+    s3_res = get_strategy_evaluation("Strategy 3", "Strategy 3: 30M Directional ITM", evaluate_strategy_3, df_all)
+    s4_res = get_strategy_evaluation("Strategy 4", "Strategy 4: Decoupled Asymmetric Strangle", evaluate_strategy_4, df_all)
+    s5_res = get_strategy_evaluation("Strategy 5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", evaluate_strategy_5, df_bn, is_bn=True)
+    s6_res = get_strategy_evaluation("Strategy 6", "Strategy 6: BankNIFTY Directional Box Breakout (DBB)", evaluate_strategy_6, df_bn, is_bn=True)
+    s7_res = get_strategy_evaluation("Strategy 7", "Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", evaluate_strategy_7, df_bn, is_bn=True)
+    s8_res = get_strategy_evaluation("Strategy 8", "Strategy 8: BankNIFTY Hedged Long Strangle", evaluate_strategy_8, df_bn, is_bn=True)
 
     print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res, s5_res, s6_res, s7_res, s8_res)
 
-    # Automatically record executed trades in the live Trade Journal
-    daily_trades_count = 0
-    daily_net_pnl = 0.0
-    for s_name, s_res in [
-        ("Strategy 1: Hedged Strangle", s1_res),
-        ("Strategy 2: Expiry Gamma Squeeze", s2_res),
-        ("Strategy 3: 30M Directional ITM", s3_res),
-        ("Strategy 4: Decoupled Asymmetric Strangle", s4_res),
-        ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res),
-        ("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res),
-        ("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res),
-        ("Strategy 8: BankNIFTY Hedged Long Strangle", s8_res)
-    ]:
-        if s_res.get("trade_occurred", False):
-            daily_trades_count += s_res.get("num_trades_day", 1)
-            daily_net_pnl += s_res.get("net_pnl", 0.0)
-            if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
-                for sub_tr in s_res["all_trades"]:
-                    log_trade_to_journal(target_date, s_name, sub_tr)
-            else:
-                log_trade_to_journal(target_date, s_name, s_res)
+    # Record any unrecorded simulation trades only if no live trades existed today
+    if not today_live_trades:
+        for s_name, s_res in [
+            ("Strategy 1: Hedged Strangle", s1_res),
+            ("Strategy 2: Expiry Gamma Squeeze", s2_res),
+            ("Strategy 3: 30M Directional ITM", s3_res),
+            ("Strategy 4: Decoupled Asymmetric Strangle", s4_res),
+            ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res),
+            ("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res),
+            ("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res),
+            ("Strategy 8: BankNIFTY Hedged Long Strangle", s8_res)
+        ]:
+            if s_res.get("trade_occurred", False):
+                if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
+                    for sub_tr in s_res["all_trades"]:
+                        log_trade_to_journal(target_date, s_name, sub_tr)
+                else:
+                    log_trade_to_journal(target_date, s_name, s_res)
 
-    # Mark this day as audited
+    # Mark day as audited
     mark_day_as_audited(str(target_date))
     refresh_markdown_journal()
 
@@ -834,13 +855,19 @@ def run():
     should_push_telegram = args.telegram and not args.no_telegram
     if should_push_telegram:
         tot_pnl = 0.0
+        daily_trades_count = 0
+        daily_net_pnl = 0.0
+
         if os.path.exists(TRADE_JOURNAL_CSV):
             try:
                 df_j = pd.read_csv(TRADE_JOURNAL_CSV)
                 if not df_j.empty and "net_pnl" in df_j.columns:
                     tot_pnl = round(float(df_j["net_pnl"].sum()), 2)
+                    today_rows = df_j[df_j["date"].astype(str) == str(target_date)]
+                    daily_trades_count = len(today_rows)
+                    daily_net_pnl = round(float(today_rows["net_pnl"].sum()), 2)
             except Exception:
-                tot_pnl = daily_net_pnl
+                pass
 
         try:
             from src.notifications.notifier import (
@@ -848,8 +875,6 @@ def run():
                 is_alert_already_sent,
                 mark_alert_as_sent
             )
-            # Live trade exits are exclusively delivered in real-time by live_paper_trader.py.
-            # daily_result_checker.py is an audit tool and must NOT spam real-time exit alerts!
             summary_key = f"SUMMARY:{target_date}"
             if not is_alert_already_sent(summary_key):
                 print(f"[TELEGRAM] Pushing daily portfolio summary to Telegram for {target_date.strftime('%d-%b-%Y')}...")

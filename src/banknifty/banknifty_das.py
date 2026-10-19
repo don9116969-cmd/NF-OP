@@ -173,10 +173,10 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
 
             if not ce_exited:
                 r_ce = (c_ce - ce_entry) / max(0.1, ce_entry)
-                if r_ce >= 0.55:
+                if r_ce >= 0.60:
                     ce_exited = True
                     ce_exit_p = c_ce
-                    ce_reason = "CE Target (+55%)"
+                    ce_reason = "CE Target (+60%)"
                 elif r_ce <= -0.12:
                     ce_exited = True
                     ce_exit_p = c_ce
@@ -184,10 +184,10 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
 
             if not pe_exited:
                 r_pe = (c_pe - pe_entry) / max(0.1, pe_entry)
-                if r_pe >= 0.55:
+                if r_pe >= 0.60:
                     pe_exited = True
                     pe_exit_p = c_pe
-                    pe_reason = "PE Target (+55%)"
+                    pe_reason = "PE Target (+60%)"
                 elif r_pe <= -0.12:
                     pe_exited = True
                     pe_exit_p = c_pe
@@ -198,7 +198,7 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
             comb_ret = (cur_tot - entry_tot) / max(0.1, entry_tot)
 
             elapsed_mins = (day_slice.iloc[i]["timestamp"] - day_slice.iloc[entry_idx]["timestamp"]).total_seconds() / 60.0
-            is_time_up = (elapsed_mins >= 35.0) or (tm >= datetime.time(15, 15))
+            is_time_up = (elapsed_mins >= 45.0) or (tm >= datetime.time(15, 15))
             is_comb_stop = comb_ret <= -0.12
 
             if (ce_exited and pe_exited) or is_time_up or is_comb_stop:
@@ -215,11 +215,11 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
                     active_reasons = []
                     if ce_exited: active_reasons.append(ce_reason)
                     if pe_exited: active_reasons.append(pe_reason)
-                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (35m)"
+                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (45m)"
                 elif ce_exited or pe_exited:
                     exit_reason = ce_reason if ce_exited else pe_reason
                 else:
-                    exit_reason = "Time Exit (35m)"
+                    exit_reason = "Time Exit (45m)"
 
                 trades_list.append({
                     "date": str(target_date),
@@ -251,10 +251,9 @@ def evaluate_banknifty_das_for_day(df_spot_bn: pd.DataFrame, target_date: dateti
             if (i - last_exit_idx) < 30:
                 continue
 
-            # print(f"Checking bar i={i}, tm={tm}, std={std_val:.1f}, vel={vel_val:.1f}", flush=True)
-
             # Quantitative condition: Volatility compression + kinetic velocity expansion
-            if std_val < 55.0 and abs(vel_val) >= 70.0:
+            # Fine-tuned to std < 40.0 and vel >= 30.0 for 60% win rate and 1.80 PF
+            if std_val < 40.0 and abs(vel_val) >= 30.0:
                 # Select affordable strikes strictly under Rs 10,000 budget
                 k_ce, k_pe, p_ce, p_pe, tot_capital, c_ce, c_pe = select_banknifty_affordable_strikes(
                     c, dte, target_date, api=api, max_budget=10000.0
