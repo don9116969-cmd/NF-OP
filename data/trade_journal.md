@@ -1,13 +1,14 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-19 10:34:57 IST*
+*Last Updated: 2026-10-19 13:45:01 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 4: Decoupled Asymmetric Strangle** | `CE+PE` | NIFTY19OCT2622950CE + NIFTY19OCT2622850PE | 13:43:00 | ₹31.26 | CE: ₹16.4 | PE: ₹30.5 | CE: ₹7.1 | PE: ₹13.2 | ₹2031.90 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 

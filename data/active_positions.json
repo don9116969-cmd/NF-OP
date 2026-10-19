@@ -1,1 +1,34 @@
-{}
+{
+  "s4": {
+    "entry_time": "2026-10-19T13:43:00",
+    "spot_entry": 22881.95,
+    "c_ce": {
+      "token": "47159",
+      "symbol": "NIFTY19OCT2622950CE"
+    },
+    "c_pe": {
+      "token": "47156",
+      "symbol": "NIFTY19OCT2622850PE"
+    },
+    "ce_strike": 22950,
+    "pe_strike": 22850,
+    "ce_symbol": "NIFTY19OCT2622950CE",
+    "pe_symbol": "NIFTY19OCT2622850PE",
+    "ce_entry": 10.915804988964737,
+    "pe_entry": 20.347548795546572,
+    "entry_tot": 31.26,
+    "cost": 2031.9,
+    "ce_tgt": 16.37,
+    "ce_sl": 7.1,
+    "pe_tgt": 30.52,
+    "pe_sl": 13.23,
+    "ce_exited": false,
+    "pe_exited": false,
+    "ce_exit_p": null,
+    "pe_exit_p": null,
+    "ce_reason": "",
+    "pe_reason": "",
+    "data_feed": "Mathematical (BSM)",
+    "strategy_name": "Strategy 4: Decoupled Asymmetric Strangle"
+  }
+}
