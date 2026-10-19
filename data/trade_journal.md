@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-19 13:45:01 IST*
+*Last Updated: 2026-10-19 13:47:52 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 4: Decoupled Asymmetric Strangle** | `CE+PE` | NIFTY19OCT2622950CE + NIFTY19OCT2622850PE | 13:43:00 | ₹31.26 | CE: ₹16.4 | PE: ₹30.5 | CE: ₹7.1 | PE: ₹13.2 | ₹2031.90 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 78
-- **Win Rate**: 32.1% (25 Wins / 53 Losses)
-- **Net Realized PnL**: **INR -7,988.01**
-- **Current Account Balance**: **INR +2,011.99** (-79.9% Return)
+- **Total Executed Trades**: 79
+- **Win Rate**: 32.9% (26 Wins / 53 Losses)
+- **Net Realized PnL**: **INR -7,096.74**
+- **Current Account Balance**: **INR +2,903.26** (-71.0% Return)
 
 ---
 
@@ -104,4 +103,5 @@
 | 2026-10-19 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2656900CE + BANKNIFTY27OCT2654100PE | 09:55:00 | 10:30:02 | ₹194.24 | ₹191.03 | ₹5827.20 | **-₹203.25** | Time Cutoff (PE SL (-12%)) | Angel One Real Traded (BANKNIFTY27OCT2656900CE + BANKNIFTY27OCT2654100PE) |
 | 2026-10-19 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | NIFTY19OCT2623100CE + NIFTY19OCT2623000PE | 10:11:00 | 10:34:05 | ₹93.49 | ₹75.11 | ₹6076.85 | **-₹1300.45** | Combined Capital SL (-15%) | Angel One Real Traded (NIFTY19OCT2623100CE + NIFTY19OCT2623000PE) |
 | 2026-10-19 | Strategy 2: Expiry Gamma Squeeze | CE | 23150 | 10:23:00 | 10:34:05 | ₹42.84 | ₹31.87 | ₹2784.60 | **-₹765.19** | SL Hit (-25%) | Angel One Real Traded (NIFTY19OCT2623150CE) |
+| 2026-10-19 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | NIFTY19OCT2622950CE + NIFTY19OCT2622850PE | 13:43:00 | 13:46:04 | ₹31.26 | ₹46.52 | ₹2031.90 | **+₹891.27** | CE Target (+50%) & PE Target (+50%) | Mathematical (BSM) |
 
