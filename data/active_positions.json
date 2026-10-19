@@ -1,4 +1,21 @@
 {
+  "s2": {
+    "entry_time": "2026-10-19T10:23:00",
+    "spot_entry": 23100.6,
+    "contract": {
+      "token": "47169",
+      "symbol": "NIFTY19OCT2623150CE"
+    },
+    "symbol": "NIFTY19OCT2623150CE",
+    "opt_type": "CE",
+    "strike": 23150,
+    "entry_p": 42.84,
+    "cost": 2784.6,
+    "target_p": 77.11,
+    "stop_p": 32.13,
+    "data_feed": "Angel One Real Traded (NIFTY19OCT2623150CE)",
+    "strategy_name": "Strategy 2: Expiry Gamma Squeeze"
+  },
   "s4": {
     "entry_time": "2026-10-19T10:11:00",
     "spot_entry": 23074.3,
@@ -55,11 +72,11 @@
     "pe_tgt": 154.67,
     "pe_sl": 87.82,
     "ce_exited": false,
-    "pe_exited": false,
+    "pe_exited": true,
     "ce_exit_p": null,
-    "pe_exit_p": null,
+    "pe_exit_p": 87.12,
     "ce_reason": "",
-    "pe_reason": "",
+    "pe_reason": "PE SL (-12%)",
     "data_feed": "Angel One Real Traded (BANKNIFTY27OCT2656900CE + BANKNIFTY27OCT2654100PE)",
     "strategy_name": "Strategy 5: BankNIFTY Decoupled Strangle (DAS)"
   }
