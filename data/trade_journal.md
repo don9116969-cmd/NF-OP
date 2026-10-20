@@ -1,13 +1,14 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-19 22:27:07 IST*
+*Last Updated: 2026-10-20 09:32:17 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 8: BankNIFTY Hedged Long Strangle** | `CE+PE` |  +  | 09:30:37 | ₹257.34 | N/A | N/A | ₹7720.20 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 
