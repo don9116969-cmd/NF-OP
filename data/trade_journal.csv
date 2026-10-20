@@ -78,3 +78,4 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-10-19,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,NIFTY19OCT2623100CE + NIFTY19OCT2623000PE,10:11:00,10:34:05,93.49,75.11,6076.85,-1194.7,105.75,-1300.45,Combined Capital SL (-15%),Angel One Real Traded (NIFTY19OCT2623100CE + NIFTY19OCT2623000PE)
 2026-10-19,Strategy 2: Expiry Gamma Squeeze,CE,23150,10:23:00,10:34:05,42.84,31.87,2784.6,-713.05,52.14,-765.19,SL Hit (-25%),Angel One Real Traded (NIFTY19OCT2623150CE)
 2026-10-19,Strategy 4: Decoupled Asymmetric Strangle,CE+PE,NIFTY19OCT2622950CE + NIFTY19OCT2622850PE,13:43:00,13:46:04,31.26,46.52,2031.9,991.68,100.41,891.27,CE Target (+50%) & PE Target (+50%),Mathematical (BSM)
+2026-10-20,Strategy 8: BankNIFTY Hedged Long Strangle,CE+PE,BANKNIFTY27OCT2656800CE + BANKNIFTY27OCT2654200PE,09:30:37,10:15:59,257.34,255.28,7720.2,-61.8,111.13,-172.93,Time Exit (45m),Mathematical (BSM)
