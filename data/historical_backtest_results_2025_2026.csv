@@ -1,0 +1,1268 @@
+date,strategy,strategy_id,pnl,exit_reason,year
+2025-01-02,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1515.98,CE Trail | PE SL,2025
+2025-01-14,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,143.64,CE Target | PE SL,2025
+2025-01-21,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-181.9,CE SL | PE Trail,2025
+2025-01-22,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-339.93,CE Trail | PE SL,2025
+2025-01-23,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,84.49,CE Trail | PE SL,2025
+2025-01-30,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,379.65,CE Trail | PE SL,2025
+2025-01-31,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-556.54,CE Trail | PE SL,2025
+2025-02-04,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-63.73,CE Trail | PE SL,2025
+2025-02-05,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2085.48,CE SL | PE SL,2025
+2025-02-19,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,253.83,CE Trail | PE SL,2025
+2025-02-20,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-933.61,CE SL | PE Trail,2025
+2025-02-24,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-183.89,CE SL | PE Trail,2025
+2025-02-27,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1869.06,EOD | PE SL,2025
+2025-03-21,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-372.91,CE Trail | PE SL,2025
+2025-03-24,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-225.33,CE Trail | PE SL,2025
+2025-04-24,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-523.89,CE SL | PE Trail,2025
+2025-05-08,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-714.52,CE SL | PE Trail,2025
+2025-05-21,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-245.77,CE Trail | PE SL,2025
+2025-06-04,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-700.67,EOD | PE SL,2025
+2025-06-06,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-66.63,CE Trail | PE SL,2025
+2025-06-11,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-894.17,CE Trail | PE SL,2025
+2025-06-12,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,20.78,CE SL | PE Trail,2025
+2025-06-25,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-941.83,EOD | PE SL,2025
+2025-07-01,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,65.59,CE Target | PE SL,2025
+2025-07-02,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-646.54,CE SL | PE Trail,2025
+2025-07-04,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2005.95,CE SL | PE SL,2025
+2025-07-07,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-6.84,CE SL | PE Trail,2025
+2025-07-09,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-549.46,CE SL | PE Trail,2025
+2025-07-11,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-898.17,CE SL | PE Trail,2025
+2025-07-15,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,47.17,CE Trail | PE SL,2025
+2025-07-17,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-637.0,CE SL | EOD,2025
+2025-07-22,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-195.98,CE Trail | PE SL,2025
+2025-07-23,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-369.07,CE Trail | PE SL,2025
+2025-07-24,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1073.43,CE SL | PE Trail,2025
+2025-07-28,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-201.14,CE Trail | PE SL,2025
+2025-08-05,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-129.15,CE SL | PE Trail,2025
+2025-08-06,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-882.68,CE SL | PE Trail,2025
+2025-08-08,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-522.31,CE SL | PE Trail,2025
+2025-08-13,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-588.96,CE Trail | PE SL,2025
+2025-08-14,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1000.76,CE SL | PE Trail,2025
+2025-08-19,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-97.6,CE Trail | PE SL,2025
+2025-08-20,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-620.23,CE Trail | PE SL,2025
+2025-08-25,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,274.86,CE SL | PE Target,2025
+2025-09-02,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-101.07,CE Trail | PE SL,2025
+2025-09-05,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1107.71,CE SL | PE Target,2025
+2025-09-08,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-214.03,CE SL | PE Trail,2025
+2025-09-09,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-149.23,CE Trail | PE SL,2025
+2025-09-10,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1657.72,CE SL | EOD,2025
+2025-09-11,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-955.54,EOD | EOD,2025
+2025-09-12,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1410.47,EOD | PE SL,2025
+2025-09-15,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-607.28,CE SL | PE SL,2025
+2025-09-16,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,56.17,CE Target | PE SL,2025
+2025-09-17,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1854.56,CE SL | EOD,2025
+2025-09-18,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1972.53,CE SL | PE SL,2025
+2025-09-19,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-911.02,CE SL | PE Trail,2025
+2025-10-01,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,863.29,CE Trail | PE SL,2025
+2025-10-06,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-264.82,CE Trail | PE SL,2025
+2025-10-07,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-14.25,CE Trail | PE SL,2025
+2025-10-13,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,401.3,CE Trail | PE SL,2025
+2025-10-14,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-121.96,CE SL | PE Trail,2025
+2025-10-16,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1317.78,CE Trail | PE SL,2025
+2025-10-27,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-25.65,CE Trail | PE SL,2025
+2025-10-28,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-117.3,CE Trail | PE SL,2025
+2025-10-29,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1478.23,EOD | PE SL,2025
+2025-10-30,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-984.58,CE SL | PE Trail,2025
+2025-11-12,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,280.74,CE Trail | PE SL,2025
+2025-11-14,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-535.2,CE SL | PE Trail,2025
+2025-11-17,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-369.12,CE SL | PE SL,2025
+2025-11-19,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-535.3,CE Trail | PE SL,2025
+2025-11-20,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,710.38,CE Trail | PE SL,2025
+2025-11-21,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-420.24,CE Trail | PE SL,2025
+2025-11-24,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-205.76,CE Trail | PE SL,2025
+2025-12-01,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-327.12,CE Trail | PE SL,2025
+2025-12-02,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-186.25,CE Trail | PE SL,2025
+2025-12-04,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-244.68,CE Trail | PE SL,2025
+2025-12-05,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1011.75,CE SL | PE Trail,2025
+2025-12-08,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-404.88,CE SL | PE Trail,2025
+2025-12-10,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-890.78,CE SL | PE Trail,2025
+2025-12-11,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,436.02,CE Trail | PE SL,2025
+2025-12-12,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-991.78,CE SL | PE Trail,2025
+2025-12-16,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-204.65,CE SL | PE Trail,2025
+2025-12-17,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1452.57,CE SL | EOD,2025
+2025-12-18,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,149.78,CE Trail | PE SL,2025
+2025-12-23,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,422.73,CE Target | PE SL,2025
+2025-12-26,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1155.02,CE SL | EOD,2025
+2025-12-29,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-263.95,CE SL | PE Trail,2025
+2025-12-31,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,502.08,CE Trail | PE SL,2025
+2026-01-01,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2095.22,CE SL | PE SL,2026
+2026-01-05,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-378.91,CE Trail | PE SL,2026
+2026-01-07,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-187.61,CE Trail | PE SL,2026
+2026-01-08,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,815.92,CE SL | PE Trail,2026
+2026-01-16,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,687.23,CE Trail | PE SL,2026
+2026-01-30,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2102.36,CE SL | PE SL,2026
+2026-02-10,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-350.85,CE SL | PE SL,2026
+2026-02-11,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2214.0,CE SL | PE SL,2026
+2026-02-13,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2072.12,CE SL | PE SL,2026
+2026-02-18,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,923.56,EOD | PE SL,2026
+2026-04-16,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1355.17,CE SL | PE Target,2026
+2026-04-29,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1229.9,CE Trail | PE SL,2026
+2026-08-10,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-233.64,CE SL | PE Trail,2026
+2026-08-14,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-64.36,CE Trail | PE SL,2026
+2026-08-18,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-143.88,CE SL | PE Trail,2026
+2026-08-20,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-1087.97,EOD | EOD,2026
+2026-08-24,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,123.02,CE SL | PE Target,2026
+2026-08-25,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-121.33,CE Trail | PE SL,2026
+2026-08-26,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-866.4,CE SL | PE Trail,2026
+2026-08-28,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-442.1,CE SL | PE Trail,2026
+2026-09-01,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,16.64,CE Trail | PE SL,2026
+2026-09-03,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-422.58,CE SL | EOD,2026
+2026-09-04,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-2395.31,CE SL | PE SL,2026
+2026-09-07,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-410.58,CE SL | PE Trail,2026
+2026-09-09,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-398.56,CE Trail | PE SL,2026
+2026-09-11,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-630.67,CE Trail | PE SL,2026
+2026-09-22,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-146.38,CE SL | PE Trail,2026
+2026-09-23,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,1086.87,EOD | PE SL,2026
+2026-10-06,Strategy 1: Hedged Strangle (Nifty 15M Box),Strategy 1,-102.3,CE Trail | PE SL,2026
+2025-01-07,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-894.07,SL Hit (-25%),2025
+2025-01-13,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1134.33,SL Hit (-25%),2025
+2025-01-14,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1159.59,SL Hit (-25%),2025
+2025-01-20,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-194.49,Time Stop (45m),2025
+2025-01-21,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-953.11,SL Hit (-25%),2025
+2025-01-27,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2350.96,Target Hit (+80%),2025
+2025-01-28,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-926.69,SL Hit (-25%),2025
+2025-02-03,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,779.34,Trailing Exit,2025
+2025-02-04,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1977.97,Target Hit (+80%),2025
+2025-02-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,300.13,Trailing Exit,2025
+2025-02-11,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-96.67,Time Stop (45m),2025
+2025-02-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-834.43,SL Hit (-25%),2025
+2025-02-18,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,523.78,Trailing Exit,2025
+2025-02-24,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-744.24,SL Hit (-25%),2025
+2025-02-25,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-101.73,Time Stop (45m),2025
+2025-03-03,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-871.13,SL Hit (-25%),2025
+2025-03-04,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-855.83,SL Hit (-25%),2025
+2025-03-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-866.75,SL Hit (-25%),2025
+2025-03-11,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-728.39,SL Hit (-25%),2025
+2025-03-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,575.64,Trailing Exit,2025
+2025-03-18,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-985.7,SL Hit (-25%),2025
+2025-03-24,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,506.05,Trailing Exit,2025
+2025-03-25,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,103.37,Trailing Exit,2025
+2025-04-01,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,3063.97,Target Hit (+80%),2025
+2025-04-07,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-804.99,SL Hit (-25%),2025
+2025-04-15,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-777.24,SL Hit (-25%),2025
+2025-04-21,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-971.57,SL Hit (-25%),2025
+2025-04-22,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,484.35,Trailing Exit,2025
+2025-04-28,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1246.58,SL Hit (-25%),2025
+2025-04-29,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-760.28,SL Hit (-25%),2025
+2025-05-05,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1069.63,SL Hit (-25%),2025
+2025-05-06,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-735.6,Time Stop (45m),2025
+2025-05-12,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1045.91,SL Hit (-25%),2025
+2025-05-19,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-846.95,SL Hit (-25%),2025
+2025-05-20,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,459.07,Trailing Exit,2025
+2025-05-26,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1397.98,Trailing Exit,2025
+2025-05-27,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-699.04,SL Hit (-25%),2025
+2025-06-02,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-720.71,SL Hit (-25%),2025
+2025-06-03,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2074.01,Target Hit (+80%),2025
+2025-06-09,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-168.82,Time Stop (45m),2025
+2025-06-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1398.51,SL Hit (-25%),2025
+2025-06-16,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2837.03,Target Hit (+80%),2025
+2025-06-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-773.71,SL Hit (-25%),2025
+2025-06-23,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,685.1,Trailing Exit,2025
+2025-06-24,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-794.53,SL Hit (-25%),2025
+2025-06-30,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-846.47,SL Hit (-25%),2025
+2025-07-01,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-704.52,SL Hit (-25%),2025
+2025-07-07,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1054.29,SL Hit (-25%),2025
+2025-07-08,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-448.93,Time Stop (45m),2025
+2025-07-14,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,623.54,Trailing Exit,2025
+2025-07-15,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2274.96,Target Hit (+80%),2025
+2025-07-21,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-581.74,Time Stop (45m),2025
+2025-07-22,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-653.39,SL Hit (-25%),2025
+2025-07-28,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,614.55,Trailing Exit,2025
+2025-07-29,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1448.6,Trailing Exit,2025
+2025-08-04,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-884.99,SL Hit (-25%),2025
+2025-08-05,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-884.23,SL Hit (-25%),2025
+2025-08-11,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,524.32,Trailing Exit,2025
+2025-08-12,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1788.76,Target Hit (+80%),2025
+2025-08-18,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-164.58,Time Stop (45m),2025
+2025-08-19,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-664.2,SL Hit (-25%),2025
+2025-08-25,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-834.7,SL Hit (-25%),2025
+2025-08-26,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-291.22,Time Stop (45m),2025
+2025-09-01,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-680.39,SL Hit (-25%),2025
+2025-09-02,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-597.6,SL Hit (-25%),2025
+2025-09-08,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-809.72,Time Stop (45m),2025
+2025-09-09,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-387.24,Time Stop (45m),2025
+2025-09-15,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-398.75,Time Stop (45m),2025
+2025-09-16,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-668.7,Time Stop (45m),2025
+2025-09-22,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-226.19,Time Stop (45m),2025
+2025-09-23,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-986.61,SL Hit (-25%),2025
+2025-09-29,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-699.05,SL Hit (-25%),2025
+2025-09-30,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,728.73,Trailing Exit,2025
+2025-10-06,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-94.55,Time Stop (45m),2025
+2025-10-07,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1966.73,Target Hit (+80%),2025
+2025-10-13,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-943.1,SL Hit (-25%),2025
+2025-10-14,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-660.64,SL Hit (-25%),2025
+2025-10-20,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-668.96,SL Hit (-25%),2025
+2025-10-27,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-362.73,Time Stop (45m),2025
+2025-10-28,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-741.1,SL Hit (-25%),2025
+2025-11-03,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-737.42,SL Hit (-25%),2025
+2025-11-04,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-706.95,SL Hit (-25%),2025
+2025-11-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-134.72,Time Stop (45m),2025
+2025-11-11,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-823.91,SL Hit (-25%),2025
+2025-11-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-627.73,Time Stop (45m),2025
+2025-11-18,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1047.16,SL Hit (-25%),2025
+2025-11-24,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-794.71,SL Hit (-25%),2025
+2025-11-25,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1017.87,SL Hit (-25%),2025
+2025-12-01,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-100.53,Time Stop (45m),2025
+2025-12-02,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-895.33,SL Hit (-25%),2025
+2025-12-08,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1067.52,SL Hit (-25%),2025
+2025-12-09,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2093.0,Target Hit (+80%),2025
+2025-12-15,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-88.26,Time Stop (45m),2025
+2025-12-16,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-150.69,Time Stop (45m),2025
+2025-12-23,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-808.04,SL Hit (-25%),2025
+2025-12-29,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-80.67,Time Stop (45m),2025
+2025-12-30,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1013.8,SL Hit (-25%),2025
+2026-01-05,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-104.42,Time Stop (45m),2026
+2026-01-06,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2031.6,Target Hit (+80%),2026
+2026-01-12,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-839.96,SL Hit (-25%),2026
+2026-01-13,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,619.52,Trailing Exit,2026
+2026-01-19,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1148.35,SL Hit (-25%),2026
+2026-01-20,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-508.23,Time Stop (45m),2026
+2026-01-27,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1080.17,SL Hit (-25%),2026
+2026-02-02,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1018.62,SL Hit (-25%),2026
+2026-02-03,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-778.89,SL Hit (-25%),2026
+2026-02-09,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-159.49,Time Stop (45m),2026
+2026-02-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-237.75,Time Stop (45m),2026
+2026-02-16,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-688.2,SL Hit (-25%),2026
+2026-02-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,470.21,Trailing Exit,2026
+2026-02-23,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,573.71,Trailing Exit,2026
+2026-02-24,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-93.86,Time Stop (45m),2026
+2026-03-02,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-229.89,Time Stop (45m),2026
+2026-03-09,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1003.05,SL Hit (-25%),2026
+2026-03-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2363.63,Target Hit (+80%),2026
+2026-03-16,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,644.77,Trailing Exit,2026
+2026-03-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-691.47,SL Hit (-25%),2026
+2026-03-23,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1431.86,SL Hit (-25%),2026
+2026-03-30,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,763.16,Trailing Exit,2026
+2026-04-07,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-874.92,SL Hit (-25%),2026
+2026-04-13,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-932.62,SL Hit (-25%),2026
+2026-04-20,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-315.32,Time Stop (45m),2026
+2026-04-21,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-228.96,Time Stop (45m),2026
+2026-04-27,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-788.81,SL Hit (-25%),2026
+2026-04-28,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-655.53,SL Hit (-25%),2026
+2026-05-04,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,344.32,Trailing Exit,2026
+2026-05-05,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2325.37,Target Hit (+80%),2026
+2026-05-11,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-733.12,SL Hit (-25%),2026
+2026-05-12,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-717.05,SL Hit (-25%),2026
+2026-08-10,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,553.94,Trailing Exit,2026
+2026-08-11,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-156.25,Time Stop (45m),2026
+2026-08-17,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-110.72,Time Stop (45m),2026
+2026-08-18,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-192.79,Time Stop (45m),2026
+2026-08-24,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2903.67,Target Hit (+80%),2026
+2026-08-25,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-644.66,SL Hit (-25%),2026
+2026-08-31,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1181.04,Trailing Exit,2026
+2026-09-01,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2544.7,Target Hit (+80%),2026
+2026-09-07,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-154.47,Time Stop (45m),2026
+2026-09-08,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-750.65,SL Hit (-25%),2026
+2026-09-15,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,140.85,Trailing Exit,2026
+2026-09-21,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-975.86,SL Hit (-25%),2026
+2026-09-22,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2267.95,Target Hit (+80%),2026
+2026-09-28,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-110.79,Time Stop (45m),2026
+2026-09-29,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-1000.11,SL Hit (-25%),2026
+2026-10-05,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,310.25,Trailing Exit,2026
+2026-10-06,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-955.45,SL Hit (-25%),2026
+2026-10-12,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,2360.77,Target Hit (+80%),2026
+2026-10-13,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,1187.04,Trailing Exit,2026
+2026-10-19,Strategy 2: Expiry Gamma Squeeze (Nifty),Strategy 2,-776.36,SL Hit (-25%),2026
+2025-01-22,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1672.03,SL Hit (-15%),2025
+2025-02-05,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,626.18,EOD (15:15 PM),2025
+2025-05-05,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1016.52,SL Hit (-15%),2025
+2025-05-08,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,778.25,Trailing Peak Exit,2025
+2025-06-04,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1632.02,SL Hit (-15%),2025
+2025-06-11,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1596.37,SL Hit (-15%),2025
+2025-06-25,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,53.03,EOD (15:15 PM),2025
+2025-07-01,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-879.68,SL Hit (-15%),2025
+2025-07-02,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,1355.75,Trailing Peak Exit,2025
+2025-07-09,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1872.24,SL Hit (-15%),2025
+2025-07-11,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,365.14,Trailing Peak Exit,2025
+2025-07-15,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,4111.82,Target Hit (+80%),2025
+2025-07-17,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1721.87,SL Hit (-15%),2025
+2025-07-23,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,1470.71,EOD (15:15 PM),2025
+2025-07-24,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2458.31,Trailing Peak Exit,2025
+2025-07-30,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1740.7,SL Hit (-15%),2025
+2025-08-06,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,226.11,EOD (15:15 PM),2025
+2025-08-13,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1820.11,SL Hit (-15%),2025
+2025-08-19,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,1185.51,Trailing Peak Exit,2025
+2025-08-20,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,474.42,EOD (15:15 PM),2025
+2025-08-25,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1058.49,SL Hit (-15%),2025
+2025-09-02,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,956.96,Trailing Peak Exit,2025
+2025-09-05,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2346.79,Trailing Peak Exit,2025
+2025-09-09,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1227.3,SL Hit (-15%),2025
+2025-09-10,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1477.24,SL Hit (-15%),2025
+2025-09-11,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-646.03,EOD (15:15 PM),2025
+2025-09-12,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-508.73,EOD (15:15 PM),2025
+2025-09-15,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1199.97,SL Hit (-15%),2025
+2025-09-16,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,512.53,Trailing Peak Exit,2025
+2025-09-18,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1703.6,SL Hit (-15%),2025
+2025-10-06,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,331.88,Trailing Peak Exit,2025
+2025-10-07,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,724.51,Trailing Peak Exit,2025
+2025-10-16,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,3073.23,EOD (15:15 PM),2025
+2025-10-29,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-407.14,EOD (15:15 PM),2025
+2025-11-12,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-455.01,EOD (15:15 PM),2025
+2025-11-17,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-895.52,SL Hit (-15%),2025
+2025-11-19,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2255.75,EOD (15:15 PM),2025
+2025-11-20,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,568.76,Trailing Peak Exit,2025
+2025-11-21,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1597.46,SL Hit (-15%),2025
+2025-11-24,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-794.59,SL Hit (-15%),2025
+2025-11-25,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1037.34,SL Hit (-15%),2025
+2025-11-28,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1594.83,SL Hit (-15%),2025
+2025-12-01,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-987.82,SL Hit (-15%),2025
+2025-12-02,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-803.7,SL Hit (-15%),2025
+2025-12-05,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1703.28,SL Hit (-15%),2025
+2025-12-08,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,1505.24,Trailing Peak Exit,2025
+2025-12-12,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1453.88,SL Hit (-15%),2025
+2025-12-16,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-890.81,SL Hit (-15%),2025
+2025-12-17,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-18.75,EOD (15:15 PM),2025
+2025-12-26,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-116.91,EOD (15:15 PM),2025
+2025-12-29,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2288.29,Trailing Peak Exit,2025
+2025-12-30,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1114.37,SL Hit (-15%),2025
+2025-12-31,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,1778.86,Trailing Peak Exit,2025
+2026-01-01,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1457.21,SL Hit (-15%),2026
+2026-01-07,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1561.04,SL Hit (-15%),2026
+2026-01-08,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2109.21,Trailing Peak Exit,2026
+2026-01-16,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2022.44,Trailing Peak Exit,2026
+2026-02-10,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1306.25,SL Hit (-15%),2026
+2026-02-18,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1511.49,SL Hit (-15%),2026
+2026-02-26,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1605.79,SL Hit (-15%),2026
+2026-08-14,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1445.64,SL Hit (-15%),2026
+2026-08-17,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-989.95,SL Hit (-15%),2026
+2026-08-18,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,180.5,Trailing Peak Exit,2026
+2026-08-20,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-837.34,EOD (15:15 PM),2026
+2026-08-24,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,4154.46,Target Hit (+80%),2026
+2026-08-25,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-696.69,SL Hit (-15%),2026
+2026-08-26,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2040.84,EOD (15:15 PM),2026
+2026-08-28,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1692.24,SL Hit (-15%),2026
+2026-09-01,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-871.57,SL Hit (-15%),2026
+2026-09-03,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,1530.67,EOD (15:15 PM),2026
+2026-09-04,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1766.95,SL Hit (-15%),2026
+2026-09-07,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,531.83,Trailing Peak Exit,2026
+2026-09-09,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,-1590.25,SL Hit (-15%),2026
+2026-09-11,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2650.26,Trailing Peak Exit,2026
+2026-09-22,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,939.97,Trailing Peak Exit,2026
+2026-09-23,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,2904.98,EOD (15:15 PM),2026
+2026-10-06,Strategy 3: 30M Directional ITM (Nifty),Strategy 3,452.09,Trailing Peak Exit,2026
+2025-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-278.22,CE SL (-35%) | PE Target (+50%),2025
+2025-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-145.61,CE SL (-35%) | PE Target (+50%),2025
+2025-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-230.66,CE Target (+50%) | PE SL (-35%),2025
+2025-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-306.97,CE Target (+50%) | PE SL (-35%),2025
+2025-01-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-260.2,CE SL (-35%) | PE Target (+50%),2025
+2025-01-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-285.67,CE Target (+50%) | PE SL (-35%),2025
+2025-01-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-114.18,Max Hold (25m) | Max Hold (25m),2025
+2025-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,748.08,CE Target (+50%) | PE SL (-35%),2025
+2025-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-260.65,CE SL (-35%) | PE Target (+50%),2025
+2025-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-703.01,CE SL (-35%) | PE SL (-35%),2025
+2025-01-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,499.75,CE SL (-35%) | PE Target (+50%),2025
+2025-01-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,553.61,CE Target (+50%) | PE SL (-35%),2025
+2025-01-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-333.59,Combined SL (-15%) | Combined SL (-15%),2025
+2025-01-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,190.67,CE Target (+50%) | PE SL (-35%),2025
+2025-01-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-63.74,Max Hold (25m) | Max Hold (25m),2025
+2025-01-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,760.03,CE Target (+50%) | PE SL (-35%),2025
+2025-01-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,507.56,CE Target (+50%) | PE SL (-35%),2025
+2025-01-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-347.79,CE SL (-35%) | PE Target (+50%),2025
+2025-01-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,260.88,CE SL (-35%) | PE Target (+50%),2025
+2025-01-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,188.34,CE SL (-35%) | PE Target (+50%),2025
+2025-01-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-39.73,Max Hold (25m) | Max Hold (25m),2025
+2025-01-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-445.4,Max Hold (25m) | Max Hold (25m),2025
+2025-01-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,405.68,CE SL (-35%) | PE Target (+50%),2025
+2025-01-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,590.72,CE Target (+50%) | PE SL (-35%),2025
+2025-01-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-353.16,CE SL (-35%) | PE Target (+50%),2025
+2025-01-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-292.45,CE Target (+50%) | PE SL (-35%),2025
+2025-01-31,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-363.71,Max Hold (25m) | Max Hold (25m),2025
+2025-02-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-325.36,Max Hold (25m) | Max Hold (25m),2025
+2025-02-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,781.56,CE Target (+50%) | PE SL (-35%),2025
+2025-02-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,130.94,Max Hold (25m) | PE SL (-35%),2025
+2025-02-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,408.65,CE Target (+50%) | PE SL (-35%),2025
+2025-02-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,227.56,CE Target (+50%) | PE SL (-35%),2025
+2025-02-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-219.78,CE Target (+50%) | PE SL (-35%),2025
+2025-02-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-256.84,CE Target (+50%) | PE SL (-35%),2025
+2025-02-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-650.12,CE SL (-35%) | PE SL (-35%),2025
+2025-02-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-174.34,Max Hold (25m) | Max Hold (25m),2025
+2025-02-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-280.66,CE Target (+50%) | PE SL (-35%),2025
+2025-02-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,194.57,CE Target (+50%) | PE SL (-35%),2025
+2025-02-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-226.72,CE SL (-35%) | PE Target (+50%),2025
+2025-02-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,745.24,CE Target (+50%) | PE SL (-35%),2025
+2025-02-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-323.32,CE SL (-35%) | PE Target (+50%),2025
+2025-02-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,498.57,CE SL (-35%) | PE Target (+50%),2025
+2025-02-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-300.72,CE Target (+50%) | PE SL (-35%),2025
+2025-02-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,291.22,CE Target (+50%) | PE SL (-35%),2025
+2025-02-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-280.02,CE SL (-35%) | PE Target (+50%),2025
+2025-02-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-186.03,Max Hold (25m) | Max Hold (25m),2025
+2025-02-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-300.29,CE SL (-35%) | PE Target (+50%),2025
+2025-03-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-319.38,Max Hold (25m) | Max Hold (25m),2025
+2025-03-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-317.7,CE SL (-35%) | PE Target (+50%),2025
+2025-03-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-281.41,CE Target (+50%) | PE SL (-35%),2025
+2025-03-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-1094.82,CE SL (-35%) | PE SL (-35%),2025
+2025-03-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,414.82,CE Target (+50%) | PE SL (-35%),2025
+2025-03-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,178.31,CE Target (+50%) | PE SL (-35%),2025
+2025-03-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,627.8,Max Hold (25m) | PE SL (-35%),2025
+2025-03-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-181.66,Max Hold (25m) | Max Hold (25m),2025
+2025-03-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,566.8,CE Target (+50%) | PE SL (-35%),2025
+2025-03-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-245.85,Max Hold (25m) | PE SL (-35%),2025
+2025-03-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-292.36,CE SL (-35%) | PE Target (+50%),2025
+2025-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-266.49,Max Hold (25m) | PE SL (-35%),2025
+2025-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-200.47,Max Hold (25m) | PE SL (-35%),2025
+2025-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-361.35,Combined SL (-15%) | Combined SL (-15%),2025
+2025-03-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-158.69,Max Hold (25m) | PE SL (-35%),2025
+2025-03-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-552.82,CE SL (-35%) | PE SL (-35%),2025
+2025-03-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-52.5,Max Hold (25m) | Max Hold (25m),2025
+2025-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-365.86,Max Hold (25m) | PE SL (-35%),2025
+2025-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-471.94,Max Hold (25m) | Max Hold (25m),2025
+2025-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-249.6,CE Target (+50%) | PE SL (-35%),2025
+2025-03-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-245.75,CE SL (-35%) | PE Target (+50%),2025
+2025-03-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-288.49,CE Target (+50%) | PE SL (-35%),2025
+2025-03-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,271.25,CE Target (+50%) | PE SL (-35%),2025
+2025-03-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-437.23,CE SL (-35%) | PE SL (-35%),2025
+2025-04-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-235.63,CE SL (-35%) | PE Target (+50%),2025
+2025-04-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-238.03,CE Target (+50%) | PE SL (-35%),2025
+2025-04-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-304.72,CE Target (+50%) | PE SL (-35%),2025
+2025-04-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-253.63,CE SL (-35%) | PE Target (+50%),2025
+2025-04-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-234.37,Max Hold (25m) | Max Hold (25m),2025
+2025-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,2156.08,CE Target (+50%) | PE Target (+50%),2025
+2025-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-224.64,CE Target (+50%) | PE SL (-35%),2025
+2025-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-272.9,CE SL (-35%) | PE Target (+50%),2025
+2025-04-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,499.33,CE SL (-35%) | PE Target (+50%),2025
+2025-04-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-265.15,CE SL (-35%) | PE Target (+50%),2025
+2025-04-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-583.51,CE SL (-35%) | PE SL (-35%),2025
+2025-04-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-333.13,Max Hold (25m) | Max Hold (25m),2025
+2025-04-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-310.66,Combined SL (-15%) | Combined SL (-15%),2025
+2025-04-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,877.37,CE Target (+50%) | PE SL (-35%),2025
+2025-04-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-216.96,CE SL (-35%) | PE Target (+50%),2025
+2025-04-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-165.24,Max Hold (25m) | PE SL (-35%),2025
+2025-04-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-325.91,Max Hold (25m) | Max Hold (25m),2025
+2025-04-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-523.35,Max Hold (25m) | Max Hold (25m),2025
+2025-04-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-537.75,Combined SL (-15%) | Combined SL (-15%),2025
+2025-04-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-286.72,CE SL (-35%) | PE Target (+50%),2025
+2025-04-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,541.58,CE Target (+50%) | PE SL (-35%),2025
+2025-05-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-397.66,Max Hold (25m) | Max Hold (25m),2025
+2025-05-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,924.78,CE Target (+50%) | PE SL (-35%),2025
+2025-05-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-472.78,Max Hold (25m) | Max Hold (25m),2025
+2025-05-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-250.16,Max Hold (25m) | PE SL (-35%),2025
+2025-05-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,921.49,CE SL (-35%) | PE Target (+50%),2025
+2025-05-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,431.16,CE Target (+50%) | PE SL (-35%),2025
+2025-05-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,282.32,CE SL (-35%) | PE Target (+50%),2025
+2025-05-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-400.66,CE SL (-35%) | PE SL (-35%),2025
+2025-05-19,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-1144.11,Max Hold (25m) | PE SL (-35%),2025
+2025-05-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-316.1,CE SL (-35%) | PE Target (+50%),2025
+2025-05-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-244.86,CE Target (+50%) | PE SL (-35%),2025
+2025-05-26,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-483.88,Max Hold (25m) | Max Hold (25m),2025
+2025-05-26,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-178.07,CE SL (-35%) | PE Target (+50%),2025
+2025-05-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-430.84,Max Hold (25m) | Max Hold (25m),2025
+2025-05-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,282.89,CE Target (+50%) | PE SL (-35%),2025
+2025-05-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,278.78,CE SL (-35%) | PE Target (+50%),2025
+2025-06-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-489.87,Combined SL (-15%) | Combined SL (-15%),2025
+2025-06-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,588.29,CE Target (+50%) | PE SL (-35%),2025
+2025-06-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,364.78,CE Target (+50%) | PE SL (-35%),2025
+2025-06-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-451.6,CE SL (-35%) | PE SL (-35%),2025
+2025-06-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-324.68,Combined SL (-15%) | Combined SL (-15%),2025
+2025-06-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-962.4,CE SL (-35%) | Max Hold (25m),2025
+2025-06-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-257.79,Max Hold (25m) | Max Hold (25m),2025
+2025-06-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-1209.92,CE SL (-35%) | Max Hold (25m),2025
+2025-06-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-773.6,Max Hold (25m) | PE SL (-35%),2025
+2025-06-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,879.71,CE Target (+50%) | PE SL (-35%),2025
+2025-06-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-381.61,Max Hold (25m) | PE SL (-35%),2025
+2025-06-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,313.55,CE SL (-35%) | PE Target (+50%),2025
+2025-06-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-496.65,CE SL (-35%) | PE SL (-35%),2025
+2025-07-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-186.05,CE SL (-35%) | PE Target (+50%),2025
+2025-07-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-494.0,Max Hold (25m) | Max Hold (25m),2025
+2025-07-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-317.08,CE SL (-35%) | PE Target (+50%),2025
+2025-07-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-248.82,Combined SL (-15%) | Combined SL (-15%),2025
+2025-07-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-539.87,Max Hold (25m) | PE SL (-35%),2025
+2025-07-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-322.12,Max Hold (25m) | Max Hold (25m),2025
+2025-07-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,58.45,Max Hold (25m) | PE SL (-35%),2025
+2025-07-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-530.42,Max Hold (25m) | Max Hold (25m),2025
+2025-07-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-312.96,Max Hold (25m) | PE SL (-35%),2025
+2025-07-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-455.47,Max Hold (25m) | Max Hold (25m),2025
+2025-07-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-314.32,CE SL (-35%) | Max Hold (25m),2025
+2025-07-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-636.81,CE SL (-35%) | Max Hold (25m),2025
+2025-07-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-438.52,CE SL (-35%) | Max Hold (25m),2025
+2025-07-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-338.95,CE SL (-35%) | PE Target (+50%),2025
+2025-07-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-265.98,Max Hold (25m) | PE SL (-35%),2025
+2025-07-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,215.17,CE Target (+50%) | PE SL (-35%),2025
+2025-08-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-368.02,Max Hold (25m) | Max Hold (25m),2025
+2025-08-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,775.9,CE Target (+50%) | PE SL (-35%),2025
+2025-08-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,443.07,CE Target (+50%) | PE SL (-35%),2025
+2025-08-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-198.63,Max Hold (25m) | Max Hold (25m),2025
+2025-08-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-301.69,Max Hold (25m) | PE SL (-35%),2025
+2025-08-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,297.81,CE SL (-35%) | PE Target (+50%),2025
+2025-08-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-278.25,Max Hold (25m) | PE SL (-35%),2025
+2025-08-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-290.95,Max Hold (25m) | PE SL (-35%),2025
+2025-08-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-293.67,CE SL (-35%) | PE Target (+50%),2025
+2025-08-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-432.0,Max Hold (25m) | Max Hold (25m),2025
+2025-08-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,248.23,CE SL (-35%) | PE Target (+50%),2025
+2025-08-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,229.15,CE SL (-35%) | PE Target (+50%),2025
+2025-08-19,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-439.21,Max Hold (25m) | Max Hold (25m),2025
+2025-08-19,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-283.44,CE SL (-35%) | PE Target (+50%),2025
+2025-08-26,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,178.18,CE SL (-35%) | PE Target (+50%),2025
+2025-09-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-266.86,Max Hold (25m) | Max Hold (25m),2025
+2025-09-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-418.49,Max Hold (25m) | Max Hold (25m),2025
+2025-09-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,268.84,CE SL (-35%) | PE Target (+50%),2025
+2025-09-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,124.5,CE Target (+50%) | PE SL (-35%),2025
+2025-09-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-14.21,Max Hold (25m) | Max Hold (25m),2025
+2025-09-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-226.12,CE SL (-35%) | PE Target (+50%),2025
+2025-09-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-279.69,CE SL (-35%) | PE Target (+50%),2025
+2025-09-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,405.14,CE SL (-35%) | PE Target (+50%),2025
+2025-09-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,215.04,CE Target (+50%) | PE SL (-35%),2025
+2025-09-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-467.33,Max Hold (25m) | Max Hold (25m),2025
+2025-09-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-529.25,Combined SL (-15%) | Combined SL (-15%),2025
+2025-09-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,123.19,CE SL (-35%) | Max Hold (25m),2025
+2025-09-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-243.9,CE SL (-35%) | PE Target (+50%),2025
+2025-09-29,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-566.11,Max Hold (25m) | PE SL (-35%),2025
+2025-09-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-226.36,CE SL (-35%) | PE Target (+50%),2025
+2025-09-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-308.86,CE SL (-35%) | PE Target (+50%),2025
+2025-09-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-258.95,Combined SL (-15%) | Combined SL (-15%),2025
+2025-10-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-624.18,Max Hold (25m) | PE SL (-35%),2025
+2025-10-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,446.47,CE SL (-35%) | PE Target (+50%),2025
+2025-10-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-322.77,Max Hold (25m) | Max Hold (25m),2025
+2025-10-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-230.18,Max Hold (25m) | Max Hold (25m),2025
+2025-10-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-307.13,CE Target (+50%) | PE SL (-35%),2025
+2025-10-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-216.34,CE SL (-35%) | PE Target (+50%),2025
+2025-10-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-314.89,CE SL (-35%) | PE Target (+50%),2025
+2025-10-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-304.4,CE Target (+50%) | PE SL (-35%),2025
+2025-10-14,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-494.04,CE SL (-35%) | PE SL (-35%),2025
+2025-10-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-405.65,Max Hold (25m) | PE SL (-35%),2025
+2025-10-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,492.89,CE SL (-35%) | PE Target (+50%),2025
+2025-10-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-38.15,CE SL (-35%) | Max Hold (25m),2025
+2025-10-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-752.64,CE SL (-35%) | PE SL (-35%),2025
+2025-10-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-291.91,CE SL (-35%) | PE Target (+50%),2025
+2025-11-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-309.19,Max Hold (25m) | Max Hold (25m),2025
+2025-11-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-239.59,CE SL (-35%) | PE Target (+50%),2025
+2025-11-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-835.39,Max Hold (25m) | PE SL (-35%),2025
+2025-11-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-374.21,Combined SL (-15%) | Combined SL (-15%),2025
+2025-11-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-369.39,Max Hold (25m) | Max Hold (25m),2025
+2025-11-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-131.36,Max Hold (25m) | PE SL (-35%),2025
+2025-11-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-288.03,Max Hold (25m) | Max Hold (25m),2025
+2025-11-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-221.25,CE Target (+50%) | PE SL (-35%),2025
+2025-11-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,136.75,CE SL (-35%) | Max Hold (25m),2025
+2025-11-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,6.33,Max Hold (25m) | PE SL (-35%),2025
+2025-11-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-469.93,Max Hold (25m) | PE SL (-35%),2025
+2025-11-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-452.11,Max Hold (25m) | Max Hold (25m),2025
+2025-11-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-492.74,CE SL (-35%) | PE SL (-35%),2025
+2025-12-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-393.92,Max Hold (25m) | PE SL (-35%),2025
+2025-12-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-320.15,Combined SL (-15%) | Combined SL (-15%),2025
+2025-12-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,500.6,CE SL (-35%) | PE Target (+50%),2025
+2025-12-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-850.59,CE SL (-35%) | PE SL (-35%),2025
+2025-12-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1025.55,CE Target (+50%) | PE SL (-35%),2025
+2025-12-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-46.5,Max Hold (25m) | PE SL (-35%),2025
+2025-12-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-268.76,CE Target (+50%) | PE SL (-35%),2025
+2025-12-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-176.94,Max Hold (25m) | Max Hold (25m),2025
+2025-12-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-682.17,CE SL (-35%) | Max Hold (25m),2025
+2025-12-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-364.1,Combined SL (-15%) | Combined SL (-15%),2025
+2025-12-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-252.37,Combined SL (-15%) | Combined SL (-15%),2025
+2025-12-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-388.27,Max Hold (25m) | Max Hold (25m),2025
+2025-12-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-424.17,CE SL (-35%) | PE SL (-35%),2025
+2025-12-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,335.96,CE Target (+50%) | PE SL (-35%),2025
+2026-01-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-7.9,Max Hold (25m) | PE SL (-35%),2026
+2026-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-31.34,Max Hold (25m) | PE SL (-35%),2026
+2026-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,358.6,CE SL (-35%) | PE Target (+50%),2026
+2026-01-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-251.31,CE SL (-35%) | PE Target (+50%),2026
+2026-01-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-491.43,Max Hold (25m) | Max Hold (25m),2026
+2026-01-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-525.34,CE SL (-35%) | Max Hold (25m),2026
+2026-01-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-250.29,CE Target (+50%) | PE SL (-35%),2026
+2026-01-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-481.44,Combined SL (-15%) | Combined SL (-15%),2026
+2026-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1023.9,CE Target (+50%) | PE SL (-35%),2026
+2026-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-417.85,Max Hold (25m) | Max Hold (25m),2026
+2026-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-263.64,CE SL (-35%) | PE Target (+50%),2026
+2026-01-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-541.72,CE SL (-35%) | PE SL (-35%),2026
+2026-01-19,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-722.87,Max Hold (25m) | Max Hold (25m),2026
+2026-01-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,439.99,Max Hold (25m) | PE Target (+50%),2026
+2026-01-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-705.45,CE SL (-35%) | Max Hold (25m),2026
+2026-01-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-215.55,CE SL (-35%) | Max Hold (25m),2026
+2026-01-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,937.51,CE Target (+50%) | PE SL (-35%),2026
+2026-01-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,481.48,CE Target (+50%) | PE SL (-35%),2026
+2026-01-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-297.51,CE Target (+50%) | PE SL (-35%),2026
+2026-01-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,210.32,CE SL (-35%) | PE Target (+50%),2026
+2026-02-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-81.74,CE SL (-35%) | PE Target (+50%),2026
+2026-02-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,743.22,CE Target (+50%) | PE SL (-35%),2026
+2026-02-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,479.7,CE Target (+50%) | PE SL (-35%),2026
+2026-02-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-257.82,CE Target (+50%) | PE SL (-35%),2026
+2026-02-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-323.06,CE SL (-35%) | PE Target (+50%),2026
+2026-02-03,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-443.11,CE SL (-35%) | PE SL (-35%),2026
+2026-02-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-456.87,Max Hold (25m) | Max Hold (25m),2026
+2026-02-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-418.14,Max Hold (25m) | Max Hold (25m),2026
+2026-02-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-533.77,Max Hold (25m) | PE SL (-35%),2026
+2026-02-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-384.42,Max Hold (25m) | Max Hold (25m),2026
+2026-02-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-197.21,Max Hold (25m) | PE SL (-35%),2026
+2026-02-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,15.07,Max Hold (25m) | Max Hold (25m),2026
+2026-02-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,556.4,CE Target (+50%) | PE SL (-35%),2026
+2026-02-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,216.97,CE SL (-35%) | PE Target (+50%),2026
+2026-02-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-159.35,Max Hold (25m) | Max Hold (25m),2026
+2026-02-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,450.64,CE Target (+50%) | PE SL (-35%),2026
+2026-02-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,608.07,CE SL (-35%) | Max Hold (25m),2026
+2026-02-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-713.46,CE SL (-35%) | PE SL (-35%),2026
+2026-02-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,173.53,CE Target (+50%) | PE SL (-35%),2026
+2026-03-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-141.48,Max Hold (25m) | PE SL (-35%),2026
+2026-03-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,446.49,CE SL (-35%) | PE Target (+50%),2026
+2026-03-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-308.0,Max Hold (25m) | Max Hold (25m),2026
+2026-03-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-901.33,CE SL (-35%) | Max Hold (25m),2026
+2026-03-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,868.19,CE Target (+50%) | PE SL (-35%),2026
+2026-03-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1015.63,CE Target (+50%) | PE SL (-35%),2026
+2026-03-09,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,549.44,CE Target (+50%) | PE SL (-35%),2026
+2026-03-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,943.01,CE SL (-35%) | PE Target (+50%),2026
+2026-03-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,153.43,Max Hold (25m) | PE SL (-35%),2026
+2026-03-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-321.54,CE SL (-35%) | PE Target (+50%),2026
+2026-03-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,193.73,CE Target (+50%) | PE SL (-35%),2026
+2026-03-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-323.23,Max Hold (25m) | Max Hold (25m),2026
+2026-03-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,273.43,Max Hold (25m) | Max Hold (25m),2026
+2026-03-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-171.75,CE SL (-35%) | PE Target (+50%),2026
+2026-03-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,761.88,CE Target (+50%) | PE SL (-35%),2026
+2026-03-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-235.46,CE SL (-35%) | PE Target (+50%),2026
+2026-03-16,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-891.73,CE SL (-35%) | PE SL (-35%),2026
+2026-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,834.64,CE Target (+50%) | PE SL (-35%),2026
+2026-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-335.91,CE SL (-35%) | PE Target (+50%),2026
+2026-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,241.22,CE Target (+50%) | PE SL (-35%),2026
+2026-03-17,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-209.94,CE Target (+50%) | PE SL (-35%),2026
+2026-03-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-96.35,Max Hold (25m) | Max Hold (25m),2026
+2026-03-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-122.45,CE Target (+50%) | PE SL (-35%),2026
+2026-03-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-277.75,CE Target (+50%) | PE SL (-35%),2026
+2026-03-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,325.01,CE Target (+50%) | PE SL (-35%),2026
+2026-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-221.63,CE SL (-35%) | PE Target (+50%),2026
+2026-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,397.51,CE SL (-35%) | PE Target (+50%),2026
+2026-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-934.18,CE SL (-35%) | PE SL (-35%),2026
+2026-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,336.67,CE Target (+50%) | PE SL (-35%),2026
+2026-03-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,222.22,CE SL (-35%) | PE Target (+50%),2026
+2026-03-27,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-323.72,Max Hold (25m) | Max Hold (25m),2026
+2026-03-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-473.78,CE SL (-35%) | Max Hold (25m),2026
+2026-03-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,439.26,CE Target (+50%) | PE SL (-35%),2026
+2026-03-30,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,260.62,CE SL (-35%) | PE Target (+50%),2026
+2026-04-02,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1057.88,CE Target (+50%) | PE SL (-35%),2026
+2026-04-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,687.14,CE Target (+50%) | PE SL (-35%),2026
+2026-04-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-35.9,Max Hold (25m) | PE SL (-35%),2026
+2026-04-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,483.31,CE Target (+50%) | PE SL (-35%),2026
+2026-04-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-313.63,CE SL (-35%) | PE Target (+50%),2026
+2026-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,503.44,CE Target (+50%) | PE SL (-35%),2026
+2026-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1155.22,CE Target (+50%) | PE Target (+50%),2026
+2026-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-609.63,CE SL (-35%) | PE SL (-35%),2026
+2026-04-07,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,159.29,CE SL (-35%) | PE Target (+50%),2026
+2026-04-10,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-315.32,Max Hold (25m) | Max Hold (25m),2026
+2026-04-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,362.36,Max Hold (25m) | PE SL (-35%),2026
+2026-04-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-275.99,CE Target (+50%) | PE SL (-35%),2026
+2026-04-13,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,378.1,CE Target (+50%) | PE SL (-35%),2026
+2026-04-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,798.87,CE Target (+50%) | PE SL (-35%),2026
+2026-04-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,338.01,Max Hold (25m) | PE SL (-35%),2026
+2026-04-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,476.68,CE SL (-35%) | PE Target (+50%),2026
+2026-04-20,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-467.51,Combined SL (-15%) | Combined SL (-15%),2026
+2026-04-21,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-290.51,Combined SL (-15%) | Combined SL (-15%),2026
+2026-04-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,443.89,CE SL (-35%) | PE Target (+50%),2026
+2026-04-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,277.91,CE Target (+50%) | PE SL (-35%),2026
+2026-04-28,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-299.23,CE SL (-35%) | PE Target (+50%),2026
+2026-05-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,397.58,CE SL (-35%) | PE Target (+50%),2026
+2026-05-04,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,398.13,CE Target (+50%) | PE SL (-35%),2026
+2026-05-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-1294.64,CE SL (-35%) | PE SL (-35%),2026
+2026-05-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-277.44,CE Target (+50%) | PE SL (-35%),2026
+2026-05-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,316.79,CE Target (+50%) | PE SL (-35%),2026
+2026-05-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-218.61,CE Target (+50%) | PE SL (-35%),2026
+2026-05-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,117.99,Max Hold (25m) | PE SL (-35%),2026
+2026-05-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-208.05,CE SL (-35%) | PE Target (+50%),2026
+2026-05-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,363.09,CE Target (+50%) | PE SL (-35%),2026
+2026-05-12,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-457.48,CE SL (-35%) | PE SL (-35%),2026
+2026-05-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-179.09,Max Hold (25m) | Max Hold (25m),2026
+2026-08-11,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-329.25,CE SL (-35%) | PE Target (+50%),2026
+2026-08-18,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-317.35,Max Hold (25m) | Max Hold (25m),2026
+2026-08-31,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-543.17,Max Hold (25m) | Max Hold (25m),2026
+2026-09-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-253.01,CE Target (+50%) | PE SL (-35%),2026
+2026-09-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,266.37,CE SL (-35%) | PE Target (+50%),2026
+2026-09-08,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,607.91,CE Target (+50%) | PE SL (-35%),2026
+2026-09-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-169.91,Max Hold (25m) | Max Hold (25m),2026
+2026-09-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,220.95,CE SL (-35%) | PE Target (+50%),2026
+2026-09-15,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,144.77,CE SL (-35%) | PE Target (+50%),2026
+2026-09-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,820.85,Max Hold (25m) | Max Hold (25m),2026
+2026-09-22,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-128.05,Max Hold (25m) | Max Hold (25m),2026
+2026-09-23,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-429.5,Max Hold (25m) | Max Hold (25m),2026
+2026-09-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-466.69,Max Hold (25m) | Max Hold (25m),2026
+2026-09-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-134.88,Max Hold (25m) | Max Hold (25m),2026
+2026-09-24,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1299.19,Max Hold (25m) | PE Target (+50%),2026
+2026-09-25,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,1343.13,CE Target (+50%) | Max Hold (25m),2026
+2026-10-01,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-231.93,Max Hold (25m) | Max Hold (25m),2026
+2026-10-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,436.51,CE SL (-35%) | PE Target (+50%),2026
+2026-10-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-55.41,Max Hold (25m) | Max Hold (25m),2026
+2026-10-05,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,109.09,Max Hold (25m) | Max Hold (25m),2026
+2026-10-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-331.95,Max Hold (25m) | Max Hold (25m),2026
+2026-10-06,Strategy 4: Decoupled Strangle (Nifty DAS),Strategy 4,-502.12,Max Hold (25m) | Max Hold (25m),2026
+2024-11-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-362.08,Time Cutoff (CE SL (-12%)),2024
+2024-11-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2786.41,CE Target (+60%) & PE SL (-12%),2024
+2024-11-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1150.36,Combined Capital SL (-12%),2024
+2024-11-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1393.28,CE SL (-12%) & PE Target (+60%),2024
+2024-11-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,839.3,Time Cutoff (CE SL (-12%)),2024
+2024-11-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2836.45,CE Target (+60%) & PE SL (-12%),2024
+2024-11-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1479.28,Combined Capital SL (-12%),2024
+2024-11-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1152.77,Combined Capital SL (-12%),2024
+2024-11-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1401.63,CE SL (-12%) & PE Target (+60%),2024
+2024-11-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-278.64,Time Cutoff (CE SL (-12%)),2024
+2024-11-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1101.36,Combined Capital SL (-12%),2024
+2024-11-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,240.22,Time Cutoff (PE SL (-12%)),2024
+2024-11-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-86.91,Time Cutoff (CE SL (-12%)),2024
+2024-11-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1097.56,Combined Capital SL (-12%),2024
+2024-11-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2194.55,CE SL (-12%) & PE Target (+60%),2024
+2024-11-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1163.45,Combined Capital SL (-12%),2024
+2024-11-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-702.79,Time Cutoff (PE SL (-12%)),2024
+2024-11-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-420.13,Time Cutoff (CE SL (-12%)),2024
+2024-12-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1337.65,Combined Capital SL (-12%),2024
+2024-12-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-859.3,Combined Capital SL (-12%),2024
+2024-12-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1312.88,Combined Capital SL (-12%),2024
+2024-12-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1247.82,Combined Capital SL (-12%),2024
+2024-12-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1622.73,CE SL (-12%) & PE Target (+60%),2024
+2024-12-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1005.19,Combined Capital SL (-12%),2024
+2024-12-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-888.59,Combined Capital SL (-12%),2024
+2024-12-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1135.36,Combined Capital SL (-12%),2024
+2024-12-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-294.78,Time Exit (45m),2024
+2024-12-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1681.69,CE SL (-12%) & PE Target (+60%),2024
+2024-12-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,838.83,Time Cutoff (CE SL (-12%)),2024
+2024-12-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1166.65,CE SL (-12%) & PE Target (+60%),2024
+2024-12-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1263.49,Combined Capital SL (-12%),2024
+2024-12-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-325.72,Time Cutoff (CE SL (-12%)),2024
+2024-12-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1681.63,Time Cutoff (PE SL (-12%)),2024
+2024-12-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1146.94,Combined Capital SL (-12%),2024
+2024-12-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-79.14,Time Cutoff (PE SL (-12%)),2024
+2024-12-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,649.45,Time Cutoff (CE SL (-12%)),2024
+2024-12-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-266.67,Time Cutoff (PE SL (-12%)),2024
+2024-12-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,961.17,Time Cutoff (PE SL (-12%)),2024
+2024-12-31,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1267.47,Combined Capital SL (-12%),2024
+2025-01-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1032.56,Combined Capital SL (-12%),2025
+2025-01-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-203.8,Time Exit (45m),2025
+2025-01-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,984.65,Time Cutoff (CE SL (-12%)),2025
+2025-01-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1107.43,Combined Capital SL (-12%),2025
+2025-01-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1481.29,CE SL (-12%) & PE Target (+60%),2025
+2025-01-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2883.2,CE SL (-12%) & PE Target (+60%),2025
+2025-01-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,11.14,Time Cutoff (CE SL (-12%)),2025
+2025-01-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2261.44,CE Target (+60%) & PE SL (-12%),2025
+2025-01-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2365.8,CE SL (-12%) & PE Target (+60%),2025
+2025-01-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1781.47,CE Target (+60%) & PE SL (-12%),2025
+2025-01-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,107.92,Time Cutoff (PE SL (-12%)),2025
+2025-01-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-64.25,Time Cutoff (CE SL (-12%)),2025
+2025-01-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1131.67,Combined Capital SL (-12%),2025
+2025-01-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1048.09,Combined Capital SL (-12%),2025
+2025-01-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1372.57,Combined Capital SL (-12%),2025
+2025-01-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,997.53,Time Cutoff (PE SL (-12%)),2025
+2025-01-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-990.41,Combined Capital SL (-12%),2025
+2025-01-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1851.49,CE SL (-12%) & PE Target (+60%),2025
+2025-01-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2012.77,CE Target (+60%) & PE SL (-12%),2025
+2025-01-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2340.49,CE Target (+60%) & PE SL (-12%),2025
+2025-01-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,181.59,Time Cutoff (PE SL (-12%)),2025
+2025-01-31,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1026.29,Combined Capital SL (-12%),2025
+2025-02-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,111.21,Time Cutoff (PE SL (-12%)),2025
+2025-02-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1860.54,Time Cutoff (PE SL (-12%)),2025
+2025-02-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2233.65,CE SL (-12%) & PE Target (+60%),2025
+2025-02-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1096.33,Combined Capital SL (-12%),2025
+2025-02-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-929.19,Time Cutoff (CE SL (-12%)),2025
+2025-02-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1840.11,Combined Capital SL (-12%),2025
+2025-02-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2004.33,CE SL (-12%) & PE Target (+60%),2025
+2025-02-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1233.82,Combined Capital SL (-12%),2025
+2025-02-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1913.25,CE Target (+60%) & PE SL (-12%),2025
+2025-02-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,296.36,Time Cutoff (PE SL (-12%)),2025
+2025-02-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-592.25,Time Cutoff (PE SL (-12%)),2025
+2025-02-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1966.43,CE Target (+60%) & PE SL (-12%),2025
+2025-02-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1262.93,Combined Capital SL (-12%),2025
+2025-02-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2131.23,CE Target (+60%) & PE SL (-12%),2025
+2025-02-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-466.68,Time Cutoff (PE SL (-12%)),2025
+2025-02-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-546.83,Time Cutoff (CE SL (-12%)),2025
+2025-02-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1019.66,Combined Capital SL (-12%),2025
+2025-02-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,468.52,Time Cutoff (CE SL (-12%)),2025
+2025-02-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-201.34,Time Cutoff (PE SL (-12%)),2025
+2025-02-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,638.42,Time Cutoff (PE SL (-12%)),2025
+2025-03-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-763.68,Time Cutoff (PE SL (-12%)),2025
+2025-03-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1223.4,Combined Capital SL (-12%),2025
+2025-03-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1366.33,Combined Capital SL (-12%),2025
+2025-03-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1350.83,Combined Capital SL (-12%),2025
+2025-03-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1185.69,Time Cutoff (PE SL (-12%)),2025
+2025-03-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-959.58,Time Cutoff (CE SL (-12%)),2025
+2025-03-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-996.77,Combined Capital SL (-12%),2025
+2025-03-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1207.54,Combined Capital SL (-12%),2025
+2025-03-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,112.35,Time Cutoff (PE SL (-12%)),2025
+2025-03-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1048.94,Combined Capital SL (-12%),2025
+2025-03-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1568.98,Combined Capital SL (-12%),2025
+2025-03-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1477.38,CE Target (+60%) & PE SL (-12%),2025
+2025-03-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-139.55,Time Cutoff (PE SL (-12%)),2025
+2025-03-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,398.66,Time Cutoff (PE SL (-12%)),2025
+2025-03-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1822.62,Time Cutoff (PE SL (-12%)),2025
+2025-03-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1715.48,CE SL (-12%) & PE Target (+60%),2025
+2025-03-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1106.32,Combined Capital SL (-12%),2025
+2025-03-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-67.39,Time Cutoff (PE SL (-12%)),2025
+2025-03-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1122.78,Combined Capital SL (-12%),2025
+2025-04-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1655.34,CE SL (-12%) & PE Target (+60%),2025
+2025-04-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2204.41,CE Target (+60%) & PE SL (-12%),2025
+2025-04-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1075.36,Combined Capital SL (-12%),2025
+2025-04-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1109.89,Combined Capital SL (-12%),2025
+2025-04-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1962.04,CE SL (-12%) & PE Target (+60%),2025
+2025-04-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1186.64,Combined Capital SL (-12%),2025
+2025-04-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2017.32,CE SL (-12%) & PE Target (+60%),2025
+2025-04-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,655.77,Time Cutoff (CE SL (-12%)),2025
+2025-04-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1143.94,Combined Capital SL (-12%),2025
+2025-04-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1220.12,Combined Capital SL (-12%),2025
+2025-04-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-269.01,Time Exit (45m),2025
+2025-04-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1032.13,Combined Capital SL (-12%),2025
+2025-04-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1980.12,CE Target (+60%) & PE SL (-12%),2025
+2025-04-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1727.79,CE SL (-12%) & PE Target (+60%),2025
+2025-04-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-331.97,Time Exit (45m),2025
+2025-04-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-222.96,Time Cutoff (CE SL (-12%)),2025
+2025-04-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,168.02,Time Cutoff (PE SL (-12%)),2025
+2025-04-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-205.03,Time Cutoff (CE SL (-12%)),2025
+2025-04-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1160.08,Combined Capital SL (-12%),2025
+2025-05-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-340.26,Time Exit (45m),2025
+2025-05-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,231.56,Time Cutoff (PE SL (-12%)),2025
+2025-05-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1188.8,CE SL (-12%) & PE Target (+60%),2025
+2025-05-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1170.08,Combined Capital SL (-12%),2025
+2025-05-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,238.17,Time Cutoff (PE SL (-12%)),2025
+2025-05-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-540.26,Time Cutoff (CE SL (-12%)),2025
+2025-05-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,153.3,Time Cutoff (PE SL (-12%)),2025
+2025-05-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-923.31,Combined Capital SL (-12%),2025
+2025-05-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,951.49,Time Cutoff (CE SL (-12%)),2025
+2025-05-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,114.79,Time Cutoff (PE SL (-12%)),2025
+2025-05-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-374.87,Time Cutoff (PE SL (-12%)),2025
+2025-05-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1033.41,Combined Capital SL (-12%),2025
+2025-05-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1005.48,Combined Capital SL (-12%),2025
+2025-05-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2408.98,CE Target (+60%) & PE SL (-12%),2025
+2025-05-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-324.56,Time Exit (45m),2025
+2025-05-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-975.96,Combined Capital SL (-12%),2025
+2025-05-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2632.42,CE SL (-12%) & PE Target (+60%),2025
+2025-05-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-962.38,Combined Capital SL (-12%),2025
+2025-05-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,85.02,Time Cutoff (CE SL (-12%)),2025
+2025-05-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-66.74,Time Cutoff (CE SL (-12%)),2025
+2025-05-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,147.22,Time Cutoff (CE SL (-12%)),2025
+2025-06-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,127.73,Time Cutoff (PE SL (-12%)),2025
+2025-06-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1242.81,Combined Capital SL (-12%),2025
+2025-06-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,678.39,Time Cutoff (PE SL (-12%)),2025
+2025-06-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-359.12,Time Cutoff (CE SL (-12%)),2025
+2025-06-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1231.84,Combined Capital SL (-12%),2025
+2025-06-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-83.09,Time Cutoff (PE SL (-12%)),2025
+2025-06-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-789.14,Time Cutoff (PE SL (-12%)),2025
+2025-06-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1134.24,CE Target (+60%) & PE SL (-12%),2025
+2025-06-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-229.93,Time Cutoff (CE SL (-12%)),2025
+2025-06-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-168.85,Time Cutoff (PE SL (-12%)),2025
+2025-06-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1459.36,Time Cutoff (PE SL (-12%)),2025
+2025-06-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1010.93,Combined Capital SL (-12%),2025
+2025-06-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1303.0,Combined Capital SL (-12%),2025
+2025-06-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,124.6,Time Cutoff (CE SL (-12%)),2025
+2025-06-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1537.2,Time Cutoff (PE SL (-12%)),2025
+2025-06-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-124.7,Time Cutoff (PE SL (-12%)),2025
+2025-06-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,84.96,Time Cutoff (PE SL (-12%)),2025
+2025-06-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-919.32,Combined Capital SL (-12%),2025
+2025-06-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-542.54,Time Cutoff (CE SL (-12%)),2025
+2025-06-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,576.51,Time Cutoff (PE SL (-12%)),2025
+2025-06-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1167.01,Combined Capital SL (-12%),2025
+2025-07-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-281.11,Time Cutoff (CE SL (-12%)),2025
+2025-07-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-905.75,Combined Capital SL (-12%),2025
+2025-07-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-219.62,Time Exit (45m),2025
+2025-07-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,134.6,Time Cutoff (PE SL (-12%)),2025
+2025-07-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1135.34,Combined Capital SL (-12%),2025
+2025-07-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-798.08,Time Cutoff (CE SL (-12%)),2025
+2025-07-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-844.22,Combined Capital SL (-12%),2025
+2025-07-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-286.48,Time Cutoff (PE SL (-12%)),2025
+2025-07-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,759.78,Time Cutoff (CE SL (-12%)),2025
+2025-07-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,174.6,Time Cutoff (CE SL (-12%)),2025
+2025-07-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,955.88,Time Cutoff (PE SL (-12%)),2025
+2025-07-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-847.32,Combined Capital SL (-12%),2025
+2025-07-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-941.13,Time Cutoff (PE SL (-12%)),2025
+2025-07-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,543.09,Time Cutoff (CE SL (-12%)),2025
+2025-07-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1097.81,Combined Capital SL (-12%),2025
+2025-07-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-293.67,Time Cutoff (PE SL (-12%)),2025
+2025-07-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-857.46,Combined Capital SL (-12%),2025
+2025-07-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-280.71,Time Exit (45m),2025
+2025-07-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,493.36,Time Cutoff (CE SL (-12%)),2025
+2025-07-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-219.41,Time Cutoff (PE SL (-12%)),2025
+2025-07-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-976.72,Combined Capital SL (-12%),2025
+2025-07-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1138.16,Combined Capital SL (-12%),2025
+2025-07-31,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,73.25,Time Cutoff (CE SL (-12%)),2025
+2025-08-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,494.2,Time Cutoff (PE SL (-12%)),2025
+2025-08-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1064.46,Combined Capital SL (-12%),2025
+2025-08-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,337.6,Time Cutoff (CE SL (-12%)),2025
+2025-08-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1425.55,Combined Capital SL (-12%),2025
+2025-08-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,437.69,Time Cutoff (CE SL (-12%)),2025
+2025-08-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-288.6,Time Cutoff (CE SL (-12%)),2025
+2025-08-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1079.93,Time Cutoff (PE SL (-12%)),2025
+2025-08-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-948.22,Combined Capital SL (-12%),2025
+2025-08-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1230.29,Combined Capital SL (-12%),2025
+2025-08-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-422.47,Time Cutoff (PE SL (-12%)),2025
+2025-08-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-329.2,Time Cutoff (CE SL (-12%)),2025
+2025-08-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-948.5,Combined Capital SL (-12%),2025
+2025-08-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-850.7,Combined Capital SL (-12%),2025
+2025-08-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,569.47,Time Cutoff (PE SL (-12%)),2025
+2025-08-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-9.77,Time Cutoff (CE SL (-12%)),2025
+2025-08-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-305.15,Time Cutoff (CE SL (-12%)),2025
+2025-08-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-962.37,Combined Capital SL (-12%),2025
+2025-08-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1153.28,Combined Capital SL (-12%),2025
+2025-08-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-162.79,Time Cutoff (PE SL (-12%)),2025
+2025-09-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,509.22,Time Cutoff (CE SL (-12%)),2025
+2025-09-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-945.78,Combined Capital SL (-12%),2025
+2025-09-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1952.49,CE Target (+60%) & PE SL (-12%),2025
+2025-09-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-4.46,Time Cutoff (CE SL (-12%)),2025
+2025-09-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-42.51,Time Cutoff (CE SL (-12%)),2025
+2025-09-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,535.96,Time Cutoff (CE SL (-12%)),2025
+2025-09-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-254.86,Time Cutoff (CE SL (-12%)),2025
+2025-09-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2131.78,CE Target (+60%) & PE SL (-12%),2025
+2025-09-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-294.51,Time Exit (45m),2025
+2025-09-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-316.15,Time Exit (45m),2025
+2025-09-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-549.08,Time Cutoff (PE SL (-12%)),2025
+2025-09-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-92.43,Time Cutoff (PE SL (-12%)),2025
+2025-09-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,876.39,Time Cutoff (PE SL (-12%)),2025
+2025-09-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-302.56,Time Exit (45m),2025
+2025-09-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-284.08,Time Cutoff (CE SL (-12%)),2025
+2025-09-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1145.26,Combined Capital SL (-12%),2025
+2025-09-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1007.82,Combined Capital SL (-12%),2025
+2025-09-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1181.63,Combined Capital SL (-12%),2025
+2025-09-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-313.93,Time Cutoff (CE SL (-12%)),2025
+2025-09-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-571.55,Time Cutoff (CE SL (-12%)),2025
+2025-09-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-383.6,Time Cutoff (PE SL (-12%)),2025
+2025-09-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1007.91,Combined Capital SL (-12%),2025
+2025-10-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1191.12,Combined Capital SL (-12%),2025
+2025-10-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,104.77,Time Cutoff (PE SL (-12%)),2025
+2025-10-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-103.55,Time Cutoff (PE SL (-12%)),2025
+2025-10-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-933.38,Combined Capital SL (-12%),2025
+2025-10-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,779.9,Time Cutoff (CE SL (-12%)),2025
+2025-10-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-174.75,Time Exit (45m),2025
+2025-10-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,14.67,Time Cutoff (PE SL (-12%)),2025
+2025-10-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1092.32,Combined Capital SL (-12%),2025
+2025-10-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-137.46,Time Cutoff (PE SL (-12%)),2025
+2025-10-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1570.19,CE Target (+60%) & PE SL (-12%),2025
+2025-10-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-810.06,Time Cutoff (CE SL (-12%)),2025
+2025-10-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,606.6,Time Cutoff (PE SL (-12%)),2025
+2025-10-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-972.6,Combined Capital SL (-12%),2025
+2025-10-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-546.25,Time Cutoff (PE SL (-12%)),2025
+2025-10-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,335.67,Time Cutoff (CE SL (-12%)),2025
+2025-10-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,862.46,Time Cutoff (PE SL (-12%)),2025
+2025-10-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1555.75,CE SL (-12%) & PE Target (+60%),2025
+2025-10-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-821.99,Combined Capital SL (-12%),2025
+2025-10-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1097.16,Combined Capital SL (-12%),2025
+2025-10-31,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,607.76,Time Cutoff (CE SL (-12%)),2025
+2025-11-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,935.67,Time Cutoff (PE SL (-12%)),2025
+2025-11-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1154.35,Combined Capital SL (-12%),2025
+2025-11-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-332.41,Time Exit (45m),2025
+2025-11-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-694.92,Time Cutoff (CE SL (-12%)),2025
+2025-11-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-761.03,Time Cutoff (CE SL (-12%)),2025
+2025-11-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,460.02,Time Cutoff (CE SL (-12%)),2025
+2025-11-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1215.42,Time Cutoff (CE SL (-12%)),2025
+2025-11-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,20.17,Time Cutoff (PE SL (-12%)),2025
+2025-11-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,275.74,Time Cutoff (CE SL (-12%)),2025
+2025-11-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1038.8,Combined Capital SL (-12%),2025
+2025-11-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-29.12,Time Cutoff (CE SL (-12%)),2025
+2025-11-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1657.22,CE Target (+60%) & PE SL (-12%),2025
+2025-11-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-284.19,Time Exit (45m),2025
+2025-11-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,443.53,Time Cutoff (CE SL (-12%)),2025
+2025-11-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1113.04,Time Cutoff (PE SL (-12%)),2025
+2025-11-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,705.64,Time Cutoff (PE SL (-12%)),2025
+2025-11-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-371.77,Time Cutoff (PE SL (-12%)),2025
+2025-11-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-221.03,Time Exit (45m),2025
+2025-11-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-534.14,Time Cutoff (PE SL (-12%)),2025
+2025-12-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-996.93,Combined Capital SL (-12%),2025
+2025-12-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1007.41,Combined Capital SL (-12%),2025
+2025-12-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,480.66,Time Cutoff (CE SL (-12%)),2025
+2025-12-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,127.75,Time Cutoff (PE SL (-12%)),2025
+2025-12-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-188.07,Time Cutoff (PE SL (-12%)),2025
+2025-12-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1052.32,Combined Capital SL (-12%),2025
+2025-12-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1977.5,CE Target (+60%) & PE SL (-12%),2025
+2025-12-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-383.74,Time Cutoff (PE SL (-12%)),2025
+2025-12-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1442.53,Time Cutoff (PE SL (-12%)),2025
+2025-12-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,303.42,Time Cutoff (CE SL (-12%)),2025
+2025-12-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-125.64,Time Cutoff (PE SL (-12%)),2025
+2025-12-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-997.03,Combined Capital SL (-12%),2025
+2025-12-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-878.97,Combined Capital SL (-12%),2025
+2025-12-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1702.49,Time Cutoff (PE SL (-12%)),2025
+2025-12-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-268.84,Time Exit (45m),2025
+2025-12-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-393.67,Time Cutoff (CE SL (-12%)),2025
+2025-12-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-337.22,Time Cutoff (PE SL (-12%)),2025
+2025-12-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-572.88,Time Cutoff (CE SL (-12%)),2025
+2025-12-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-346.71,Time Exit (45m),2025
+2025-12-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-478.35,Time Cutoff (CE SL (-12%)),2025
+2025-12-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1806.74,CE Target (+60%) & PE SL (-12%),2025
+2025-12-31,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-883.03,Combined Capital SL (-12%),2025
+2026-01-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-282.89,Time Exit (45m),2026
+2026-01-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-324.89,Time Exit (45m),2026
+2026-01-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,378.51,Time Cutoff (PE SL (-12%)),2026
+2026-01-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-276.78,Time Cutoff (PE SL (-12%)),2026
+2026-01-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1350.03,Combined Capital SL (-12%),2026
+2026-01-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-154.61,Time Cutoff (CE SL (-12%)),2026
+2026-01-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,51.56,Time Cutoff (PE SL (-12%)),2026
+2026-01-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-528.43,Time Cutoff (PE SL (-12%)),2026
+2026-01-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1053.91,Combined Capital SL (-12%),2026
+2026-01-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-862.64,Combined Capital SL (-12%),2026
+2026-01-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,76.89,Time Cutoff (PE SL (-12%)),2026
+2026-01-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-984.43,Combined Capital SL (-12%),2026
+2026-01-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,232.71,Time Cutoff (PE SL (-12%)),2026
+2026-01-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-844.14,Combined Capital SL (-12%),2026
+2026-01-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1399.48,CE SL (-12%) & PE Target (+60%),2026
+2026-01-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-299.36,Time Cutoff (PE SL (-12%)),2026
+2026-01-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,755.21,CE SL (-12%) & PE Target (+60%),2026
+2026-01-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1117.18,Combined Capital SL (-12%),2026
+2026-01-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1021.99,Combined Capital SL (-12%),2026
+2026-01-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-317.01,Time Exit (45m),2026
+2026-02-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1105.73,Combined Capital SL (-12%),2026
+2026-02-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1038.52,CE SL (-12%) & PE Target (+60%),2026
+2026-02-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1733.7,CE Target (+60%) & PE SL (-12%),2026
+2026-02-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,326.57,Time Cutoff (CE SL (-12%)),2026
+2026-02-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-546.86,Time Cutoff (PE SL (-12%)),2026
+2026-02-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,635.84,Time Cutoff (CE SL (-12%)),2026
+2026-02-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1055.93,Combined Capital SL (-12%),2026
+2026-02-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1139.6,Combined Capital SL (-12%),2026
+2026-02-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-997.96,Combined Capital SL (-12%),2026
+2026-02-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-259.89,Time Exit (45m),2026
+2026-02-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-196.64,Time Cutoff (CE SL (-12%)),2026
+2026-02-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1127.78,Time Cutoff (PE SL (-12%)),2026
+2026-02-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2379.69,CE Target (+60%) & PE SL (-12%),2026
+2026-02-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-937.53,Combined Capital SL (-12%),2026
+2026-02-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-183.53,Time Cutoff (CE SL (-12%)),2026
+2026-02-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,287.65,Time Cutoff (PE SL (-12%)),2026
+2026-02-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1078.69,Combined Capital SL (-12%),2026
+2026-02-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1113.86,Combined Capital SL (-12%),2026
+2026-02-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-218.44,Time Cutoff (PE SL (-12%)),2026
+2026-02-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-75.38,Time Cutoff (CE SL (-12%)),2026
+2026-02-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-833.14,Time Cutoff (CE SL (-12%)),2026
+2026-03-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,539.93,Time Cutoff (CE SL (-12%)),2026
+2026-03-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-902.65,Combined Capital SL (-12%),2026
+2026-03-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-912.95,Time Cutoff (CE SL (-12%)),2026
+2026-03-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,636.86,Time Cutoff (CE SL (-12%)),2026
+2026-03-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1107.17,Combined Capital SL (-12%),2026
+2026-03-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2615.82,CE Target (+60%) & PE SL (-12%),2026
+2026-03-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1020.63,CE SL (-12%) & PE Target (+60%),2026
+2026-03-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,836.16,Time Cutoff (PE SL (-12%)),2026
+2026-03-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1791.43,CE SL (-12%) & PE Target (+60%),2026
+2026-03-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1217.07,Combined Capital SL (-12%),2026
+2026-03-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1659.46,CE Target (+60%) & PE SL (-12%),2026
+2026-03-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1448.11,Combined Capital SL (-12%),2026
+2026-03-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1016.82,Combined Capital SL (-12%),2026
+2026-03-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1107.28,Combined Capital SL (-12%),2026
+2026-03-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1126.05,CE SL (-12%) & PE Target (+60%),2026
+2026-03-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1268.45,Combined Capital SL (-12%),2026
+2026-03-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-593.92,Time Cutoff (CE SL (-12%)),2026
+2026-03-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1058.55,Combined Capital SL (-12%),2026
+2026-04-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2096.85,CE SL (-12%) & PE Target (+60%),2026
+2026-04-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1133.44,Combined Capital SL (-12%),2026
+2026-04-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2764.79,CE Target (+60%) & PE SL (-12%),2026
+2026-04-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1338.12,Combined Capital SL (-12%),2026
+2026-04-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1415.17,Combined Capital SL (-12%),2026
+2026-04-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,46.68,Time Cutoff (CE SL (-12%)),2026
+2026-04-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1010.65,Combined Capital SL (-12%),2026
+2026-04-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1164.16,Combined Capital SL (-12%),2026
+2026-04-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1127.68,Combined Capital SL (-12%),2026
+2026-04-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-701.34,Time Cutoff (PE SL (-12%)),2026
+2026-04-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-382.18,Time Cutoff (PE SL (-12%)),2026
+2026-04-20,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-285.49,Time Cutoff (PE SL (-12%)),2026
+2026-04-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-958.85,Combined Capital SL (-12%),2026
+2026-04-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1176.2,CE SL (-12%) & PE Target (+60%),2026
+2026-08-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-314.89,Time Cutoff (CE SL (-12%)),2026
+2026-08-26,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-924.15,Combined Capital SL (-12%),2026
+2026-08-27,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-342.14,Time Exit (45m),2026
+2026-08-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-377.61,Time Cutoff (PE SL (-12%)),2026
+2026-08-31,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,224.38,Time Cutoff (CE SL (-12%)),2026
+2026-09-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1025.9,Combined Capital SL (-12%),2026
+2026-09-02,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1769.68,CE Target (+60%) & PE SL (-12%),2026
+2026-09-03,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-400.83,Time Cutoff (CE SL (-12%)),2026
+2026-09-04,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-193.45,Time Cutoff (PE SL (-12%)),2026
+2026-09-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-107.46,Time Cutoff (CE SL (-12%)),2026
+2026-09-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-953.27,Combined Capital SL (-12%),2026
+2026-09-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1144.69,Combined Capital SL (-12%),2026
+2026-09-10,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-754.21,Time Cutoff (CE SL (-12%)),2026
+2026-09-11,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-79.21,Time Cutoff (PE SL (-12%)),2026
+2026-09-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,866.97,Time Cutoff (CE SL (-12%)),2026
+2026-09-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,2141.54,CE Target (+60%) & PE SL (-12%),2026
+2026-09-17,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1231.87,Combined Capital SL (-12%),2026
+2026-09-18,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-318.89,Time Cutoff (CE SL (-12%)),2026
+2026-09-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-317.62,Time Cutoff (CE SL (-12%)),2026
+2026-09-22,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1288.26,CE SL (-12%) & PE Target (+60%),2026
+2026-09-23,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-943.77,Combined Capital SL (-12%),2026
+2026-09-24,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-826.47,Time Cutoff (PE SL (-12%)),2026
+2026-09-25,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-765.39,Time Cutoff (PE SL (-12%)),2026
+2026-09-28,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,375.76,Time Cutoff (CE SL (-12%)),2026
+2026-09-29,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1019.92,Combined Capital SL (-12%),2026
+2026-09-30,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1216.39,Combined Capital SL (-12%),2026
+2026-10-01,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,443.62,Time Cutoff (PE SL (-12%)),2026
+2026-10-05,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1693.48,CE SL (-12%) & PE Target (+60%),2026
+2026-10-06,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-560.3,Time Cutoff (CE SL (-12%)),2026
+2026-10-07,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1821.14,CE Target (+60%) & PE SL (-12%),2026
+2026-10-08,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-352.09,Time Cutoff (PE SL (-12%)),2026
+2026-10-09,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-740.53,Time Cutoff (CE SL (-12%)),2026
+2026-10-12,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1133.08,Combined Capital SL (-12%),2026
+2026-10-13,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1136.49,Time Cutoff (CE SL (-12%)),2026
+2026-10-14,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1166.82,Combined Capital SL (-12%),2026
+2026-10-15,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1246.08,Time Cutoff (PE SL (-12%)),2026
+2026-10-16,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,1170.04,Time Cutoff (PE SL (-12%)),2026
+2026-10-19,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,279.41,Time Cutoff (PE SL (-12%)),2026
+2026-10-21,Strategy 5: Decoupled Strangle (BankNIFTY DAS),Strategy 5,-1205.92,Combined Capital SL (-12%),2026
+2024-11-05,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1162.42,SL Hit (-20%),2024
+2024-11-06,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-837.54,SL Hit (-20%),2024
+2024-11-12,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1544.3,Target Hit (+40%),2024
+2024-11-13,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-879.72,SL Hit (-20%),2024
+2024-11-19,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1087.62,SL Hit (-20%),2024
+2024-11-26,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1067.86,SL Hit (-20%),2024
+2024-11-27,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-574.04,SL Hit (-20%),2024
+2024-12-03,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1235.95,SL Hit (-20%),2024
+2024-12-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-956.26,SL Hit (-20%),2024
+2024-12-10,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-910.08,SL Hit (-20%),2024
+2024-12-11,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-715.79,SL Hit (-20%),2024
+2024-12-17,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1045.16,SL Hit (-20%),2024
+2024-12-18,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-822.73,SL Hit (-20%),2024
+2024-12-31,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-685.15,SL Hit (-20%),2024
+2025-01-01,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1526.99,Target Hit (+40%),2025
+2025-01-07,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-923.76,SL Hit (-20%),2025
+2025-01-08,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1366.4,Target Hit (+40%),2025
+2025-01-14,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1159.52,SL Hit (-20%),2025
+2025-01-15,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-744.83,SL Hit (-20%),2025
+2025-01-21,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,2084.37,Target Hit (+40%),2025
+2025-01-22,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,944.71,Target Hit (+40%),2025
+2025-01-28,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-954.97,SL Hit (-20%),2025
+2025-01-29,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-636.15,SL Hit (-20%),2025
+2025-02-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-970.44,SL Hit (-20%),2025
+2025-02-05,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-544.61,SL Hit (-20%),2025
+2025-02-11,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1063.03,SL Hit (-20%),2025
+2025-02-12,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-754.92,SL Hit (-20%),2025
+2025-02-19,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1775.03,Target Hit (+40%),2025
+2025-02-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-995.53,SL Hit (-20%),2025
+2025-03-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-782.86,SL Hit (-20%),2025
+2025-03-05,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-666.82,SL Hit (-20%),2025
+2025-03-12,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1181.74,Target Hit (+40%),2025
+2025-03-18,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1081.25,SL Hit (-20%),2025
+2025-03-19,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-678.53,SL Hit (-20%),2025
+2025-03-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-926.63,SL Hit (-20%),2025
+2025-03-26,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,980.89,Target Hit (+40%),2025
+2025-04-01,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1913.29,Target Hit (+40%),2025
+2025-04-02,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-422.75,SL Hit (-20%),2025
+2025-04-08,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-897.2,SL Hit (-20%),2025
+2025-04-09,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-735.66,SL Hit (-20%),2025
+2025-04-15,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1012.79,SL Hit (-20%),2025
+2025-04-16,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-497.79,SL Hit (-20%),2025
+2025-04-22,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1162.26,SL Hit (-20%),2025
+2025-04-23,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1480.12,Target Hit (+40%),2025
+2025-04-29,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1047.77,SL Hit (-20%),2025
+2025-05-06,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1147.99,SL Hit (-20%),2025
+2025-05-07,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-753.01,SL Hit (-20%),2025
+2025-05-13,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-991.29,SL Hit (-20%),2025
+2025-05-14,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1544.72,Target Hit (+40%),2025
+2025-05-20,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1035.19,SL Hit (-20%),2025
+2025-05-21,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-838.3,SL Hit (-20%),2025
+2025-05-27,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1796.29,Target Hit (+40%),2025
+2025-05-28,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-764.82,SL Hit (-20%),2025
+2025-06-03,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1858.8,Target Hit (+40%),2025
+2025-06-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-658.38,SL Hit (-20%),2025
+2025-06-10,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1036.62,SL Hit (-20%),2025
+2025-06-11,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-845.95,SL Hit (-20%),2025
+2025-06-17,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1072.18,SL Hit (-20%),2025
+2025-06-18,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-807.74,SL Hit (-20%),2025
+2025-06-24,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1077.44,SL Hit (-20%),2025
+2025-06-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-639.39,SL Hit (-20%),2025
+2025-07-01,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,2038.97,Target Hit (+40%),2025
+2025-07-02,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1590.32,Target Hit (+40%),2025
+2025-07-09,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-806.99,SL Hit (-20%),2025
+2025-07-15,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1137.27,SL Hit (-20%),2025
+2025-07-16,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1499.96,Target Hit (+40%),2025
+2025-07-22,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1203.88,SL Hit (-20%),2025
+2025-07-23,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-712.45,SL Hit (-20%),2025
+2025-07-29,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1673.25,Target Hit (+40%),2025
+2025-07-30,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-849.17,SL Hit (-20%),2025
+2025-08-05,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-944.24,SL Hit (-20%),2025
+2025-08-06,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,815.04,Target Hit (+40%),2025
+2025-08-12,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1228.14,SL Hit (-20%),2025
+2025-08-13,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-648.84,SL Hit (-20%),2025
+2025-08-19,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1131.12,SL Hit (-20%),2025
+2025-09-02,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1687.28,Target Hit (+40%),2025
+2025-09-03,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-656.2,SL Hit (-20%),2025
+2025-09-09,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-979.54,SL Hit (-20%),2025
+2025-09-10,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-864.54,SL Hit (-20%),2025
+2025-09-16,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1170.21,SL Hit (-20%),2025
+2025-09-17,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-710.0,SL Hit (-20%),2025
+2025-09-23,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1932.7,Target Hit (+40%),2025
+2025-09-24,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-882.26,SL Hit (-20%),2025
+2025-09-30,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1065.08,SL Hit (-20%),2025
+2025-10-01,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1304.59,Target Hit (+40%),2025
+2025-10-07,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1097.22,SL Hit (-20%),2025
+2025-10-08,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1383.92,Target Hit (+40%),2025
+2025-10-14,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1012.41,SL Hit (-20%),2025
+2025-10-15,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-967.06,SL Hit (-20%),2025
+2025-10-28,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1284.52,SL Hit (-20%),2025
+2025-10-29,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-773.79,SL Hit (-20%),2025
+2025-11-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1030.91,SL Hit (-20%),2025
+2025-11-11,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1148.41,SL Hit (-20%),2025
+2025-11-12,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-744.01,SL Hit (-20%),2025
+2025-11-18,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-676.47,SL Hit (-20%),2025
+2025-11-19,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1272.23,Target Hit (+40%),2025
+2025-11-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1190.69,SL Hit (-20%),2025
+2025-11-26,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-884.22,SL Hit (-20%),2025
+2025-12-02,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1306.24,SL Hit (-20%),2025
+2025-12-03,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-998.27,SL Hit (-20%),2025
+2025-12-09,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1236.89,SL Hit (-20%),2025
+2025-12-10,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1309.61,Target Hit (+40%),2025
+2025-12-16,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-990.25,SL Hit (-20%),2025
+2025-12-17,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-486.59,SL Hit (-20%),2025
+2025-12-23,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-869.85,SL Hit (-20%),2025
+2025-12-24,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1150.23,Target Hit (+40%),2025
+2025-12-30,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1359.66,SL Hit (-20%),2025
+2025-12-31,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1881.64,Target Hit (+40%),2025
+2026-01-07,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-707.26,SL Hit (-20%),2026
+2026-01-13,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1023.06,SL Hit (-20%),2026
+2026-01-14,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-776.44,SL Hit (-20%),2026
+2026-01-20,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1190.07,SL Hit (-20%),2026
+2026-01-21,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1360.25,Target Hit (+40%),2026
+2026-01-27,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1259.58,SL Hit (-20%),2026
+2026-01-28,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-758.53,SL Hit (-20%),2026
+2026-02-03,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1032.3,SL Hit (-20%),2026
+2026-02-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-609.36,SL Hit (-20%),2026
+2026-02-10,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-937.26,SL Hit (-20%),2026
+2026-02-11,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-895.02,SL Hit (-20%),2026
+2026-02-17,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,2659.48,Target Hit (+40%),2026
+2026-02-18,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-881.93,SL Hit (-20%),2026
+2026-02-24,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1127.93,SL Hit (-20%),2026
+2026-02-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-865.04,SL Hit (-20%),2026
+2026-03-04,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-781.95,SL Hit (-20%),2026
+2026-03-10,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1422.61,SL Hit (-20%),2026
+2026-03-11,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-866.98,SL Hit (-20%),2026
+2026-03-17,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1277.02,Target Hit (+40%),2026
+2026-03-18,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1165.29,Target Hit (+40%),2026
+2026-03-24,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1152.19,SL Hit (-20%),2026
+2026-03-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1196.3,Target Hit (+40%),2026
+2026-04-01,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-941.93,SL Hit (-20%),2026
+2026-04-07,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1238.66,Target Hit (+40%),2026
+2026-04-08,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-793.43,SL Hit (-20%),2026
+2026-04-15,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1556.48,Target Hit (+40%),2026
+2026-04-21,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1142.3,SL Hit (-20%),2026
+2026-04-22,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-778.44,SL Hit (-20%),2026
+2026-08-25,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-712.15,SL Hit (-20%),2026
+2026-09-01,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1981.18,Target Hit (+40%),2026
+2026-09-02,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-870.52,SL Hit (-20%),2026
+2026-09-08,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-987.59,SL Hit (-20%),2026
+2026-09-09,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-816.93,SL Hit (-20%),2026
+2026-09-15,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1035.33,SL Hit (-20%),2026
+2026-09-16,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-885.41,SL Hit (-20%),2026
+2026-09-22,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1902.38,Target Hit (+40%),2026
+2026-09-23,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-987.95,SL Hit (-20%),2026
+2026-09-29,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1735.47,Target Hit (+40%),2026
+2026-09-30,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1444.89,Target Hit (+40%),2026
+2026-10-06,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1071.4,SL Hit (-20%),2026
+2026-10-07,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,1817.6,Target Hit (+40%),2026
+2026-10-13,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-1102.9,SL Hit (-20%),2026
+2026-10-14,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,-665.24,SL Hit (-20%),2026
+2026-10-21,Strategy 7: Expiry Gamma Squeeze (BankNIFTY GSM),Strategy 7,2980.74,Target Hit (+40%),2026
+2024-11-19,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,1017.93,Time Exit (45m),2024
+2024-12-04,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,1086.16,Time Exit (45m),2024
+2024-12-10,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-369.72,Time Exit (45m),2024
+2024-12-11,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-548.32,Time Exit (45m),2024
+2024-12-17,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-283.41,Time Exit (45m),2024
+2025-02-05,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,214.11,Time Exit (45m),2025
+2025-06-11,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-37.99,Time Exit (45m),2025
+2025-06-25,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-582.69,Time Exit (45m),2025
+2025-07-01,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-719.58,Time Exit (45m),2025
+2025-07-09,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-216.67,Time Exit (45m),2025
+2025-07-16,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-582.08,Time Exit (45m),2025
+2025-07-23,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-537.26,Time Exit (45m),2025
+2025-08-05,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-499.73,Time Exit (45m),2025
+2025-08-06,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,85.01,Time Exit (45m),2025
+2025-08-19,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-831.24,Time Exit (45m),2025
+2025-09-03,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,39.34,Time Exit (45m),2025
+2025-09-09,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-577.59,Time Exit (45m),2025
+2025-09-10,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-546.15,Time Exit (45m),2025
+2025-09-16,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-29.03,Time Exit (45m),2025
+2025-09-17,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-561.96,Time Exit (45m),2025
+2025-09-30,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-890.43,Time Exit (45m),2025
+2025-10-07,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-318.6,Time Exit (45m),2025
+2025-10-15,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-448.89,Time Exit (45m),2025
+2025-10-21,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-854.95,Basket SL Hit (-30%),2025
+2025-10-29,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,92.41,Time Exit (45m),2025
+2025-11-18,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-946.06,Time Exit (45m),2025
+2025-12-09,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-675.92,Time Exit (45m),2025
+2025-12-10,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-383.73,Time Exit (45m),2025
+2025-12-17,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-525.6,Time Exit (45m),2025
+2025-12-23,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-787.33,Time Exit (45m),2025
+2025-12-24,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-586.61,Time Exit (45m),2025
+2026-01-07,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-626.09,Time Exit (45m),2026
+2026-01-13,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-929.89,Time Exit (45m),2026
+2026-02-10,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-904.86,Time Exit (45m),2026
+2026-02-18,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-632.63,Time Exit (45m),2026
+2026-02-25,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-633.3,Time Exit (45m),2026
+2026-09-08,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-631.88,Time Exit (45m),2026
+2026-09-22,Strategy 8: Hedged Strangle (BankNIFTY 15M Box),Strategy 8,-643.23,Time Exit (45m),2026

@@ -19,6 +19,8 @@ testing/data/real_options_cache/
 testing/results/
 data/real_options_cache/
 data/banknifty_options_cache/
+data/raw_historical/
+data/backup_real_aug_oct/
 data/angel_scrip_master.json
 *.log
 logs/
