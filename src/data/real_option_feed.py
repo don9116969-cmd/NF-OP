@@ -318,3 +318,31 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
         return df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
 
     return pd.DataFrame()
+
+def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
+    """
+    Returns (df_opt, symbol, feed_label).
+    Attempts to fetch real option candles from Angel One or cache;
+    falls back cleanly to Black-Scholes pricing if outside cache range.
+    """
+    contract = get_active_option_contract(target_date, strike, opt_type, underlying=underlying)
+    if contract:
+        t_min = day_df["timestamp"].min()
+        t_max = day_df["timestamp"].max()
+        df_opt = fetch_real_option_candles(api, contract, t_min, t_max)
+        if not df_opt.empty and len(df_opt) >= 5:
+            return df_opt, contract["symbol"], "Real Option Tick"
+
+    from src.features.greeks import black_scholes_price
+    # Tuesday weekly for NIFTY, Wednesday weekly for BankNIFTY
+    days_ahead = (1 - target_date.weekday()) % 7 if underlying == "NIFTY" else (2 - target_date.weekday()) % 7
+    dte = max(0.001, float(days_ahead) / 365.25)
+    df_synth = pd.DataFrame(index=day_df["timestamp"])
+    prices = [black_scholes_price(float(s), float(strike), dte, 0.07, 0.15, opt_type.lower()) for s in day_df["close"]]
+    df_synth["open"] = prices
+    df_synth["high"] = prices
+    df_synth["low"] = prices
+    df_synth["close"] = prices
+    sym = f"{underlying}_{target_date.strftime('%d%b%y').upper()}_{strike}_{opt_type}"
+    return df_synth, sym, "BSM Fallback"
+

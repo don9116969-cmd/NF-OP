@@ -1,9 +1,9 @@
 """
 Configuration module for Nifty & BankNifty Option Buying Portfolio Engine.
-Power-3 Core Production Architecture:
+Tri-Strategy Core Production Architecture:
 1. Strategy 1: Nifty 15M Directional Breakout (Trend Aligned ATM, SL -16%, TP +60%)
-2. Strategy 8: BankNIFTY 15M Directional Breakout (Trend Aligned 100-pt OTM, SL -25%, TP +80%)
-3. Strategy 4: Nifty Decoupled Asymmetric Strangle (DAS) (Std < 30, Vel >= 35, Win +60%, Lose -12%)
+2. Strategy 2: BankNIFTY 15M Directional Breakout (Trend Aligned 100-pt OTM, SL -25%, TP +80%)
+3. Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) (Std < 30, Vel >= 35, Win +60%, Lose -12%)
 """
 from dataclasses import dataclass, field
 from typing import List
@@ -41,7 +41,7 @@ class TradingConfig:
     SQUARE_OFF_TIME: str = "15:15"
 
     # =========================================================================
-    # POWER-3 CORE STRATEGY PARAMETERS
+    # CORE STRATEGY PARAMETERS
     # =========================================================================
 
     # STRATEGY 1: NIFTY 15M DIRECTIONAL BREAKOUT
@@ -55,20 +55,20 @@ class TradingConfig:
     S1_TARGET_PCT: float = 0.60  # +60% profit target
     S1_MAX_BUDGET: float = 8500.0
 
-    # STRATEGY 8: BANKNIFTY 15M DIRECTIONAL BREAKOUT
-    S8_ENABLED: bool = True
-    S8_BOX_START: str = "09:15"
-    S8_BOX_END: str = "09:30"
-    S8_BUFFER_PTS: float = 25.0  # 25.0 pt breakout buffer
-    S8_MAX_BOX_PCT: float = 1.20  # Filter out boxes wider than 1.20%
-    S8_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
-    S8_OTM_OFFSET: int = 100  # 100-pt OTM option
-    S8_SL_PCT: float = 0.25  # -25% stop loss
-    S8_TARGET_PCT: float = 0.80  # +80% profit target
-    S8_MAX_BUDGET: float = 8500.0
+    # STRATEGY 2: BANKNIFTY 15M DIRECTIONAL BREAKOUT
+    S2_ENABLED: bool = True
+    S2_BOX_START: str = "09:15"
+    S2_BOX_END: str = "09:30"
+    S2_BUFFER_PTS: float = 25.0  # 25.0 pt breakout buffer
+    S2_MAX_BOX_PCT: float = 1.20  # Filter out boxes wider than 1.20%
+    S2_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
+    S2_OTM_OFFSET: int = 100  # 100-pt OTM option
+    S2_SL_PCT: float = 0.25  # -25% stop loss
+    S2_TARGET_PCT: float = 0.80  # +80% profit target
+    S2_MAX_BUDGET: float = 8500.0
 
-    # STRATEGY 4: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)
-    S4_ENABLED: bool = True
+    # STRATEGY 3: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)
+    S3_ENABLED: bool = True
     DAS_VOL_WINDOW: int = 20  # 20-min rolling window for std
     DAS_STD_THRESH: float = 30.0  # Rolling standard deviation compression (< 30.0)
     DAS_VEL_THRESH: float = 35.0  # Kinetic expansion velocity (>= 35.0 pts in 5 mins)
@@ -87,17 +87,10 @@ class TradingConfig:
     MAX_DAILY_LOSS: float = 2500.0  # Max account daily loss limit
     MAX_TRADES_PER_DAY: int = 4  # Max trades across portfolio per day
 
-    # RETIRED / SECONDARY STRATEGIES (Set to False to eliminate over-trading & noise)
-    S2_ENABLED: bool = False  # Nifty Afternoon Gamma (Optional Tuesday-only)
-    S3_ENABLED: bool = False  # Nifty 30M ITM (Retired: sparse 1 trade/month)
-    S5_ENABLED: bool = False  # BankNifty DAS (Retired: 20% win-rate drag)
-    S6_ENABLED: bool = False  # BankNifty DBB (Retired: redundant with S8)
-    S7_ENABLED: bool = False  # BankNifty GSM (Retired: 17% win-rate drag)
-
     ACTIVE_STRATEGIES: List[str] = field(default_factory=lambda: [
         "Strategy 1: Nifty 15M Directional Breakout",
-        "Strategy 8: BankNIFTY 15M Directional Breakout",
-        "Strategy 4: Nifty Decoupled Asymmetric Strangle (DAS)"
+        "Strategy 2: BankNIFTY 15M Directional Breakout",
+        "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)"
     ])
 
 config = TradingConfig()

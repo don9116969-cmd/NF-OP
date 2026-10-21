@@ -1,12 +1,11 @@
 """
-Live Market Paper Trading Bot for Nifty Options (Quad-Strategy Unified Engine).
-Executes and monitors all 4 quantitative strategies concurrently:
-1. Strategy 1: Hedged Long Strangle (15M Box Breakout, Uncoupled Leg SL -20%, Target +75%)
-2. Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze (Monday & Tuesday Expiry Breakout, Target +80%)
-3. Strategy 3: 30M Statistical Directional ITM Breakout (Trailing Peak Exit, Target +80%)
-4. Strategy 4: Decoupled Asymmetric Strangle (DAS - Delta-Neutral Volatility Compression & Kinetic Expansion)
+Live Market Paper Trading Bot for Nifty & BankNifty Options (Tri-Strategy Core System).
+Executes and monitors all 3 quantitative production strategies concurrently:
+1. Strategy 1: Nifty 15M Directional Breakout (Trend-Aligned ATM, SL -16%, TP +60%)
+2. Strategy 2: BankNIFTY 15M Directional Breakout (Trend-Aligned 100-pt OTM, SL -25%, TP +80%)
+3. Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Volatility Compression & Kinetic Expansion)
 
-Connects to Angel One SmartAPI to track Nifty Spot and option candles in real-time.
+Connects to Angel One SmartAPI to track Nifty and BankNifty Spot and option candles in real-time.
 Pushes instant alerts to Telegram for every entry, target, stop, and EOD daily report.
 Logs all paper trades to data/trade_journal.csv and data/trade_journal.md.
 """
@@ -22,7 +21,6 @@ import numpy as np
 from datetime import datetime, timezone, timedelta, time as dtime
 from dotenv import load_dotenv
 
-# Try importing SmartApi
 try:
     from SmartApi import SmartConnect
     import pyotp
@@ -49,11 +47,6 @@ from daily_result_checker import (
     evaluate_strategy_1,
     evaluate_strategy_2,
     evaluate_strategy_3,
-    evaluate_strategy_4,
-    evaluate_strategy_5,
-    evaluate_strategy_6,
-    evaluate_strategy_7,
-    evaluate_strategy_8,
     sync_and_update_candles,
     CANDLE_FILE,
     BANKNIFTY_CANDLE_FILE
@@ -67,12 +60,7 @@ from src.utils.journal_manager import (
     mark_day_as_audited
 )
 from src.utils.git_sync import git_sync_push
-from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles
-from src.banknifty.banknifty_das import select_banknifty_affordable_strikes, get_banknifty_dte
-from src.banknifty.banknifty_strategies import (
-    select_banknifty_directional_strike,
-    select_banknifty_strangle_strikes
-)
+from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles, get_candle_feed
 from run_strangle_grid_exhaustive import compute_calendar_dte
 
 load_dotenv()
@@ -81,15 +69,21 @@ def get_ist_now() -> datetime:
     """Returns the current datetime in Indian Standard Time (IST, UTC+5:30) as a timezone-naive datetime."""
     return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).replace(tzinfo=None)
 
-class LiveQuadPaperTrader:
+def get_banknifty_dte(ist_now: datetime, target_date) -> float:
+    """Calculates DTE in years for BankNIFTY weekly options (Wednesday expiry)."""
+    target_dt = target_date if isinstance(target_date, datetime) else datetime.combine(target_date, dtime(15, 30))
+    days_ahead = (2 - target_dt.weekday()) % 7
+    return max(0.001, float(days_ahead) / 365.25)
+
+class LiveTriPaperTrader:
     """
-    Unified Quad-Strategy Paper Trading Engine.
-    Executes and monitors all 4 strategies during live market hours.
+    Unified Tri-Strategy Paper Trading Engine.
+    Executes and monitors Strategy 1, Strategy 2, and Strategy 3 during live market hours.
     """
     def __init__(self, target_strategy: str = "all"):
-        self.target_strategy = target_strategy.lower() # 'all', 'das', 'bndas', 'strangle', 'gamma', 'directional'
+        self.target_strategy = target_strategy.lower() # 'all', 's1', 's2', 's3'
         self.lot_size = config.LOT_SIZE
-        self.bn_lot_size = 30
+        self.bn_lot_size = config.BANKNIFTY_LOT_SIZE
         self.capital = config.INITIAL_CAPITAL
 
         self.smart_api = None
@@ -102,31 +96,16 @@ class LiveQuadPaperTrader:
             "s1": None,
             "s2": None,
             "s3": None,
-            "s4": None,
-            "s5": None,
-            "s6": None,
-            "s7": None,
-            "s8": None,
         }
         self.cooldown_until = {
             "s1": None,
             "s2": None,
             "s3": None,
-            "s4": None,
-            "s5": None,
-            "s6": None,
-            "s7": None,
-            "s8": None,
         }
         self.daily_trade_count = {
             "s1": 0,
             "s2": 0,
             "s3": 0,
-            "s4": 0,
-            "s5": 0,
-            "s6": 0,
-            "s7": 0,
-            "s8": 0,
         }
 
         # Output log
@@ -229,7 +208,6 @@ class LiveQuadPaperTrader:
                 p_copy = dict(pos)
                 if "entry_time" in p_copy and hasattr(p_copy["entry_time"], "isoformat"):
                     p_copy["entry_time"] = p_copy["entry_time"].isoformat()
-                # remove non-serializable objects
                 if "c_ce" in p_copy and isinstance(p_copy["c_ce"], dict):
                     p_copy["c_ce"] = {k: str(v) for k, v in p_copy["c_ce"].items() if k in ["token", "symbol"]}
                 if "c_pe" in p_copy and isinstance(p_copy["c_pe"], dict):
@@ -292,31 +270,16 @@ class LiveQuadPaperTrader:
             "s1": None,
             "s2": None,
             "s3": None,
-            "s4": None,
-            "s5": None,
-            "s6": None,
-            "s7": None,
-            "s8": None,
         }
         self.cooldown_until = {
             "s1": None,
             "s2": None,
             "s3": None,
-            "s4": None,
-            "s5": None,
-            "s6": None,
-            "s7": None,
-            "s8": None,
         }
         self.daily_trade_count = {
             "s1": 0,
             "s2": 0,
             "s3": 0,
-            "s4": 0,
-            "s5": 0,
-            "s6": 0,
-            "s7": 0,
-            "s8": 0,
         }
         if os.path.exists("data/trade_journal.csv"):
             try:
@@ -328,1044 +291,9 @@ class LiveQuadPaperTrader:
                         if "Strategy 1" in s_name: self.daily_trade_count["s1"] += 1
                         if "Strategy 2" in s_name: self.daily_trade_count["s2"] += 1
                         if "Strategy 3" in s_name: self.daily_trade_count["s3"] += 1
-                        if "Strategy 4" in s_name: self.daily_trade_count["s4"] += 1
-                        if "Strategy 5" in s_name: self.daily_trade_count["s5"] += 1
-                        if "Strategy 6" in s_name: self.daily_trade_count["s6"] += 1
-                        if "Strategy 7" in s_name: self.daily_trade_count["s7"] += 1
-                        if "Strategy 8" in s_name: self.daily_trade_count["s8"] += 1
             except Exception:
                 pass
         self.load_active_positions(today_date)
-
-    def process_live_strategy_5(self, df_bn: pd.DataFrame, today_date, ist_now, bn_spot: float):
-        """Real-time live position tracking and entry engine for Strategy 5 (BankNIFTY DAS)."""
-        pos = self.active_positions["s5"]
-
-        # 1. POSITION IS OPEN -> MONITOR AND EXIT IN REAL TIME
-        if pos is not None:
-            elapsed_mins = (ist_now - pos["entry_time"]).total_seconds() / 60.0
-            p_c = pos["ce_entry"]
-            p_p = pos["pe_entry"]
-            high_c, low_c = p_c, p_c
-            high_p, low_p = p_p, p_p
-
-            if self.smart_api and pos.get("c_ce") and pos.get("c_pe"):
-                df_c = fetch_real_option_candles(self.smart_api, pos["c_ce"], pos["entry_time"], ist_now)
-                df_p = fetch_real_option_candles(self.smart_api, pos["c_pe"], pos["entry_time"], ist_now)
-                if not df_c.empty:
-                    p_c = float(df_c.iloc[-1]["close"])
-                    high_c = float(df_c["high"].max())
-                    low_c = float(df_c["low"].min())
-                if not df_p.empty:
-                    p_p = float(df_p.iloc[-1]["close"])
-                    high_p = float(df_p["high"].max())
-                    low_p = float(df_p["low"].min())
-            else:
-                dte = get_banknifty_dte(ist_now, today_date)
-                p_c = black_scholes_price(bn_spot, pos["ce_strike"], dte, config.RISK_FREE_RATE, 0.16, "CE")
-                p_p = black_scholes_price(bn_spot, pos["pe_strike"], dte, config.RISK_FREE_RATE, 0.16, "PE")
-                high_c, low_c = p_c, p_c
-                high_p, low_p = p_p, p_p
-
-            if not pos["ce_exited"]:
-                if high_c >= pos["ce_tgt"]:
-                    pos["ce_exited"] = True
-                    pos["ce_exit_p"] = round(pos["ce_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = "CE Target (+55%)"
-                    self.save_active_positions()
-                    if not pos["pe_exited"]:
-                        send_telegram_alert(
-                            f"🎯 *LEG PROFIT TARGET HIT*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+55% Target)\n"
-                            f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s5:ce:{pos['ce_reason']}"
-                        )
-                elif low_c <= pos["ce_sl"]:
-                    pos["ce_exited"] = True
-                    pos["ce_exit_p"] = round(pos["ce_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = "CE SL (-12%)"
-                    self.save_active_positions()
-                    if not pos["pe_exited"]:
-                        send_telegram_alert(
-                            f"🛑 *LEG STOP LOSS TRIGGERED*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-12% SL)\n"
-                            f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s5:ce:{pos['ce_reason']}"
-                        )
-
-            if not pos["pe_exited"]:
-                if high_p >= pos["pe_tgt"]:
-                    pos["pe_exited"] = True
-                    pos["pe_exit_p"] = round(pos["pe_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = "PE Target (+55%)"
-                    self.save_active_positions()
-                    if not pos["ce_exited"]:
-                        send_telegram_alert(
-                            f"🎯 *LEG PROFIT TARGET HIT*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+55% Target)\n"
-                            f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s5:pe:{pos['pe_reason']}"
-                        )
-                elif low_p <= pos["pe_sl"]:
-                    pos["pe_exited"] = True
-                    pos["pe_exit_p"] = round(pos["pe_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = "PE SL (-12%)"
-                    self.save_active_positions()
-                    if not pos["ce_exited"]:
-                        send_telegram_alert(
-                            f"🛑 *LEG STOP LOSS TRIGGERED*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 5: BankNIFTY Decoupled Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-12% SL)\n"
-                            f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s5:pe:{pos['pe_reason']}"
-                        )
-
-            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
-            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
-            cur_tot = exit_c + exit_p
-            comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
-            is_time_up = (elapsed_mins >= 35.0) or (ist_now.time() >= dtime(15, 15))
-            is_comb_stop = comb_ret <= -0.12
-
-            if (pos["ce_exited"] and pos["pe_exited"]) or is_time_up or is_comb_stop:
-                if is_comb_stop:
-                    exit_reason = "Combined Capital SL (-12%)"
-                elif pos["ce_exited"] and pos["pe_exited"]:
-                    exit_reason = f"{pos['ce_reason']} & {pos['pe_reason']}"
-                elif is_time_up:
-                    active_reasons = []
-                    if pos["ce_exited"]: active_reasons.append(pos["ce_reason"])
-                    if pos["pe_exited"]: active_reasons.append(pos["pe_reason"])
-                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else "Time Exit (35m)"
-                elif pos["ce_exited"] or pos["pe_exited"]:
-                    exit_reason = pos["ce_reason"] if pos["ce_exited"] else pos["pe_reason"]
-                else:
-                    exit_reason = "Time Exit (35m)"
-
-                gross = ((exit_c - pos["ce_entry"]) + (exit_p - pos["pe_entry"])) * self.bn_lot_size
-                buy_v = pos["entry_tot"] * self.bn_lot_size
-                sell_v = cur_tot * self.bn_lot_size
-                turn = buy_v + sell_v
-                stt = sell_v * 0.001
-                exch = turn * 0.0005
-                charges = round(80.0 + stt + exch + (80.0 + exch) * 0.18, 2)
-                net = round(gross - charges, 2)
-
-                tr_log = {
-                    "date": str(today_date),
-                    "strategy": "Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
-                    "opt_type": "CE+PE",
-                    "strike": f"{pos['ce_symbol']} + {pos['pe_symbol']}",
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S"),
-                    "exit_time": ist_now.strftime("%H:%M:%S"),
-                    "entry_p": pos["entry_tot"],
-                    "exit_p": round(cur_tot, 2),
-                    "cost": pos["cost"],
-                    "gross_pnl": round(gross, 2),
-                    "charges": charges,
-                    "net_pnl": net,
-                    "exit_reason": exit_reason,
-                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
-                }
-                self.cooldown_until["s5"] = ist_now + timedelta(minutes=30)
-                self.on_trade_exit("s5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
-                    exit_reason=exit_reason,
-                    gross_pnl=round(gross, 2),
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(pos["entry_time"]),
-                    strike=f"{pos['ce_symbol']} + {pos['pe_symbol']}"
-                )
-
-        # 2. POSITION IS NOT OPEN -> CHECK FOR LIVE BREAKOUT ENTRY
-        else:
-            if self.daily_trade_count["s5"] >= 1:
-                return
-            if self.cooldown_until["s5"] and ist_now < self.cooldown_until["s5"]:
-                return
-            if ist_now.time() < dtime(9, 45) or ist_now.time() > dtime(11, 0):
-                return
-            if dtime(11, 30) <= ist_now.time() <= dtime(12, 45):
-                return
-            if df_bn.empty or len(df_bn) < 20:
-                return
-
-            rolling_std = float(df_bn["close"].rolling(20).std().iloc[-1])
-            vel_val = float(df_bn["close"].iloc[-1] - df_bn["close"].iloc[-4]) if len(df_bn) >= 4 else 0.0
-
-            # Fine-tuned to rolling_std < 40.0 and abs(vel_val) >= 30.0 for 60% win rate & 1.80 PF
-            if rolling_std < 40.0 and abs(vel_val) >= 30.0:
-                dte = get_banknifty_dte(ist_now, today_date)
-                k_ce, k_pe, p_ce, p_pe, tot_capital, c_ce, c_pe = select_banknifty_affordable_strikes(
-                    bn_spot, dte, today_date, api=self.smart_api, max_budget=10000.0
-                )
-                real_ce = p_ce
-                real_pe = p_pe
-                feed_label = "Mathematical (BSM)"
-
-                if self.smart_api and c_ce and c_pe:
-                    df_ce = fetch_real_option_candles(self.smart_api, c_ce, ist_now - timedelta(minutes=10), ist_now)
-                    df_pe = fetch_real_option_candles(self.smart_api, c_pe, ist_now - timedelta(minutes=10), ist_now)
-                    if not df_ce.empty and not df_pe.empty:
-                        real_ce = round(float(df_ce.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                        real_pe = round(float(df_pe.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                        feed_label = f"Angel One Real Traded ({c_ce['symbol']} + {c_pe['symbol']})"
-
-                entry_tot = round(real_ce + real_pe, 2)
-                cost = round(entry_tot * self.bn_lot_size, 2)
-                if cost > 10000.0:
-                    return
-
-                ce_sym = c_ce["symbol"] if c_ce else f"{k_ce}CE"
-                pe_sym = c_pe["symbol"] if c_pe else f"{k_pe}PE"
-                curr_bar = df_bn.iloc[-1]
-                candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
-
-                pos_data = {
-                    "entry_time": candle_ts,
-                    "spot_entry": bn_spot,
-                    "c_ce": c_ce,
-                    "c_pe": c_pe,
-                    "ce_strike": k_ce,
-                    "pe_strike": k_pe,
-                    "ce_symbol": ce_sym,
-                    "pe_symbol": pe_sym,
-                    "ce_entry": real_ce,
-                    "pe_entry": real_pe,
-                    "entry_tot": entry_tot,
-                    "cost": cost,
-                    "ce_tgt": round(real_ce * 1.60, 2),
-                    "ce_sl": round(real_ce * 0.88, 2),
-                    "pe_tgt": round(real_pe * 1.60, 2),
-                    "pe_sl": round(real_pe * 0.88, 2),
-                    "ce_exited": False,
-                    "pe_exited": False,
-                    "ce_exit_p": None,
-                    "pe_exit_p": None,
-                    "ce_reason": "",
-                    "pe_reason": "",
-                    "data_feed": feed_label
-                }
-                self.on_trade_entry("s5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", pos_data)
-                send_trade_entry_alert(
-                    strategy="Strategy 5: BankNIFTY Decoupled Strangle (DAS)",
-                    spot=bn_spot,
-                    ce_str=ce_sym,
-                    pe_str=pe_sym,
-                    ce_p=real_ce,
-                    pe_p=real_pe,
-                    tot_cost=cost,
-                    win_target_pct=0.60,
-                    lose_stop_pct=0.12,
-                    max_hold_mins=45,
-                    time_str=candle_ts.strftime("%H:%M:%S"),
-                    qty=self.bn_lot_size,
-                    date_str=str(today_date)
-                )
-
-    def process_live_strategy_6(self, df_bn: pd.DataFrame, today_date, ist_now, bn_spot: float):
-        """Real-time live position tracking and entry engine for Strategy 6 (BankNIFTY Directional Box Breakout - DBB)."""
-        pos = self.active_positions["s6"]
-
-        # 1. POSITION IS OPEN -> MONITOR AND EXIT
-        if pos is not None:
-            c_opt = pos.get("c_opt")
-            cur_p = pos["entry_p"]
-            high_p, low_p = cur_p, cur_p
-
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
-                if not df_opt.empty:
-                    cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = float(df_opt["high"].max())
-                    low_p = float(df_opt["low"].min())
-            else:
-                dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
-                from src.banknifty.banknifty_das import bs_price
-                cur_p = bs_price(bn_spot, pos["strike"], dte, opt_type=pos["opt_type"], sigma=0.18)
-                high_p, low_p = cur_p, cur_p
-
-            exit_triggered = False
-            exit_p = cur_p
-            exit_reason = ""
-
-            if high_p >= pos["target_p"]:
-                exit_triggered = True
-                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Target Hit (+40%)"
-            elif low_p <= pos["stop_p"]:
-                exit_triggered = True
-                exit_p = round(pos["stop_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "SL Hit (-20%)"
-            elif ist_now.time() >= dtime(15, 12):
-                exit_triggered = True
-                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD (15:12 PM)"
-
-            if exit_triggered:
-                gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
-                turnover = (pos["entry_p"] + exit_p) * self.bn_lot_size
-                stt = (exit_p * self.bn_lot_size) * 0.001
-                exch = turnover * 0.0005
-                charges = round(45.0 + stt + exch + (45.0 + exch) * 0.18, 2)
-                net = round(gross - charges, 2)
-
-                tr_log = {
-                    "date": str(today_date),
-                    "strategy": "Strategy 6: BankNIFTY Directional Box Breakout (DBB)",
-                    "leg": pos["opt_type"],
-                    "strike": pos["symbol"],
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
-                    "exit_time": ist_now.strftime("%H:%M:%S"),
-                    "entry_p": pos["entry_p"],
-                    "exit_p": exit_p,
-                    "cost": pos["cost"],
-                    "capital_used": pos["cost"],
-                    "gross_pnl": round(gross, 2),
-                    "charges": charges,
-                    "net_pnl": net,
-                    "exit_reason": exit_reason,
-                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
-                }
-                self.on_trade_exit("s6", "Strategy 6: BankNIFTY Directional Box Breakout (DBB)", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 6: BankNIFTY Directional Box Breakout (DBB)",
-                    exit_reason=exit_reason,
-                    gross_pnl=gross,
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(tr_log["entry_time"]),
-                    strike=str(pos["symbol"])
-                )
-                self.cooldown_until["s6"] = ist_now + timedelta(minutes=15)
-                return
-
-        # 2. POSITION IS NONE -> SCAN FOR 15M BOX BREAKOUT
-        if pos is None:
-            if self.daily_trade_count["s6"] >= 1:
-                return
-            if self.cooldown_until["s6"] and ist_now < self.cooldown_until["s6"]:
-                return
-            if not (dtime(9, 46) <= ist_now.time() <= dtime(15, 0)):
-                return
-
-            df = df_bn.copy()
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-            day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
-            box_bars = day_df[(day_df["timestamp"].dt.time >= dtime(9, 15)) & (day_df["timestamp"].dt.time <= dtime(9, 45))]
-            if len(box_bars) < 15:
-                return
-
-            box_h = float(box_bars["high"].max())
-            box_l = float(box_bars["low"].min())
-            spot_open = float(box_bars["close"].iloc[0])
-            box_pct = ((box_h - box_l) / spot_open) * 100.0
-            if box_pct > 0.50:
-                return
-
-            # Calculate intraday typical price and VWAP for trend confirmation
-            tp = (day_df["high"] + day_df["low"] + day_df["close"]) / 3.0
-            vol = day_df["volume"] if "volume" in day_df.columns else pd.Series(1.0, index=day_df.index)
-            day_df["vwap"] = (tp * vol).cumsum() / vol.cumsum().clip(lower=1)
-            vwap_val = float(day_df["vwap"].iloc[-1])
-
-            # Check if current bar triggers breakout with VWAP confirmation (20-pt buffer)
-            is_ce = (bn_spot >= (box_h + 20.0)) and (bn_spot > vwap_val)
-            is_pe = (bn_spot <= (box_l - 20.0)) and (bn_spot < vwap_val)
-            if not (is_ce or is_pe):
-                return
-
-            opt_type = "CE" if is_ce else "PE"
-            dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
-            chosen_k, chosen_p, c_opt = select_banknifty_directional_strike(bn_spot, opt_type, dte_y, today_date, api=self.smart_api)
-
-            real_p = chosen_p
-            feed_label = "Mathematical (BSM)"
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=5), ist_now)
-                if not df_opt.empty:
-                    real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
-
-            cost = round(real_p * self.bn_lot_size, 2)
-            if cost > 8500.0:
-                return
-
-            sym = c_opt["symbol"] if c_opt else f"{chosen_k}{opt_type}"
-            pos_data = {
-                "entry_time": ist_now,
-                "spot_entry": bn_spot,
-                "c_opt": c_opt,
-                "strike": chosen_k,
-                "opt_type": opt_type,
-                "symbol": sym,
-                "entry_p": real_p,
-                "cost": cost,
-                "target_p": round(real_p * 1.40, 2),
-                "stop_p": round(real_p * 0.80, 2),
-                "data_feed": feed_label
-            }
-            self.on_trade_entry("s6", "Strategy 6: BankNIFTY Directional Box Breakout (DBB)", pos_data)
-            send_trade_entry_alert(
-                strategy="Strategy 6: BankNIFTY Directional Box Breakout (DBB)",
-                spot=bn_spot,
-                ce_str=sym if opt_type == "CE" else "",
-                pe_str=sym if opt_type == "PE" else "",
-                ce_p=real_p if opt_type == "CE" else 0.0,
-                pe_p=real_p if opt_type == "PE" else 0.0,
-                tot_cost=cost,
-                win_target_pct=0.40,
-                lose_stop_pct=0.20,
-                max_hold_mins=120,
-                time_str=ist_now.strftime("%H:%M:%S"),
-                qty=self.bn_lot_size,
-                date_str=str(today_date)
-            )
-
-    def process_live_strategy_7(self, df_bn: pd.DataFrame, today_date, ist_now, bn_spot: float):
-        """Real-time live position tracking and entry engine for Strategy 7 (BankNIFTY Expiry Gamma Squeeze Momentum - GSM)."""
-        pos = self.active_positions["s7"]
-
-        if pos is not None:
-            c_opt = pos.get("c_opt")
-            cur_p = pos["entry_p"]
-            high_p, low_p = cur_p, cur_p
-
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
-                if not df_opt.empty:
-                    cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = float(df_opt["high"].max())
-                    low_p = float(df_opt["low"].min())
-            else:
-                dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
-                from src.banknifty.banknifty_das import bs_price
-                cur_p = bs_price(bn_spot, pos["strike"], dte, opt_type=pos["opt_type"], sigma=0.18)
-                high_p, low_p = cur_p, cur_p
-
-            exit_triggered = False
-            exit_p = cur_p
-            exit_reason = ""
-
-            # Check mean reversal if available
-            is_rev = False
-            if pos.get("session_mean"):
-                s_mean = float(pos["session_mean"])
-                if (pos["opt_type"] == "CE" and bn_spot < s_mean) or (pos["opt_type"] == "PE" and bn_spot > s_mean):
-                    is_rev = True
-
-            if high_p >= pos["target_p"]:
-                exit_triggered = True
-                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Target Hit (+40%)"
-            elif low_p <= pos["stop_p"]:
-                exit_triggered = True
-                exit_p = round(pos["stop_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "SL Hit (-20%)"
-            elif is_rev:
-                exit_triggered = True
-                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Session Mean Reversal"
-            elif ist_now.time() >= dtime(15, 12):
-                exit_triggered = True
-                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD (15:12 PM)"
-
-            if exit_triggered:
-                gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
-                turnover = (pos["entry_p"] + exit_p) * self.bn_lot_size
-                stt = (exit_p * self.bn_lot_size) * 0.001
-                exch = turnover * 0.0005
-                charges = round(45.0 + stt + exch + (45.0 + exch) * 0.18, 2)
-                net = round(gross - charges, 2)
-
-                tr_log = {
-                    "date": str(today_date),
-                    "strategy": "Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)",
-                    "leg": pos["opt_type"],
-                    "strike": pos["symbol"],
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
-                    "exit_time": ist_now.strftime("%H:%M:%S"),
-                    "entry_p": pos["entry_p"],
-                    "exit_p": exit_p,
-                    "cost": pos["cost"],
-                    "capital_used": pos["cost"],
-                    "gross_pnl": round(gross, 2),
-                    "charges": charges,
-                    "net_pnl": net,
-                    "exit_reason": exit_reason,
-                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
-                }
-                self.on_trade_exit("s7", "Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)",
-                    exit_reason=exit_reason,
-                    gross_pnl=gross,
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(tr_log["entry_time"]),
-                    strike=str(pos["symbol"])
-                )
-                self.cooldown_until["s7"] = ist_now + timedelta(minutes=20)
-                return
-
-        if pos is None:
-            if today_date.weekday() not in [1, 2]:
-                return
-            if self.daily_trade_count["s7"] >= 1:
-                return
-            if self.cooldown_until["s7"] and ist_now < self.cooldown_until["s7"]:
-                return
-            if not (dtime(9, 35) <= ist_now.time() <= dtime(14, 30)):
-                return
-
-            df = df_bn.copy()
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-            day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
-            if len(day_df) < 20:
-                return
-
-            day_5m = day_df.set_index("timestamp").resample("5min").agg({
-                "open": "first", "high": "max", "low": "min", "close": "last"
-            }).dropna().reset_index()
-            if len(day_5m) < 8:
-                return
-
-            day_5m["typical_p"] = (day_5m["high"] + day_5m["low"] + day_5m["close"]) / 3.0
-            day_5m["session_mean"] = day_5m["typical_p"].expanding().mean()
-            tr1 = day_5m["high"] - day_5m["low"]
-            tr2 = (day_5m["high"] - day_5m["close"].shift(1)).abs()
-            tr3 = (day_5m["low"] - day_5m["close"].shift(1)).abs()
-            day_5m["atr"] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1).rolling(14, min_periods=5).mean().bfill()
-
-            prev = day_5m.iloc[-2]
-            cur = day_5m.iloc[-1]
-            f_ce = (float(prev["close"]) <= float(prev["session_mean"]) + 2.0 * float(prev["atr"])) and (float(cur["close"]) > float(cur["session_mean"]) + 2.0 * float(cur["atr"]))
-            f_pe = (float(prev["close"]) >= float(prev["session_mean"]) - 2.0 * float(prev["atr"])) and (float(cur["close"]) < float(cur["session_mean"]) - 2.0 * float(cur["atr"]))
-
-            if not (f_ce or f_pe):
-                return
-
-            opt_type = "CE" if f_ce else "PE"
-            dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
-            chosen_k, chosen_p, c_opt = select_banknifty_directional_strike(bn_spot, opt_type, dte_y, today_date, api=self.smart_api)
-
-            real_p = chosen_p
-            feed_label = "Mathematical (BSM)"
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=5), ist_now)
-                if not df_opt.empty:
-                    real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
-
-            cost = round(real_p * self.bn_lot_size, 2)
-            if cost > 8500.0:
-                return
-
-            sym = c_opt["symbol"] if c_opt else f"{chosen_k}{opt_type}"
-            pos_data = {
-                "entry_time": ist_now,
-                "spot_entry": bn_spot,
-                "c_opt": c_opt,
-                "strike": chosen_k,
-                "opt_type": opt_type,
-                "symbol": sym,
-                "entry_p": real_p,
-                "cost": cost,
-                "session_mean": float(cur["session_mean"]),
-                "target_p": round(real_p * 1.40, 2),
-                "stop_p": round(real_p * 0.80, 2),
-                "data_feed": feed_label
-            }
-            self.on_trade_entry("s7", "Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", pos_data)
-            send_trade_entry_alert(
-                strategy="Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)",
-                spot=bn_spot,
-                ce_str=sym if opt_type == "CE" else "",
-                pe_str=sym if opt_type == "PE" else "",
-                ce_p=real_p if opt_type == "CE" else 0.0,
-                pe_p=real_p if opt_type == "PE" else 0.0,
-                tot_cost=cost,
-                win_target_pct=0.40,
-                lose_stop_pct=0.20,
-                max_hold_mins=90,
-                time_str=ist_now.strftime("%H:%M:%S"),
-                qty=self.bn_lot_size,
-                date_str=str(today_date)
-            )
-
-    def process_live_strategy_8(self, df_bn: pd.DataFrame, today_date, ist_now, bn_spot: float):
-        """Real-time live position tracking and entry engine for Strategy 8: BankNIFTY 15M Directional Breakout."""
-        pos = self.active_positions["s8"]
-
-        if pos is not None:
-            c_opt = pos.get("contract")
-            cur_p = pos["entry_p"]
-            high_p, low_p = cur_p, cur_p
-
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
-                if not df_opt.empty:
-                    cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = float(df_opt["high"].max())
-                    low_p = float(df_opt["low"].min())
-            else:
-                dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
-                from src.banknifty.banknifty_das import bs_price
-                cur_p = bs_price(bn_spot, pos["strike"], dte, pos["opt_type"], sigma=0.18)
-                high_p, low_p = cur_p, cur_p
-
-            exit_triggered = False
-            exit_p = cur_p
-            exit_reason = ""
-
-            if high_p >= pos["target_p"]:
-                exit_triggered = True
-                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = f"Target Hit (+{int(config.S8_TARGET_PCT * 100)}%)"
-            elif low_p <= pos["sl_p"]:
-                exit_triggered = True
-                exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = f"SL Hit (-{int(config.S8_SL_PCT * 100)}%)"
-            elif ist_now.time() >= dtime(15, 15):
-                exit_triggered = True
-                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD Squareoff (15:15)"
-
-            if exit_triggered:
-                gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
-                turn = (pos["entry_p"] + exit_p) * self.bn_lot_size
-                brok = 40.0
-                stt = (exit_p * self.bn_lot_size) * config.STT_PCT_ON_SELL
-                exch = turn * config.EXCHANGE_TURNOVER_PCT
-                gst = (brok + exch) * config.GST_PCT
-                charges = round(brok + stt + exch + gst, 2)
-                net = round(gross - charges, 2)
-
-                tr_log = {
-                    "date": str(today_date),
-                    "strategy": "Strategy 8: BankNIFTY 15M Directional Breakout",
-                    "leg": pos["opt_type"],
-                    "strike": pos["symbol"],
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
-                    "exit_time": ist_now.strftime("%H:%M:%S"),
-                    "entry_p": pos["entry_p"],
-                    "exit_p": exit_p,
-                    "cost": pos["cost"],
-                    "capital_used": pos["cost"],
-                    "gross_pnl": round(gross, 2),
-                    "charges": charges,
-                    "net_pnl": net,
-                    "exit_reason": exit_reason,
-                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
-                }
-                self.on_trade_exit("s8", "Strategy 8: BankNIFTY 15M Directional Breakout", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 8: BankNIFTY 15M Directional Breakout",
-                    exit_reason=exit_reason,
-                    gross_pnl=round(gross, 2),
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(tr_log["entry_time"]),
-                    strike=str(pos["symbol"])
-                )
-                self.cooldown_until["s8"] = ist_now + timedelta(minutes=30)
-                return
-
-        else:
-            if not config.S8_ENABLED:
-                return
-            active_count = sum(1 for p in self.active_positions.values() if p is not None)
-            if active_count >= config.MAX_CONCURRENT_POSITIONS:
-                return
-            if self.daily_trade_count["s8"] >= 1:
-                return
-            if self.cooldown_until["s8"] and ist_now < self.cooldown_until["s8"]:
-                return
-            if ist_now.time() < dtime(9, 30) or ist_now.time() > dtime(15, 0):
-                return
-            if df_bn.empty:
-                return
-
-            df = df_bn.copy()
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-            day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
-            if len(day_df) < 15:
-                return
-
-            box15 = day_df[(day_df["timestamp"].dt.time >= dtime(9, 15)) & (day_df["timestamp"].dt.time <= dtime(9, 30))]
-            if len(box15) < 8:
-                return
-
-            box_h = float(box15["high"].max())
-            box_l = float(box15["low"].min())
-            open_p = float(box15["close"].iloc[0])
-            b_rng = box_h - box_l
-            b_pct = (b_rng / open_p) * 100.0
-            if b_pct > config.S8_MAX_BOX_PCT:
-                return
-
-            # Compute 20-EMA for BankNifty trend confirmation
-            day_df["ema_20"] = day_df["close"].ewm(span=20, adjust=False).mean()
-            cur_bar = day_df.iloc[-1]
-            c = float(cur_bar["close"])
-            ema = float(cur_bar["ema_20"])
-            u_trig = box_h + config.S8_BUFFER_PTS
-            l_trig = box_l - config.S8_BUFFER_PTS
-
-            opt_type = None
-            strike = None
-            atm = int(round(c / 100.0) * 100)
-
-            if c >= u_trig and (not config.S8_USE_EMA_TREND or c > ema):
-                opt_type = "CE"
-                strike = atm + config.S8_OTM_OFFSET
-            elif c <= l_trig and (not config.S8_USE_EMA_TREND or c < ema):
-                opt_type = "PE"
-                strike = atm - config.S8_OTM_OFFSET
-            else:
-                return
-
-            candle_ts = pd.to_datetime(cur_bar["timestamp"]).to_pydatetime() if "timestamp" in cur_bar else ist_now
-            dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
-
-            c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="BANKNIFTY") if self.smart_api else None
-            from src.banknifty.banknifty_das import bs_price
-            real_p = bs_price(c, strike, dte_y, opt_type, sigma=0.18)
-            feed_label = "Mathematical (BSM)"
-
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=10), ist_now)
-                if not df_opt.empty:
-                    real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
-
-            entry_p = round(real_p, 2)
-            cost = round(entry_p * self.bn_lot_size, 2)
-            if cost > config.MAX_CAPITAL_PER_TRADE:
-                return
-
-            sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
-            target_p = round(entry_p * (1.0 + config.S8_TARGET_PCT), 2)
-            sl_p = round(entry_p * (1.0 - config.S8_SL_PCT), 2)
-
-            pos_data = {
-                "entry_time": candle_ts,
-                "spot_entry": c,
-                "contract": c_opt,
-                "opt_type": opt_type,
-                "strike": strike,
-                "symbol": sym_str,
-                "entry_p": entry_p,
-                "cost": cost,
-                "target_p": target_p,
-                "sl_p": sl_p,
-                "data_feed": feed_label
-            }
-            self.on_trade_entry("s8", "Strategy 8: BankNIFTY 15M Directional Breakout", pos_data)
-            send_trade_entry_alert(
-                strategy="Strategy 8: BankNIFTY 15M Directional Breakout",
-                spot=c,
-                ce_str=sym_str if opt_type == "CE" else "None",
-                pe_str=sym_str if opt_type == "PE" else "None",
-                ce_p=entry_p if opt_type == "CE" else 0.0,
-                pe_p=entry_p if opt_type == "PE" else 0.0,
-                tot_cost=cost,
-                win_target_pct=config.S8_TARGET_PCT,
-                lose_stop_pct=config.S8_SL_PCT,
-                max_hold_mins=360,
-                time_str=candle_ts.strftime("%H:%M:%S"),
-                qty=self.bn_lot_size,
-                date_str=str(today_date)
-            )
-
-    def process_live_strategy_4(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
-        """Real-time live position tracking and entry engine for Strategy 4 (Nifty DAS)."""
-        pos = self.active_positions["s4"]
-
-        if pos is not None:
-            elapsed_mins = (ist_now - pos["entry_time"]).total_seconds() / 60.0
-            p_c = pos["ce_entry"]
-            p_p = pos["pe_entry"]
-            high_c, low_c = p_c, p_c
-            high_p, low_p = p_p, p_p
-
-            if self.smart_api and pos.get("c_ce") and pos.get("c_pe"):
-                df_c = fetch_real_option_candles(self.smart_api, pos["c_ce"], pos["entry_time"], ist_now)
-                df_p = fetch_real_option_candles(self.smart_api, pos["c_pe"], pos["entry_time"], ist_now)
-                if not df_c.empty:
-                    p_c = float(df_c.iloc[-1]["close"])
-                    high_c = float(df_c["high"].max())
-                    low_c = float(df_c["low"].min())
-                if not df_p.empty:
-                    p_p = float(df_p.iloc[-1]["close"])
-                    high_p = float(df_p["high"].max())
-                    low_p = float(df_p["low"].min())
-            else:
-                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-                p_c = black_scholes_price(spot, pos["ce_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
-                p_p = black_scholes_price(spot, pos["pe_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
-                high_c, low_c = p_c, p_c
-                high_p, low_p = p_p, p_p
-
-            if not pos["ce_exited"]:
-                if high_c >= pos["ce_tgt"]:
-                    pos["ce_exited"] = True
-                    pos["ce_exit_p"] = round(pos["ce_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = "CE Target (+50%)"
-                    self.save_active_positions()
-                    if not pos["pe_exited"]:
-                        send_telegram_alert(
-                            f"🎯 *LEG PROFIT TARGET HIT*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
-                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+50% Target)\n"
-                            f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s4:ce:{pos['ce_reason']}"
-                        )
-                elif low_c <= pos["ce_sl"]:
-                    pos["ce_exited"] = True
-                    pos["ce_exit_p"] = round(pos["ce_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = "CE SL (-35%)"
-                    self.save_active_positions()
-                    if not pos["pe_exited"]:
-                        send_telegram_alert(
-                            f"🛑 *LEG STOP LOSS TRIGGERED*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
-                            f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-35% SL)\n"
-                            f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s4:ce:{pos['ce_reason']}"
-                        )
-
-            if not pos["pe_exited"]:
-                if high_p >= pos["pe_tgt"]:
-                    pos["pe_exited"] = True
-                    pos["pe_exit_p"] = round(pos["pe_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = "PE Target (+50%)"
-                    self.save_active_positions()
-                    if not pos["ce_exited"]:
-                        send_telegram_alert(
-                            f"🎯 *LEG PROFIT TARGET HIT*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+50% Target)\n"
-                            f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s4:pe:{pos['pe_reason']}"
-                        )
-                elif low_p <= pos["pe_sl"]:
-                    pos["pe_exited"] = True
-                    pos["pe_exit_p"] = round(pos["pe_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = "PE SL (-35%)"
-                    self.save_active_positions()
-                    if not pos["ce_exited"]:
-                        send_telegram_alert(
-                            f"🛑 *LEG STOP LOSS TRIGGERED*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 4: Decoupled Asymmetric Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-35% SL)\n"
-                            f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s4:pe:{pos['pe_reason']}"
-                        )
-
-            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
-            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
-            cur_tot = exit_c + exit_p
-            comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
-            is_time_up = (elapsed_mins >= config.DAS_MAX_HOLD_MINS) or (ist_now.time() >= dtime(15, 15))
-            is_comb_stop = comb_ret <= -config.DAS_COMBINED_STOP_PCT
-
-            if (pos["ce_exited"] and pos["pe_exited"]) or is_time_up or is_comb_stop:
-                if is_comb_stop:
-                    exit_reason = "Combined Capital SL (-15%)"
-                elif pos["ce_exited"] and pos["pe_exited"]:
-                    exit_reason = f"{pos['ce_reason']} & {pos['pe_reason']}"
-                elif is_time_up:
-                    active_reasons = []
-                    if pos["ce_exited"]: active_reasons.append(pos["ce_reason"])
-                    if pos["pe_exited"]: active_reasons.append(pos["pe_reason"])
-                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else f"Max Hold ({config.DAS_MAX_HOLD_MINS}m)"
-                elif pos["ce_exited"] or pos["pe_exited"]:
-                    exit_reason = pos["ce_reason"] if pos["ce_exited"] else pos["pe_reason"]
-                else:
-                    exit_reason = f"Max Hold ({config.DAS_MAX_HOLD_MINS}m)"
-
-                gross = ((exit_c - pos["ce_entry"]) + (exit_p - pos["pe_entry"])) * self.lot_size
-                buy_v = pos["entry_tot"] * self.lot_size
-                sell_v = cur_tot * self.lot_size
-                turn = buy_v + sell_v
-                stt = sell_v * 0.001
-                exch = turn * 0.0005
-                charges = round(80.0 + stt + exch + (80.0 + exch) * 0.18, 2)
-                net = round(gross - charges, 2)
-
-                tr_log = {
-                    "date": str(today_date),
-                    "strategy": "Strategy 4: Decoupled Asymmetric Strangle",
-                    "opt_type": "CE+PE",
-                    "strike": f"{pos['ce_symbol']} + {pos['pe_symbol']}",
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S"),
-                    "exit_time": ist_now.strftime("%H:%M:%S"),
-                    "entry_p": pos["entry_tot"],
-                    "exit_p": round(cur_tot, 2),
-                    "cost": pos["cost"],
-                    "gross_pnl": round(gross, 2),
-                    "charges": charges,
-                    "net_pnl": net,
-                    "exit_reason": exit_reason,
-                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
-                }
-                self.cooldown_until["s4"] = ist_now + timedelta(minutes=config.DAS_COOLDOWN_BARS)
-                self.on_trade_exit("s4", "Strategy 4: Decoupled Asymmetric Strangle", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
-                    exit_reason=exit_reason,
-                    gross_pnl=round(gross, 2),
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f} ({pos['ce_symbol']} + {pos['pe_symbol']})",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(pos["entry_time"]),
-                    strike=f"{pos['ce_symbol']} + {pos['pe_symbol']}"
-                )
-
-        else:
-            if not config.S4_ENABLED:
-                return
-            active_count = sum(1 for p in self.active_positions.values() if p is not None)
-            if active_count >= config.MAX_CONCURRENT_POSITIONS:
-                return
-            if self.cooldown_until["s4"] and ist_now < self.cooldown_until["s4"]:
-                return
-            if not is_trade_window_valid(ist_now.time()):
-                return
-            if df_all.empty:
-                return
-
-            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
-            if day_bars.empty or len(day_bars) < 15:
-                return
-
-            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-            strike_res = select_affordable_strikes(spot, ist_now, T_years=t_exp_years, min_prem=config.DAS_MIN_LEG_PREMIUM, max_prem=config.DAS_MAX_LEG_PREMIUM, max_budget=config.MAX_CAPITAL_PER_TRADE)
-            if not strike_res:
-                return
-
-            ce_k, pe_k, p_ce, p_pe, _ = strike_res
-            recent_spots = day_bars["close"].iloc[-15:].values
-            comb_hist = []
-            for s_val in recent_spots:
-                cp = black_scholes_price(s_val, ce_k, t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
-                pp = black_scholes_price(s_val, pe_k, t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
-                comb_hist.append(cp + pp)
-            comb_hist = np.array(comb_hist)
-
-            triggered, cur_std, cur_vel = check_compression_expansion(comb_hist, config.DAS_STD_THRESH, config.DAS_VEL_THRESH)
-            if triggered:
-                c_ce = get_active_option_contract(today_date, ce_k, "CE", underlying="NIFTY") if self.smart_api else None
-                c_pe = get_active_option_contract(today_date, pe_k, "PE", underlying="NIFTY") if self.smart_api else None
-
-                real_ce = p_ce
-                real_pe = p_pe
-                feed_label = "Mathematical (BSM)"
-
-                if self.smart_api and c_ce and c_pe:
-                    df_ce = fetch_real_option_candles(self.smart_api, c_ce, ist_now - timedelta(minutes=10), ist_now)
-                    df_pe = fetch_real_option_candles(self.smart_api, c_pe, ist_now - timedelta(minutes=10), ist_now)
-                    if not df_ce.empty and not df_pe.empty:
-                        real_ce = round(float(df_ce.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                        real_pe = round(float(df_pe.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                        feed_label = f"Angel One Real Traded ({c_ce['symbol']} + {c_pe['symbol']})"
-
-                entry_tot = round(real_ce + real_pe, 2)
-                cost = round(entry_tot * self.lot_size, 2)
-                if cost > 10000.0:
-                    return
-
-                ce_sym = c_ce["symbol"] if c_ce else f"{ce_k}CE"
-                pe_sym = c_pe["symbol"] if c_pe else f"{pe_k}PE"
-                curr_bar = day_bars.iloc[-1]
-                candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
-
-                pos_data = {
-                    "entry_time": candle_ts,
-                    "spot_entry": spot,
-                    "c_ce": c_ce,
-                    "c_pe": c_pe,
-                    "ce_strike": ce_k,
-                    "pe_strike": pe_k,
-                    "ce_symbol": ce_sym,
-                    "pe_symbol": pe_sym,
-                    "ce_entry": real_ce,
-                    "pe_entry": real_pe,
-                    "entry_tot": entry_tot,
-                    "cost": cost,
-                    "ce_tgt": round(real_ce * (1.0 + config.DAS_WIN_TARGET_PCT), 2),
-                    "ce_sl": round(real_ce * (1.0 - config.DAS_LOSE_STOP_PCT), 2),
-                    "pe_tgt": round(real_pe * (1.0 + config.DAS_WIN_TARGET_PCT), 2),
-                    "pe_sl": round(real_pe * (1.0 - config.DAS_LOSE_STOP_PCT), 2),
-                    "ce_exited": False,
-                    "pe_exited": False,
-                    "ce_exit_p": None,
-                    "pe_exit_p": None,
-                    "ce_reason": "",
-                    "pe_reason": "",
-                    "data_feed": feed_label
-                }
-                self.on_trade_entry("s4", "Strategy 4: Decoupled Asymmetric Strangle", pos_data)
-                send_trade_entry_alert(
-                    strategy="Strategy 4: Decoupled Asymmetric Strangle (DAS)",
-                    spot=spot,
-                    ce_str=ce_sym,
-                    pe_str=pe_sym,
-                    ce_p=real_ce,
-                    pe_p=real_pe,
-                    tot_cost=cost,
-                    win_target_pct=config.DAS_WIN_TARGET_PCT,
-                    lose_stop_pct=config.DAS_LOSE_STOP_PCT,
-                    max_hold_mins=config.DAS_MAX_HOLD_MINS,
-                    time_str=candle_ts.strftime("%H:%M:%S"),
-                    qty=self.lot_size,
-                    date_str=str(today_date)
-                )
 
     def process_live_strategy_1(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 1: Nifty 15M Directional Breakout."""
@@ -1478,28 +406,29 @@ class LiveQuadPaperTrader:
             if box_pct > config.S1_MAX_BOX_PCT:
                 return
 
-            # Compute 20-EMA for trend confirmation
             day_bars["ema_20"] = day_bars["close"].ewm(span=20, adjust=False).mean()
-            curr_bar = day_bars.iloc[-1]
-            c = float(curr_bar["close"])
-            ema = float(curr_bar["ema_20"])
+            cur_bar = day_bars.iloc[-1]
+            c = float(cur_bar["close"])
+            ema = float(cur_bar["ema_20"])
             u_trig = box_h + config.S1_BUFFER_PTS
             l_trig = box_l - config.S1_BUFFER_PTS
 
             opt_type = None
+            strike = None
+            atm = int(round(c / 50.0) * 50)
+
             if c >= u_trig and (not config.S1_USE_EMA_TREND or c > ema):
                 opt_type = "CE"
+                strike = atm
             elif c <= l_trig and (not config.S1_USE_EMA_TREND or c < ema):
                 opt_type = "PE"
+                strike = atm
             else:
                 return
 
-            atm = int(round(c / 50.0) * 50)
-            strike = atm
-            candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
-            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-
+            candle_ts = pd.to_datetime(cur_bar["timestamp"]).to_pydatetime() if "timestamp" in cur_bar else ist_now
             c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="NIFTY") if self.smart_api else None
+            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
             real_p = black_scholes_price(c, strike, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
             feed_label = "Mathematical (BSM)"
 
@@ -1514,7 +443,7 @@ class LiveQuadPaperTrader:
             if cost > config.MAX_CAPITAL_PER_TRADE:
                 return
 
-            sym_str = c_opt["symbol"] if c_opt else f"{strike}{opt_type}"
+            sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
             target_p = round(entry_p * (1.0 + config.S1_TARGET_PCT), 2)
             sl_p = round(entry_p * (1.0 - config.S1_SL_PCT), 2)
 
@@ -1548,356 +477,454 @@ class LiveQuadPaperTrader:
                 date_str=str(today_date)
             )
 
-    def process_live_strategy_2(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
-        """Real-time live position tracking and entry engine for Strategy 2 (Gamma Squeeze)."""
+    def process_live_strategy_2(self, df_bn: pd.DataFrame, today_date, ist_now, bn_spot: float):
+        """Real-time live position tracking and entry engine for Strategy 2: BankNIFTY 15M Directional Breakout."""
         pos = self.active_positions["s2"]
 
         if pos is not None:
-            elapsed_mins = (ist_now - pos["entry_time"]).total_seconds() / 60.0
-            curr_p = pos["entry_p"]
-            high_p = curr_p
-            low_p = curr_p
+            c_opt = pos.get("contract")
+            cur_p = pos["entry_p"]
+            high_p, low_p = cur_p, cur_p
 
-            if self.smart_api and pos.get("contract"):
-                df_opt = fetch_real_option_candles(self.smart_api, pos["contract"], pos["entry_time"], ist_now)
+            if self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
-                    curr_p = float(df_opt.iloc[-1]["close"])
+                    cur_p = float(df_opt.iloc[-1]["close"])
                     high_p = float(df_opt["high"].max())
                     low_p = float(df_opt["low"].min())
             else:
-                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-                curr_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
-                high_p, low_p = curr_p, curr_p
+                dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
+                from src.banknifty.banknifty_das import bs_price
+                cur_p = bs_price(bn_spot, pos["strike"], dte, pos["opt_type"], sigma=0.18)
+                high_p, low_p = cur_p, cur_p
 
             exit_triggered = False
+            exit_p = cur_p
             exit_reason = ""
-            exit_p = curr_p
 
             if high_p >= pos["target_p"]:
                 exit_triggered = True
                 exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Target Hit (+80%)"
-            elif low_p <= pos["stop_p"]:
+                exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
+            elif low_p <= pos["sl_p"]:
                 exit_triggered = True
-                exit_p = round(pos["stop_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "SL Hit (-25%)"
-            elif elapsed_mins >= 45.0 or ist_now.time() >= dtime(15, 15):
+                exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+            elif ist_now.time() >= dtime(15, 15):
                 exit_triggered = True
-                exit_p = round(curr_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Time Stop (45m)"
+                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                exit_reason = "EOD Squareoff (15:15)"
 
             if exit_triggered:
-                gross = (exit_p - pos["entry_p"]) * self.lot_size
-                buy_v = pos["entry_p"] * self.lot_size
-                sell_v = exit_p * self.lot_size
-                turn = buy_v + sell_v
-                stt = sell_v * 0.001
-                exch = turn * 0.0005
-                charges = round(40.0 + stt + exch + (40.0 + exch) * 0.18, 2)
+                gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
+                turn = (pos["entry_p"] + exit_p) * self.bn_lot_size
+                brok = 40.0
+                stt = (exit_p * self.bn_lot_size) * config.STT_PCT_ON_SELL
+                exch = turn * config.EXCHANGE_TURNOVER_PCT
+                gst = (brok + exch) * config.GST_PCT
+                charges = round(brok + stt + exch + gst, 2)
                 net = round(gross - charges, 2)
 
                 tr_log = {
                     "date": str(today_date),
-                    "strategy": "Strategy 2: Expiry Gamma Squeeze",
-                    "opt_type": pos["opt_type"],
-                    "strike": str(pos["strike"]),
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S"),
+                    "strategy": "Strategy 2: BankNIFTY 15M Directional Breakout",
+                    "leg": pos["opt_type"],
+                    "strike": pos["symbol"],
+                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
                     "exit_time": ist_now.strftime("%H:%M:%S"),
                     "entry_p": pos["entry_p"],
                     "exit_p": exit_p,
                     "cost": pos["cost"],
+                    "capital_used": pos["cost"],
                     "gross_pnl": round(gross, 2),
                     "charges": charges,
                     "net_pnl": net,
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                self.on_trade_exit("s2", "Strategy 2: Expiry Gamma Squeeze", tr_log)
+                self.on_trade_exit("s2", "Strategy 2: BankNIFTY 15M Directional Breakout", tr_log)
                 send_trade_exit_alert(
-                    strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
+                    strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
                     exit_reason=exit_reason,
                     gross_pnl=round(gross, 2),
                     charges=charges,
                     net_pnl=net,
-                    details=f"BUY {pos['symbol']} @ ₹{pos['entry_p']:.2f} exited @ ₹{exit_p:.2f}",
+                    details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
                     time_str=ist_now.strftime("%H:%M:%S"),
                     date_str=str(today_date),
-                    entry_time=str(pos["entry_time"]),
-                    strike=str(pos.get("symbol") or pos.get("strike", ""))
+                    entry_time=str(tr_log["entry_time"]),
+                    strike=str(pos["symbol"])
                 )
+                self.cooldown_until["s2"] = ist_now + timedelta(minutes=30)
+                return
 
         else:
-            if today_date.weekday() not in [0, 1]:
+            if not config.S2_ENABLED:
+                return
+            active_count = sum(1 for p in self.active_positions.values() if p is not None)
+            if active_count >= config.MAX_CONCURRENT_POSITIONS:
                 return
             if self.daily_trade_count["s2"] >= 1:
                 return
-            if ist_now.time() < dtime(9, 45) or ist_now.time() > dtime(11, 30):
+            if self.cooldown_until["s2"] and ist_now < self.cooldown_until["s2"]:
                 return
-            if df_all.empty:
+            if ist_now.time() < dtime(9, 30) or ist_now.time() > dtime(15, 0):
                 return
-
-            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
-            if day_bars.empty:
+            if df_bn.empty:
                 return
 
-            win_bars = day_bars[(day_bars["timestamp"].dt.time >= dtime(9, 45)) & (day_bars["timestamp"].dt.time <= dtime(11, 30))]
-            if len(win_bars) < 21:
+            df = df_bn.copy()
+            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+            day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
+            if len(day_df) < 15:
                 return
 
-            lookback = win_bars.iloc[-21:-1]
-            box_h = float(lookback["high"].max())
-            box_l = float(lookback["low"].min())
-            box_rng = box_h - box_l
-            spot_ref = float(lookback["close"].iloc[-1])
-
-            if (box_rng / spot_ref) * 100.0 > 0.25:
+            box15 = day_df[(day_df["timestamp"].dt.time >= dtime(9, 15)) & (day_df["timestamp"].dt.time <= dtime(9, 30))]
+            if len(box15) < 8:
                 return
 
-            upper_trig = box_h + 5.0
-            lower_trig = box_l - 5.0
-            curr_bar = win_bars.iloc[-1]
+            box_h = float(box15["high"].max())
+            box_l = float(box15["low"].min())
+            open_p = float(box15["close"].iloc[0])
+            b_rng = box_h - box_l
+            b_pct = (b_rng / open_p) * 100.0
+            if b_pct > config.S2_MAX_BOX_PCT:
+                return
 
-            opt_type = ""
-            if float(curr_bar["high"]) >= upper_trig or spot >= upper_trig:
+            day_df["ema_20"] = day_df["close"].ewm(span=20, adjust=False).mean()
+            cur_bar = day_df.iloc[-1]
+            c = float(cur_bar["close"])
+            ema = float(cur_bar["ema_20"])
+            u_trig = box_h + config.S2_BUFFER_PTS
+            l_trig = box_l - config.S2_BUFFER_PTS
+
+            opt_type = None
+            strike = None
+            atm = int(round(c / 100.0) * 100)
+
+            if c >= u_trig and (not config.S2_USE_EMA_TREND or c > ema):
                 opt_type = "CE"
-            elif float(curr_bar["low"]) <= lower_trig or spot <= lower_trig:
+                strike = atm + config.S2_OTM_OFFSET
+            elif c <= l_trig and (not config.S2_USE_EMA_TREND or c < ema):
                 opt_type = "PE"
+                strike = atm - config.S2_OTM_OFFSET
             else:
                 return
 
-            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-            atm = int(round(spot / 50.0) * 50)
-            chosen_k = atm
-            best_diff = 999.0
-            for offset in range(-500, 550, 50):
-                k = atm + offset
-                p_est = black_scholes_price(spot, k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
-                if abs(p_est - 50.0) < best_diff and p_est * self.lot_size <= 10000.0:
-                    best_diff = abs(p_est - 50.0)
-                    chosen_k = k
+            candle_ts = pd.to_datetime(cur_bar["timestamp"]).to_pydatetime() if "timestamp" in cur_bar else ist_now
+            dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
 
-            contract = get_active_option_contract(today_date, chosen_k, opt_type, underlying="NIFTY") if self.smart_api else None
-            real_p = black_scholes_price(spot, chosen_k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
+            c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="BANKNIFTY") if self.smart_api else None
+            from src.banknifty.banknifty_das import bs_price
+            real_p = bs_price(c, strike, dte_y, opt_type, sigma=0.18)
             feed_label = "Mathematical (BSM)"
 
-            if self.smart_api and contract:
-                df_opt = fetch_real_option_candles(self.smart_api, contract, ist_now - timedelta(minutes=10), ist_now)
+            if self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=10), ist_now)
                 if not df_opt.empty:
                     real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({contract['symbol']})"
+                    feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
 
-            cost = round(real_p * self.lot_size, 2)
-            if cost > 10000.0:
+            entry_p = round(real_p, 2)
+            cost = round(entry_p * self.bn_lot_size, 2)
+            if cost > config.MAX_CAPITAL_PER_TRADE:
                 return
 
-            sym = contract["symbol"] if contract else f"{chosen_k} {opt_type}"
-            candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
+            sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
+            target_p = round(entry_p * (1.0 + config.S2_TARGET_PCT), 2)
+            sl_p = round(entry_p * (1.0 - config.S2_SL_PCT), 2)
 
             pos_data = {
                 "entry_time": candle_ts,
-                "spot_entry": spot,
-                "contract": contract,
-                "symbol": sym,
+                "spot_entry": c,
+                "contract": c_opt,
                 "opt_type": opt_type,
-                "strike": chosen_k,
-                "entry_p": real_p,
+                "strike": strike,
+                "symbol": sym_str,
+                "entry_p": entry_p,
                 "cost": cost,
-                "target_p": round(real_p * 1.80, 2),
-                "stop_p": round(real_p * 0.75, 2),
+                "target_p": target_p,
+                "sl_p": sl_p,
                 "data_feed": feed_label
             }
-            self.on_trade_entry("s2", "Strategy 2: Expiry Gamma Squeeze", pos_data)
+            self.on_trade_entry("s2", "Strategy 2: BankNIFTY 15M Directional Breakout", pos_data)
             send_trade_entry_alert(
-                strategy="Strategy 2: 0-DTE / 1-DTE Expiry Gamma Squeeze",
-                spot=spot,
-                opt_type=opt_type,
-                strike=sym,
-                entry_p=real_p,
+                strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
+                spot=c,
+                ce_str=sym_str if opt_type == "CE" else "None",
+                pe_str=sym_str if opt_type == "PE" else "None",
+                ce_p=entry_p if opt_type == "CE" else 0.0,
+                pe_p=entry_p if opt_type == "PE" else 0.0,
                 tot_cost=cost,
-                win_target_pct=0.80,
-                lose_stop_pct=0.25,
-                max_hold_mins=45,
+                win_target_pct=config.S2_TARGET_PCT,
+                lose_stop_pct=config.S2_SL_PCT,
+                max_hold_mins=360,
                 time_str=candle_ts.strftime("%H:%M:%S"),
-                qty=self.lot_size,
+                qty=self.bn_lot_size,
                 date_str=str(today_date)
             )
 
     def process_live_strategy_3(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
-        """Real-time live position tracking and entry engine for Strategy 3 (Directional ITM)."""
+        """Real-time live position tracking and entry engine for Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)."""
         pos = self.active_positions["s3"]
 
         if pos is not None:
             elapsed_mins = (ist_now - pos["entry_time"]).total_seconds() / 60.0
-            curr_p = pos["entry_p"]
-            high_p = curr_p
-            low_p = curr_p
+            p_c = pos["ce_entry"]
+            p_p = pos["pe_entry"]
+            high_c, low_c = p_c, p_c
+            high_p, low_p = p_p, p_p
 
-            if self.smart_api and pos.get("contract"):
-                df_opt = fetch_real_option_candles(self.smart_api, pos["contract"], pos["entry_time"], ist_now)
-                if not df_opt.empty:
-                    curr_p = float(df_opt.iloc[-1]["close"])
-                    high_p = float(df_opt["high"].max())
-                    low_p = float(df_opt["low"].min())
+            if self.smart_api and pos.get("c_ce") and pos.get("c_pe"):
+                df_c = fetch_real_option_candles(self.smart_api, pos["c_ce"], pos["entry_time"], ist_now)
+                df_p = fetch_real_option_candles(self.smart_api, pos["c_pe"], pos["entry_time"], ist_now)
+                if not df_c.empty:
+                    p_c = float(df_c.iloc[-1]["close"])
+                    high_c = float(df_c["high"].max())
+                    low_c = float(df_c["low"].min())
+                if not df_p.empty:
+                    p_p = float(df_p.iloc[-1]["close"])
+                    high_p = float(df_p["high"].max())
+                    low_p = float(df_p["low"].min())
             else:
                 t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-                curr_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
-                high_p, low_p = curr_p, curr_p
+                p_c = black_scholes_price(spot, pos["ce_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
+                p_p = black_scholes_price(spot, pos["pe_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
+                high_c, low_c = p_c, p_c
+                high_p, low_p = p_p, p_p
 
-            pos["peak_p"] = max(pos.get("peak_p", pos["entry_p"]), high_p)
+            if not pos["ce_exited"]:
+                if high_c >= pos["ce_tgt"]:
+                    pos["ce_exited"] = True
+                    pos["ce_exit_p"] = round(pos["ce_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    pos["ce_reason"] = f"CE Target (+{int(config.DAS_WIN_TARGET_PCT * 100)}%)"
+                    self.save_active_positions()
+                    if not pos["pe_exited"]:
+                        send_telegram_alert(
+                            f"🎯 *LEG PROFIT TARGET HIT*\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
+                            f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
+                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
+                            f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
+                        )
+                elif low_c <= pos["ce_sl"]:
+                    pos["ce_exited"] = True
+                    pos["ce_exit_p"] = round(pos["ce_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    pos["ce_reason"] = f"CE SL (-{int(config.DAS_LOSE_STOP_PCT * 100)}%)"
+                    self.save_active_positions()
+                    if not pos["pe_exited"]:
+                        send_telegram_alert(
+                            f"🛑 *LEG STOP LOSS TRIGGERED*\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
+                            f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
+                            f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-{int(config.DAS_LOSE_STOP_PCT * 100)}% SL)\n"
+                            f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
+                        )
 
-            exit_triggered = False
-            exit_reason = ""
-            exit_p = curr_p
+            if not pos["pe_exited"]:
+                if high_p >= pos["pe_tgt"]:
+                    pos["pe_exited"] = True
+                    pos["pe_exit_p"] = round(pos["pe_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    pos["pe_reason"] = f"PE Target (+{int(config.DAS_WIN_TARGET_PCT * 100)}%)"
+                    self.save_active_positions()
+                    if not pos["ce_exited"]:
+                        send_telegram_alert(
+                            f"🎯 *LEG PROFIT TARGET HIT*\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
+                            f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
+                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
+                            f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
+                        )
+                elif low_p <= pos["pe_sl"]:
+                    pos["pe_exited"] = True
+                    pos["pe_exit_p"] = round(pos["pe_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    pos["pe_reason"] = f"PE SL (-{int(config.DAS_LOSE_STOP_PCT * 100)}%)"
+                    self.save_active_positions()
+                    if not pos["ce_exited"]:
+                        send_telegram_alert(
+                            f"🛑 *LEG STOP LOSS TRIGGERED*\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
+                            f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
+                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-{int(config.DAS_LOSE_STOP_PCT * 100)}% SL)\n"
+                            f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
+                        )
 
-            if high_p >= pos["target_p"]:
-                exit_triggered = True
-                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Target Hit (+80%)"
-            elif low_p <= pos["stop_p"]:
-                exit_triggered = True
-                exit_p = round(pos["stop_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "SL Hit (-15%)"
-            elif pos["peak_p"] >= pos["trail_act_p"] and curr_p <= pos["peak_p"] * 0.85:
-                exit_triggered = True
-                exit_p = round(curr_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Trailing Peak Exit"
-            elif elapsed_mins >= 60.0 or ist_now.time() >= dtime(15, 15):
-                exit_triggered = True
-                exit_p = round(curr_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "Time Exit (60m)"
+            exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            cur_tot = exit_c + exit_p
+            comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
+            is_time_up = (elapsed_mins >= config.DAS_MAX_HOLD_MINS) or (ist_now.time() >= dtime(15, 15))
+            is_comb_stop = comb_ret <= -config.DAS_COMBINED_STOP_PCT
 
-            if exit_triggered:
-                gross = (exit_p - pos["entry_p"]) * self.lot_size
-                buy_v = pos["entry_p"] * self.lot_size
-                sell_v = exit_p * self.lot_size
+            if (pos["ce_exited"] and pos["pe_exited"]) or is_time_up or is_comb_stop:
+                if is_comb_stop:
+                    exit_reason = f"Combined Capital SL (-{int(config.DAS_COMBINED_STOP_PCT * 100)}%)"
+                elif pos["ce_exited"] and pos["pe_exited"]:
+                    exit_reason = f"{pos['ce_reason']} | {pos['pe_reason']}"
+                elif is_time_up:
+                    active_reasons = []
+                    if pos["ce_exited"]: active_reasons.append(pos["ce_reason"])
+                    if pos["pe_exited"]: active_reasons.append(pos["pe_reason"])
+                    exit_reason = f"Time Cutoff ({' & '.join(active_reasons)})" if active_reasons else f"Max Hold ({config.DAS_MAX_HOLD_MINS}m)"
+                elif pos["ce_exited"] or pos["pe_exited"]:
+                    exit_reason = pos["ce_reason"] if pos["ce_exited"] else pos["pe_reason"]
+                else:
+                    exit_reason = f"Max Hold ({config.DAS_MAX_HOLD_MINS}m)"
+
+                gross = ((exit_c - pos["ce_entry"]) + (exit_p - pos["pe_entry"])) * self.lot_size
+                buy_v = pos["entry_tot"] * self.lot_size
+                sell_v = cur_tot * self.lot_size
                 turn = buy_v + sell_v
                 stt = sell_v * 0.001
                 exch = turn * 0.0005
-                charges = round(40.0 + stt + exch + (40.0 + exch) * 0.18, 2)
+                charges = round(80.0 + stt + exch + (80.0 + exch) * 0.18, 2)
                 net = round(gross - charges, 2)
 
                 tr_log = {
                     "date": str(today_date),
-                    "strategy": "Strategy 3: 30M Directional ITM",
-                    "opt_type": pos["opt_type"],
-                    "strike": str(pos["strike"]),
+                    "strategy": "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
+                    "opt_type": "CE+PE",
+                    "strike": f"{pos['ce_symbol']} + {pos['pe_symbol']}",
                     "entry_time": pos["entry_time"].strftime("%H:%M:%S"),
                     "exit_time": ist_now.strftime("%H:%M:%S"),
-                    "entry_p": pos["entry_p"],
-                    "exit_p": exit_p,
+                    "entry_p": pos["entry_tot"],
+                    "exit_p": round(cur_tot, 2),
                     "cost": pos["cost"],
+                    "capital_used": pos["cost"],
                     "gross_pnl": round(gross, 2),
                     "charges": charges,
                     "net_pnl": net,
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
-                self.on_trade_exit("s3", "Strategy 3: 30M Directional ITM", tr_log)
+                self.on_trade_exit("s3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", tr_log)
                 send_trade_exit_alert(
-                    strategy="Strategy 3: 30M Statistical Directional ITM",
+                    strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
                     exit_reason=exit_reason,
                     gross_pnl=round(gross, 2),
                     charges=charges,
                     net_pnl=net,
-                    details=f"BUY {pos['symbol']} @ ₹{pos['entry_p']:.2f} exited @ ₹{exit_p:.2f}",
+                    details=f"{pos['ce_symbol']} + {pos['pe_symbol']} | Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f}",
                     time_str=ist_now.strftime("%H:%M:%S"),
                     date_str=str(today_date),
-                    entry_time=str(pos["entry_time"]),
-                    strike=str(pos.get("symbol") or pos.get("strike", ""))
+                    entry_time=str(tr_log["entry_time"]),
+                    strike=f"{pos['ce_strike']} CE / {pos['pe_strike']} PE"
                 )
+                self.cooldown_until["s3"] = ist_now + timedelta(minutes=config.DAS_COOLDOWN_BARS)
+                return
 
         else:
-            if self.daily_trade_count["s3"] >= 1:
+            if not config.S3_ENABLED:
                 return
-            if ist_now.time() < dtime(9, 45) or ist_now.time() > dtime(13, 30):
+            active_count = sum(1 for p in self.active_positions.values() if p is not None)
+            if active_count >= config.MAX_CONCURRENT_POSITIONS:
+                return
+            if self.daily_trade_count["s3"] >= config.MAX_TRADES_PER_DAY:
+                return
+            if self.cooldown_until["s3"] and ist_now < self.cooldown_until["s3"]:
+                return
+            if not is_trade_window_valid(ist_now.time(), config.DAS_TRADE_START, config.DAS_TRADE_END):
                 return
             if df_all.empty:
                 return
 
-            day_bars = df_all[df_all["timestamp"].dt.date == today_date]
-            if day_bars.empty:
+            c_ce, c_pe, ce_strike, pe_strike = select_affordable_strikes(
+                self.smart_api, today_date, spot,
+                min_prem=config.DAS_MIN_LEG_PREMIUM, max_prem=config.DAS_MAX_LEG_PREMIUM,
+                budget=config.DAS_MAX_BUDGET, opt_data=self.opt_data
+            )
+            if not (c_ce and c_pe):
                 return
 
-            box_bars = day_bars[(day_bars["timestamp"].dt.time >= dtime(9, 15)) & (day_bars["timestamp"].dt.time <= dtime(9, 45))]
-            if len(box_bars) < 15:
+            triggered, std_val, vel_val = check_compression_expansion(
+                self.smart_api, c_ce, c_pe, ist_now,
+                std_thresh=config.DAS_STD_THRESH, vel_thresh=config.DAS_VEL_THRESH,
+                opt_data=self.opt_data
+            )
+            if not triggered:
                 return
 
-            box_h = float(box_bars["high"].max())
-            box_l = float(box_bars["low"].min())
-            open_p = float(box_bars["close"].iloc[0])
-            box_pct = (box_h - box_l) / open_p * 100.0
-            if box_pct > 0.32:
-                return
-
-            upper_trig = box_h + 6.0
-            lower_trig = box_l - 6.0
-            curr_bar = day_bars.iloc[-1]
-
-            opt_type = ""
-            atm = int(round(spot / 50.0) * 50)
-            if float(curr_bar["high"]) >= upper_trig or spot >= upper_trig:
-                opt_type = "CE"
-                chosen_k = atm - 50
-            elif float(curr_bar["low"]) <= lower_trig or spot <= lower_trig:
-                opt_type = "PE"
-                chosen_k = atm + 50
-            else:
-                return
-
-            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-            contract = get_active_option_contract(today_date, chosen_k, opt_type, underlying="NIFTY") if self.smart_api else None
-            real_p = black_scholes_price(spot, chosen_k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
+            ce_entry_p = 50.0
+            pe_entry_p = 50.0
             feed_label = "Mathematical (BSM)"
 
-            if self.smart_api and contract:
-                df_opt = fetch_real_option_candles(self.smart_api, contract, ist_now - timedelta(minutes=10), ist_now)
-                if not df_opt.empty:
-                    real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({contract['symbol']})"
+            if self.smart_api and c_ce and c_pe:
+                df_c = fetch_real_option_candles(self.smart_api, c_ce, ist_now - timedelta(minutes=10), ist_now)
+                df_p = fetch_real_option_candles(self.smart_api, c_pe, ist_now - timedelta(minutes=10), ist_now)
+                if not df_c.empty and not df_p.empty:
+                    ce_entry_p = float(df_c.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT)
+                    pe_entry_p = float(df_p.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT)
+                    feed_label = f"Angel One Real Traded ({c_ce['symbol']} + {c_pe['symbol']})"
 
-            cost = round(real_p * self.lot_size, 2)
-            if cost > 10000.0:
+            entry_tot = round(ce_entry_p + pe_entry_p, 2)
+            tot_cost = round(entry_tot * self.lot_size, 2)
+            if tot_cost > config.MAX_CAPITAL_PER_TRADE:
                 return
 
-            sym = contract["symbol"] if contract else f"{chosen_k} {opt_type}"
-            candle_ts = pd.to_datetime(curr_bar["timestamp"]).to_pydatetime() if "timestamp" in curr_bar else ist_now
+            ce_tgt = round(ce_entry_p * (1.0 + config.DAS_WIN_TARGET_PCT), 2)
+            ce_sl = round(ce_entry_p * (1.0 - config.DAS_LOSE_STOP_PCT), 2)
+            pe_tgt = round(pe_entry_p * (1.0 + config.DAS_WIN_TARGET_PCT), 2)
+            pe_sl = round(pe_entry_p * (1.0 - config.DAS_LOSE_STOP_PCT), 2)
 
             pos_data = {
-                "entry_time": candle_ts,
+                "entry_time": ist_now,
                 "spot_entry": spot,
-                "contract": contract,
-                "symbol": sym,
-                "opt_type": opt_type,
-                "strike": chosen_k,
-                "entry_p": real_p,
-                "peak_p": real_p,
-                "cost": cost,
-                "target_p": round(real_p * 1.80, 2),
-                "stop_p": round(real_p * 0.85, 2),
-                "trail_act_p": round(real_p * 1.25, 2),
+                "c_ce": c_ce,
+                "c_pe": c_pe,
+                "ce_strike": ce_strike,
+                "pe_strike": pe_strike,
+                "ce_symbol": c_ce["symbol"] if c_ce else f"NIFTY{ce_strike}CE",
+                "pe_symbol": c_pe["symbol"] if c_pe else f"NIFTY{pe_strike}PE",
+                "ce_entry": round(ce_entry_p, 2),
+                "pe_entry": round(pe_entry_p, 2),
+                "entry_tot": entry_tot,
+                "cost": tot_cost,
+                "ce_tgt": ce_tgt,
+                "ce_sl": ce_sl,
+                "pe_tgt": pe_tgt,
+                "pe_sl": pe_sl,
+                "ce_exited": False,
+                "pe_exited": False,
+                "ce_exit_p": None,
+                "pe_exit_p": None,
+                "ce_reason": None,
+                "pe_reason": None,
                 "data_feed": feed_label
             }
-            self.on_trade_entry("s3", "Strategy 3: 30M Directional ITM", pos_data)
+            self.on_trade_entry("s3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", pos_data)
             send_trade_entry_alert(
-                strategy="Strategy 3: 30M Statistical Directional ITM",
+                strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
                 spot=spot,
-                opt_type=opt_type,
-                strike=sym,
-                entry_p=real_p,
-                tot_cost=cost,
-                win_target_pct=0.80,
-                lose_stop_pct=0.15,
-                max_hold_mins=60,
-                time_str=candle_ts.strftime("%H:%M:%S"),
+                ce_str=f"{ce_strike} CE ({c_ce['symbol'] if c_ce else ''})",
+                pe_str=f"{pe_strike} PE ({c_pe['symbol'] if c_pe else ''})",
+                ce_p=ce_entry_p,
+                pe_p=pe_entry_p,
+                tot_cost=tot_cost,
+                win_target_pct=config.DAS_WIN_TARGET_PCT,
+                lose_stop_pct=config.DAS_LOSE_STOP_PCT,
+                max_hold_mins=config.DAS_MAX_HOLD_MINS,
+                time_str=ist_now.strftime("%H:%M:%S"),
                 qty=self.lot_size,
                 date_str=str(today_date)
             )
 
     def run_live_loop(self):
-        """Continuously monitors live market during trading hours across all active strategies in real-time."""
+        """Continuously monitors live market during trading hours across all 3 active strategies in real-time."""
         print("\n" + "=" * 85)
-        print("   MULTI-INDEX LIVE MARKET TRADING ENGINE ACTIVE (POWER-3 CORE SYSTEM)")
-        print("   Active Strategies: S1 (Nifty 15M Directional), S8 (BankNifty 15M Directional), S4 (Nifty DAS)")
+        print("   MULTI-INDEX LIVE MARKET TRADING ENGINE ACTIVE (TRI-STRATEGY CORE SYSTEM)")
+        print("   Active Strategies: S1 (Nifty Directional), S2 (BankNifty Directional), S3 (Nifty DAS)")
         print("=" * 85)
 
         ist_now = get_ist_now()
@@ -1905,14 +932,14 @@ class LiveQuadPaperTrader:
         self.init_today_state(today_date)
 
         send_telegram_alert(
-            f"🚀 *Option Trading Bot Woke Up (Power-3 Core System Active)*\n"
+            f"🚀 *Option Trading Bot Woke Up (Tri-Strategy Core System Active)*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
             f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
-            f"Bot is actively monitoring the optimized Power-3 Core portfolio:\n"
+            f"Bot is actively monitoring the optimized Tri-Strategy portfolio:\n"
             f"• Strategy 1: Nifty 15M Directional Breakout (Trend-Aligned ATM, SL -16%, TP +60%)\n"
-            f"• Strategy 8: BankNIFTY 15M Directional Breakout (Trend-Aligned 100-pt OTM, SL -25%, TP +80%)\n"
-            f"• Strategy 4: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n\n"
+            f"• Strategy 2: BankNIFTY 15M Directional Breakout (Trend-Aligned 100-pt OTM, SL -25%, TP +80%)\n"
+            f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n\n"
             f"🛡️ *Position Rule:* Max 1 active position concurrently (₹10,000 capital safety limit)\n"
             f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!",
             alert_key=f"WAKEUP:{today_date}"
@@ -1961,55 +988,24 @@ class LiveQuadPaperTrader:
             else:
                 bn_spot = self.get_banknifty_spot_price()
 
-            # Execute real-time tracking across active Power-3 strategies
-            if config.S1_ENABLED and self.target_strategy in ["all", "s1", "strangle", "directional"] and not df_all.empty:
+            # Execute real-time tracking across active Tri-Strategy core
+            if config.S1_ENABLED and self.target_strategy in ["all", "s1", "directional"] and not df_all.empty:
                 try:
                     self.process_live_strategy_1(df_all, today_date, ist_now, spot)
                 except Exception as e:
                     print(f"[WARN] Strategy 1 live error: {e}")
 
-            if config.S8_ENABLED and self.target_strategy in ["all", "s8", "bnhs", "directional"] and not df_bn.empty:
+            if config.S2_ENABLED and self.target_strategy in ["all", "s2", "directional"] and not df_bn.empty:
                 try:
-                    self.process_live_strategy_8(df_bn, today_date, ist_now, bn_spot)
-                except Exception as e:
-                    print(f"[WARN] Strategy 8 live error: {e}")
-
-            if config.S4_ENABLED and self.target_strategy in ["all", "s4", "das"] and not df_all.empty:
-                try:
-                    self.process_live_strategy_4(df_all, today_date, ist_now, spot)
-                except Exception as e:
-                    print(f"[WARN] Strategy 4 live error: {e}")
-
-            # Retired / Inactive strategies (Gated by config flags)
-            if config.S2_ENABLED and self.target_strategy in ["all", "gamma", "s2"] and not df_all.empty:
-                try:
-                    self.process_live_strategy_2(df_all, today_date, ist_now, spot)
+                    self.process_live_strategy_2(df_bn, today_date, ist_now, bn_spot)
                 except Exception as e:
                     print(f"[WARN] Strategy 2 live error: {e}")
 
-            if config.S3_ENABLED and self.target_strategy in ["all", "s3"] and not df_all.empty:
+            if config.S3_ENABLED and self.target_strategy in ["all", "s3", "das"] and not df_all.empty:
                 try:
                     self.process_live_strategy_3(df_all, today_date, ist_now, spot)
                 except Exception as e:
                     print(f"[WARN] Strategy 3 live error: {e}")
-
-            if config.S5_ENABLED and self.target_strategy in ["all", "bndas", "s5"] and not df_bn.empty:
-                try:
-                    self.process_live_strategy_5(df_bn, today_date, ist_now, bn_spot)
-                except Exception as e:
-                    print(f"[WARN] Strategy 5 live error: {e}")
-
-            if config.S6_ENABLED and self.target_strategy in ["all", "bndbb", "s6"] and not df_bn.empty:
-                try:
-                    self.process_live_strategy_6(df_bn, today_date, ist_now, bn_spot)
-                except Exception as e:
-                    print(f"[WARN] Strategy 6 live error: {e}")
-
-            if config.S7_ENABLED and self.target_strategy in ["all", "bngsm", "s7"] and not df_bn.empty:
-                try:
-                    self.process_live_strategy_7(df_bn, today_date, ist_now, bn_spot)
-                except Exception as e:
-                    print(f"[WARN] Strategy 7 live error: {e}")
 
             time.sleep(60)
 
@@ -2032,7 +1028,6 @@ class LiveQuadPaperTrader:
         df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
         today = get_ist_now().date()
 
-        # Check journal for trades already recorded today from live state machine
         daily_net = 0.0
         trades_today = 0
         has_live_trades_today = False
@@ -2055,32 +1050,16 @@ class LiveQuadPaperTrader:
                 if config.S1_ENABLED:
                     s1_res = evaluate_strategy_1(df_all, today, api=self.smart_api)
                     active_evals.append(("Strategy 1: Nifty 15M Directional Breakout", s1_res))
-                if config.S4_ENABLED:
-                    s4_res = evaluate_strategy_4(df_all, today, api=self.smart_api)
-                    active_evals.append(("Strategy 4: Decoupled Asymmetric Strangle", s4_res))
-                if config.S2_ENABLED:
-                    s2_res = evaluate_strategy_2(df_all, today, api=self.smart_api)
-                    active_evals.append(("Strategy 2: Expiry Gamma Squeeze", s2_res))
                 if config.S3_ENABLED:
                     s3_res = evaluate_strategy_3(df_all, today, api=self.smart_api)
-                    active_evals.append(("Strategy 3: 30M Directional ITM", s3_res))
+                    active_evals.append(("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res))
 
             if not df_bn.empty:
                 df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
-                if config.S8_ENABLED:
-                    s8_res = evaluate_strategy_8(df_bn, today, api=self.smart_api)
-                    active_evals.append(("Strategy 8: BankNIFTY 15M Directional Breakout", s8_res))
-                if config.S5_ENABLED:
-                    s5_res = evaluate_strategy_5(df_bn, today, api=self.smart_api)
-                    active_evals.append(("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res))
-                if config.S6_ENABLED:
-                    s6_res = evaluate_strategy_6(df_bn, today, api=self.smart_api)
-                    active_evals.append(("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res))
-                if config.S7_ENABLED:
-                    s7_res = evaluate_strategy_7(df_bn, today, api=self.smart_api)
-                    active_evals.append(("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res))
+                if config.S2_ENABLED:
+                    s2_res = evaluate_strategy_2(df_bn, today, api=self.smart_api)
+                    active_evals.append(("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res))
 
-            # Log any executed trades to journal
             for s_name, s_res in active_evals:
                 if s_res.get("trade_occurred", False):
                     trades_today += s_res.get("num_trades_day", 1)
@@ -2129,15 +1108,15 @@ class LiveQuadPaperTrader:
             print(f"[EOD] Daily summary for {today} was already sent. Skipping duplicate.")
 
     def run_replay_demonstration(self):
-        """Simulates all 8 strategies on the latest market session for offline testing."""
+        """Simulates all 3 strategies on the latest market session for offline testing."""
         print("=" * 85)
-        print("   MULTI-INDEX STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
+        print("   TRI-STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
         print("=" * 85)
         df_n = pd.read_csv("data/nifty_1min_real.csv") if os.path.exists("data/nifty_1min_real.csv") else pd.DataFrame()
         df_b = pd.read_csv("data/banknifty_1min_real.csv") if os.path.exists("data/banknifty_1min_real.csv") else pd.DataFrame()
 
         if not df_n.empty:
-            df_n["timestamp"] = pd.to_datetime(df_n["timestamp"])
+            df_n["timestamp"] = pd.to_datetime(df_n["timestamp"]).dt.tz_localize(None)
             last_date = df_n["timestamp"].dt.date.max()
         elif not df_b.empty:
             df_b["timestamp"] = pd.to_datetime(df_b["timestamp"]).dt.tz_localize(None)
@@ -2151,105 +1130,55 @@ class LiveQuadPaperTrader:
 
         print(f"Testing latest recorded market session: {last_date}")
         s1 = evaluate_strategy_1(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
-        s2 = evaluate_strategy_2(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
+        s2 = evaluate_strategy_2(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
         s3 = evaluate_strategy_3(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
-        s4 = evaluate_strategy_4(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
-        s5 = evaluate_strategy_5(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
-        s6 = evaluate_strategy_6(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
-        s7 = evaluate_strategy_7(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
-        s8 = evaluate_strategy_8(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
 
         print(f"\n[EVALUATION RESULTS FOR {last_date}]")
-        print(f"Strategy 1 (15M Strangle - Nifty)       : {s1.get('status')} | Trade: {s1.get('trade_occurred')}")
-        print(f"Strategy 2 (Gamma Squeeze - Nifty)      : {s2.get('status')} | Trade: {s2.get('trade_occurred')}")
-        print(f"Strategy 3 (Directional ITM - Nifty)    : {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
-        print(f"Strategy 4 (DAS Strangle - Nifty)       : {s4.get('status')} | Trade: {s4.get('trade_occurred')}")
-        print(f"Strategy 5 (DAS Strangle - BankNifty)   : {s5.get('status')} | Trade: {s5.get('trade_occurred')}")
-        print(f"Strategy 6 (DBB Breakout - BankNifty)   : {s6.get('status')} | Trade: {s6.get('trade_occurred')}")
-        print(f"Strategy 7 (GSM Gamma - BankNifty)      : {s7.get('status')} | Trade: {s7.get('trade_occurred')}")
-        print(f"Strategy 8 (Hedged Strangle - BankNifty): {s8.get('status')} | Trade: {s8.get('trade_occurred')}")
+        print(f"Strategy 1 (Nifty 15M Directional Breakout)       : {s1.get('status')} | Trade: {s1.get('trade_occurred')}")
+        print(f"Strategy 2 (BankNIFTY 15M Directional Breakout)   : {s2.get('status')} | Trade: {s2.get('trade_occurred')}")
+        print(f"Strategy 3 (Nifty Decoupled Asymmetric Strangle)  : {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
 
     def run(self):
         """Master execution entry point."""
         now = get_ist_now()
 
-        # Launch Interactive Telegram Bot Daemon in non-blocking background thread
-        try:
-            from src.notifications.telegram_interactive_bot import start_interactive_bot_daemon
-            start_interactive_bot_daemon(api=self.smart_api)
-            print("[TELEGRAM] Interactive Telegram Bot Daemon active (Ready for status & PnL queries).")
-        except Exception as e:
-            print(f"[WARN] Failed to start interactive Telegram bot daemon: {e}")
-
-        # Weekend check
-        if now.weekday() in [5, 6]:
-            print(f"[WEEKEND] Today is {now.strftime('%A')}. NSE Market is closed on weekends.")
+        # Offline / Replay test
+        if hasattr(self, "replay_mode") and self.replay_mode:
+            print("[MODE] Running offline demonstration / replay test...")
             self.run_replay_demonstration()
             return
 
-        # On weekdays, automatically catch up any un-audited historical trading days before market open!
-        try:
-            print("\n[STARTUP] Checking for any un-audited historical trading days...")
-            df_all = sync_and_update_candles(self.smart_api, CANDLE_FILE, "99926000") if self.smart_api else (pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame())
-            time.sleep(1.5)
-            df_bn = sync_and_update_candles(self.smart_api, BANKNIFTY_CANDLE_FILE, "99926009") if self.smart_api else (pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame())
-            if not df_all.empty:
-                df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)
-                if not df_bn.empty:
-                    df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
-                prior_dt = now.date() - timedelta(days=1)
-                caught_up = auto_catchup_missing_trading_days(self.smart_api, df_all, df_bn, up_to_date=prior_dt)
-                if caught_up:
-                    print(f"[STARTUP] Successfully caught up {len(caught_up)} missed day(s): {caught_up}")
-        except Exception as e:
-            print(f"[WARN] Startup catchup error: {e}")
+        print(f"\n[STARTUP] Option Trading Engine Initialized at {now.strftime('%Y-%m-%d %H:%M:%S')} IST.")
+        self.connect_angel_one()
 
-        # Weekday Pre-Market (e.g. 08:30 - 09:14 AM IST)
-        if now.time() < dtime(9, 15):
-            self.wait_for_market_open()
+        if self.is_market_open_now():
+            print("[MARKET STATUS] Live NSE market is OPEN right now.")
             self.run_live_loop()
-
-        # Weekday Live Trading Session (09:15 - 15:12 IST)
-        elif dtime(9, 15) <= now.time() <= dtime(15, 12):
-            self.run_live_loop()
-
-        # Weekday Post-Market (after 15:12 PM IST - e.g. if runner was delayed or backup trigger)
         else:
-            print(f"[MARKET CLOSED] Runner started at {now.strftime('%I:%M:%S %p')} IST (Market closed at 15:12 IST).")
-            today_str = str(now.date())
-            already_audited = False
-            if os.path.exists("data/trade_journal.md"):
-                try:
-                    with open("data/trade_journal.md", "r", encoding="utf-8") as f:
-                        if f"Last Updated: {today_str}" in f.read():
-                            already_audited = True
-                except Exception:
-                    pass
-
-            if already_audited:
-                print(f"[IDLE] Today's session ({today_str}) has already completed and was audited. Exiting cleanly.")
-                return
-
-            print("[EOD RECONCILIATION] Performing End-of-Day audit and journal updates...")
-            send_telegram_alert(
-                f"⚠️ *Trading Bot Started After Market Close*\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⏰ *Started At:* {now.strftime('%I:%M:%S %p')} IST\n"
-                f"📅 *Date:* {now.strftime('%A, %d-%b-%Y')}\n\n"
-                f"The GitHub Actions runner was delayed past market close (15:12 IST).\n"
-                f"Performing final EOD reconciliation report.",
-                alert_key=f"LATE_START:{today_str}"
-            )
-            self.run_eod_accounting()
-
-def main():
-    parser = argparse.ArgumentParser(description="Multi-Index Live Market Paper Trading Bot")
-    parser.add_argument("--strategy", type=str, default="all", choices=["strangle", "gamma", "directional", "das", "bndas", "bndbb", "bngsm", "bnhs", "s6", "s7", "s8", "all"], help="Strategy to trade (strangle, gamma, directional, das, bndas, bndbb, bngsm, bnhs, s6, s7, s8, or all).")
-    args = parser.parse_args()
-
-    bot = LiveQuadPaperTrader(target_strategy=args.strategy)
-    bot.connect_angel_one()
-    bot.run()
+            if now.weekday() in [5, 6]:
+                print(f"[MARKET CLOSED] Today is {now.strftime('%A')} (NSE Weekend). Markets are closed.")
+                print("Running demonstration replay on the latest available market session...")
+                self.run_replay_demonstration()
+            elif now.time() < dtime(9, 15):
+                print(f"[PRE-MARKET] Current time is {now.strftime('%H:%M:%S')} IST. Market opens at 09:15:00 AM IST.")
+                waited = self.wait_for_market_open()
+                if waited:
+                    self.run_live_loop()
+                else:
+                    print("Early standby window exceeded. Replay test:")
+                    self.run_replay_demonstration()
+            else:
+                print(f"[POST-MARKET] Current time is {now.strftime('%H:%M:%S')} IST (after 15:25 IST market close).")
+                print("Performing end-of-day session audit and reconciliation...")
+                self.run_eod_accounting()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Multi-Index Tri-Strategy Live Paper Trading Bot")
+    parser.add_argument("--strategy", type=str, default="all", choices=["all", "s1", "s2", "s3"], help="Strategy to trade (default: all)")
+    parser.add_argument("--replay", action="store_true", help="Run offline replay on latest recorded day instead of live loop")
+    args = parser.parse_args()
+
+    trader = LiveTriPaperTrader(target_strategy=args.strategy)
+    if args.replay:
+        trader.replay_mode = True
+    trader.run()

@@ -2,7 +2,7 @@
 Automated Trade Journal Manager & Historical Backfill Engine.
 Manages:
 1. data/audited_days.json - Tracks all audited historical trading dates to prevent duplicate evaluations.
-2. data/active_positions.json - Tracks live in-flight positions across all 5 strategies.
+2. data/active_positions.json - Tracks live in-flight positions across all 3 strategies.
 3. data/trade_journal.csv - Single source of truth for all completed trades.
 4. data/trade_journal.md - Live formatted markdown journal showing active open positions, performance stats, and trade ledger.
 5. auto_catchup_missing_trading_days - Backfills and audits any missed trading days in chronological order.
@@ -311,12 +311,7 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
     from daily_result_checker import (
         evaluate_strategy_1,
         evaluate_strategy_2,
-        evaluate_strategy_3,
-        evaluate_strategy_4,
-        evaluate_strategy_5,
-        evaluate_strategy_6,
-        evaluate_strategy_7,
-        evaluate_strategy_8
+        evaluate_strategy_3
     )
 
     df_all_dt = df_all.copy()
@@ -351,13 +346,8 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
     for d in missed_dates:
         print(f"=== [AUTO-CATCHUP] Auditing Missed Day: {d.strftime('%A, %d-%b-%Y')} ===")
         s1_res = evaluate_strategy_1(df_all, d, api=api)
-        s2_res = evaluate_strategy_2(df_all, d, api=api)
+        s2_res = evaluate_strategy_2(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
         s3_res = evaluate_strategy_3(df_all, d, api=api)
-        s4_res = evaluate_strategy_4(df_all, d, api=api)
-        s5_res = evaluate_strategy_5(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
-        s6_res = evaluate_strategy_6(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
-        s7_res = evaluate_strategy_7(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
-        s8_res = evaluate_strategy_8(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
 
         day_trades_count = 0
         day_net_pnl = 0.0
@@ -365,14 +355,9 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
 
         # Log any trades that occurred
         for s_name, s_res in [
-            ("Strategy 1: Hedged Strangle", s1_res),
-            ("Strategy 2: Expiry Gamma Squeeze", s2_res),
-            ("Strategy 3: 30M Directional ITM", s3_res),
-            ("Strategy 4: Decoupled Asymmetric Strangle", s4_res),
-            ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res),
-            ("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res),
-            ("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res),
-            ("Strategy 8: BankNIFTY Hedged Long Strangle", s8_res)
+            ("Strategy 1: Nifty 15M Directional Breakout", s1_res),
+            ("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res),
+            ("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res)
         ]:
             if s_res.get("trade_occurred", False):
                 trades_to_log = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
