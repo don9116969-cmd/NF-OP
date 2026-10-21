@@ -520,7 +520,7 @@ def run_whole_year_simulation():
     # Write Markdown file
     with open(JOURNAL_MD, "w", encoding="utf-8") as f:
         f.write("# 📈 Whole-Year Black-Scholes (BSM) Trade Journal (2025 – 2026)\n\n")
-        f.write(f"*Evaluated: Full 389 Trading Days ({dates[0]} to {dates[-1]}) on 1-Minute Exchange Candles*\n\n")
+        f.write(f"*Evaluated: Full {len(dates)} Trading Days ({dates[0]} to {dates[-1]}) on 1-Minute Exchange Candles*\n\n")
         f.write("---\n\n")
         f.write("## 📊 Whole-Year Performance Summary\n\n")
         f.write(f"- **Benchmark Base Capital**: INR 10,000.00\n")

@@ -1,6 +1,6 @@
 # 📈 Whole-Year Black-Scholes (BSM) Trade Journal (2025 – 2026)
 
-*Evaluated: Full 389 Trading Days (2024-11-01 to 2026-10-21) on 1-Minute Exchange Candles*
+*Evaluated: Full 429 Trading Days (2024-11-01 to 2026-10-21) on 1-Minute Exchange Candles*
 
 ---
 
