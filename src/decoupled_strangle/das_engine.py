@@ -20,8 +20,14 @@ from .das_signals import (
 )
 from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles
 
+_GLOBAL_OPT_CACHE = None
+
 def load_cached_real_options(cache_dirs: list = None) -> dict:
-    """Loads all pre-downloaded 1-minute option candle CSVs from cache directories."""
+    """Loads all pre-downloaded 1-minute option candle CSVs from cache directories with in-memory caching."""
+    global _GLOBAL_OPT_CACHE
+    if _GLOBAL_OPT_CACHE is not None:
+        return _GLOBAL_OPT_CACHE
+
     if cache_dirs is None:
         cache_dirs = ["data/real_options_cache", "testing/data/real_options_cache"]
 
@@ -42,6 +48,7 @@ def load_cached_real_options(cache_dirs: list = None) -> dict:
                             opt_data[sym] = d
                         except Exception:
                             pass
+    _GLOBAL_OPT_CACHE = opt_data
     return opt_data
 
 def evaluate_das_for_day(

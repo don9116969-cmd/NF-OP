@@ -155,11 +155,20 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
     return df_existing
 
 def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
+    """
+    Strategy 1: Nifty 15M Directional Breakout (Trend Aligned ATM)
+    Morning 15-minute Box (09:15 - 09:30).
+    Filters: Box range <= 0.30% of spot open.
+    Triggers: Upper = box_high + 8.0, Lower = box_low - 8.0.
+    Trend Filter: Confirms Spot > 20-EMA for CE, Spot < 20-EMA for PE.
+    Strikes: ATM (single leg buy).
+    Exits: +60% Target, -16% SL, 15:15 EOD.
+    """
     data = df_full.copy()
     data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
     data['date'] = data['timestamp'].dt.date
 
-    day_bars = data[data['date'] == target_date].copy()
+    day_bars = data[data['date'] == target_date].copy().sort_values("timestamp").reset_index(drop=True)
     if day_bars.empty or len(day_bars) < 15:
         return {"status": "NO_DATA", "reason": "No market data (holiday/weekend)"}
 
@@ -167,149 +176,119 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
     if len(box_bars) < 10:
         return {"status": "INCOMPLETE", "reason": "15-minute box is forming"}
 
-    box_h = box_bars["high"].max()
-    box_l = box_bars["low"].min()
+    box_h = float(box_bars["high"].max())
+    box_l = float(box_bars["low"].min())
     box_range = box_h - box_l
-    spot_open = box_bars["close"].iloc[0]
+    spot_open = float(box_bars["close"].iloc[0])
     box_pct = (box_range / spot_open) * 100.0
+
+    u_trig = round(box_h + config.S1_BUFFER_PTS, 2)
+    l_trig = round(box_l - config.S1_BUFFER_PTS, 2)
 
     info = {
         "box_high": round(box_h, 2), "box_low": round(box_l, 2),
         "box_range_pts": round(box_range, 2), "box_pct": round(box_pct, 2),
-        "upper_trigger": round(box_h + 6.0, 2), "lower_trigger": round(box_l - 6.0, 2)
+        "upper_trigger": u_trig, "lower_trigger": l_trig
     }
 
-    if box_pct > 0.30:
+    if box_pct > config.S1_MAX_BOX_PCT:
         info["status"] = "FILTERED_WIDE_BOX"
         info["trade_occurred"] = False
-        info["reason"] = f"Box width {box_range:.1f} pts ({box_pct:.2f}% > 0.30%). Filtered out to avoid chop."
+        info["reason"] = f"Box width {box_range:.1f} pts ({box_pct:.2f}% > {config.S1_MAX_BOX_PCT:.2f}%). Filtered out to avoid chop."
         return info
 
-    sig_day = generate_signals(day_bars.set_index('timestamp'), '15m_box', max_box_pct=0.30, buffer_pts=6.0)
-    res = run_single_simulation_with_data(sig_day, strike_mode="fixed", fixed_otm=150, manage_mode="uncoupled", leg_sl_pct=0.20, target_pct=0.75, trailing_pct=0.20)
+    # Compute 20-EMA
+    day_bars["ema_20"] = day_bars["close"].ewm(span=20, adjust=False).mean()
+    post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(15, 0))]
 
-    if res.get("trades", 0) == 0:
-        has_signal = (sig_day['signal'] != 0).any()
-        if has_signal:
-            info["status"] = "BUDGET_EXCEEDED"
-            info["trade_occurred"] = False
-            info["reason"] = f"Breakout triggered, but option premiums exceeded the INR 10,000 capital limit (Wednesday 6-DTE premiums)."
-        else:
-            info["status"] = "NO_BREAKOUT"
-            info["trade_occurred"] = False
-            info["reason"] = f"Price stayed within triggers ({info['lower_trigger']} - {info['upper_trigger']}). No trade."
+    trade_entry = None
+    for _, row in post_bars.iterrows():
+        c = float(row["close"])
+        ema = float(row["ema_20"])
+        ts = row["timestamp"]
+
+        if c >= u_trig and (not config.S1_USE_EMA_TREND or c > ema):
+            trade_entry = (ts, "CE", int(round(c / 50.0) * 50))
+            break
+        elif c <= l_trig and (not config.S1_USE_EMA_TREND or c < ema):
+            trade_entry = (ts, "PE", int(round(c / 50.0) * 50))
+            break
+
+    if not trade_entry:
+        info["status"] = "NO_BREAKOUT"
+        info["trade_occurred"] = False
+        info["reason"] = f"Price stayed within triggers ({l_trig} - {u_trig}) or failed 20-EMA trend alignment."
         return info
 
-    trade = res["trades_df"].iloc[0].to_dict()
-    feed_label = "Mathematical (BSM)"
-    if "ce_strike" in trade and "pe_strike" in trade:
-        ce_contract = get_active_option_contract(target_date, trade["ce_strike"], "CE")
-        pe_contract = get_active_option_contract(target_date, trade["pe_strike"], "PE")
-        if ce_contract and pe_contract:
-            t_min = day_bars["timestamp"].min()
-            t_max = day_bars["timestamp"].max()
-            df_ce = fetch_real_option_candles(api, ce_contract, t_min, t_max)
-            df_pe = fetch_real_option_candles(api, pe_contract, t_min, t_max)
-            if not df_ce.empty and not df_pe.empty:
-                entry_ts = pd.to_datetime(trade["entry_time"])
-                sub_ce = df_ce[df_ce.index >= entry_ts]
-                sub_pe = df_pe[df_pe.index >= entry_ts]
-                if not sub_ce.empty and not sub_pe.empty:
-                    real_ce_entry = round(float(sub_ce.iloc[0]['close']) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    real_pe_entry = round(float(sub_pe.iloc[0]['close']) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    trade["entry_p"] = round(real_ce_entry + real_pe_entry, 2)
-                    trade["cost"] = round(trade["entry_p"] * config.LOT_SIZE, 2)
+    entry_ts, opt_type, strike = trade_entry
+    from scratch.evaluate_optimized_on_real_options import get_candle_feed
+    df_opt, sym, feed_label = get_candle_feed(api, target_date, strike, opt_type, "NIFTY", day_bars)
 
-                    ce_sl = real_ce_entry * (1 - 0.20)
-                    ce_tgt = real_ce_entry * (1 + 0.75)
-                    pe_sl = real_pe_entry * (1 - 0.20)
-                    pe_tgt = real_pe_entry * (1 + 0.75)
+    sub_opt = df_opt[df_opt.index >= entry_ts]
+    if sub_opt.empty:
+        info["status"] = "NO_OPTION_DATA"
+        info["trade_occurred"] = False
+        info["reason"] = "Could not fetch option candle data."
+        return info
 
-                    ce_active, pe_active = True, True
-                    ce_exit_p, pe_exit_p = real_ce_entry, real_pe_entry
-                    ce_reason, pe_reason = 'EOD', 'EOD'
-                    ce_exit_time, pe_exit_time = entry_ts, entry_ts
+    entry_p = round(float(sub_opt.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+    cost = round(entry_p * config.LOT_SIZE, 2)
+    if cost > config.INITIAL_CAPITAL:
+        info["status"] = "BUDGET_EXCEEDED"
+        info["trade_occurred"] = False
+        info["reason"] = f"Option premium INR {entry_p} exceeds budget limit (Cost: INR {cost:,.2f})."
+        return info
 
-                    common_index = sub_pe.index.intersection(sub_ce.index)
-                    for ts in common_index:
-                        c_bar = sub_ce.loc[ts]
-                        p_bar = sub_pe.loc[ts]
+    tgt_p = entry_p * (1.0 + config.S1_TARGET_PCT)
+    sl_p = entry_p * (1.0 - config.S1_SL_PCT)
+    exit_p = entry_p
+    exit_ts = sub_opt.index[-1]
+    exit_reason = "EOD (15:15)"
 
-                        if pe_active:
-                            if p_bar['high'] >= pe_tgt:
-                                pe_active = False
-                                pe_exit_p = round(pe_tgt * (1.0 - config.SLIPPAGE_PCT), 2)
-                                pe_reason = 'PE Target (+75%)'
-                                pe_exit_time = ts
-                            elif p_bar['low'] <= pe_sl:
-                                pe_active = False
-                                pe_exit_p = round(pe_sl * (1.0 - config.SLIPPAGE_PCT), 2)
-                                pe_reason = 'PE SL (-20%)'
-                                pe_exit_time = ts
+    for o_ts, o_row in sub_opt.iloc[1:].iterrows():
+        if float(o_row["high"]) >= tgt_p:
+            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT*100)}%)"
+            break
+        elif float(o_row["low"]) <= sl_p:
+            exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = f"SL Hit (-{int(config.S1_SL_PCT*100)}%)"
+            break
+        elif o_ts.time() >= datetime.time(15, 15):
+            exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = "EOD (15:15)"
+            break
 
-                        if ce_active:
-                            if c_bar['low'] <= ce_sl:
-                                ce_active = False
-                                ce_exit_p = round(ce_sl * (1.0 - config.SLIPPAGE_PCT), 2)
-                                ce_reason = 'CE SL (-20%)'
-                                ce_exit_time = ts
-                            elif c_bar['high'] >= ce_tgt:
-                                ce_active = False
-                                ce_exit_p = round(ce_tgt * (1.0 - config.SLIPPAGE_PCT), 2)
-                                ce_reason = 'CE Target (+75%)'
-                                ce_exit_time = ts
+    gross = (exit_p - entry_p) * config.LOT_SIZE
+    turn = (entry_p + exit_p) * config.LOT_SIZE
+    brok = 40.0
+    stt = (exit_p * config.LOT_SIZE) * config.STT_PCT_ON_SELL
+    exch = turn * config.EXCHANGE_TURNOVER_PCT
+    gst = (brok + exch) * config.GST_PCT
+    charges = round(brok + stt + exch + gst, 2)
+    net = round(gross - charges, 2)
 
-                        # Check 120-minute time cutoff or market close (15:15 IST)
-                        elapsed_m = (ts - entry_ts).total_seconds() / 60.0
-                        if elapsed_m >= 120.0 or ts.time() >= datetime.time(15, 15):
-                            if ce_active:
-                                ce_active = False
-                                ce_exit_p = round(float(c_bar['close']) * (1.0 - config.SLIPPAGE_PCT), 2)
-                                ce_reason = 'Time Stop (120m)'
-                                ce_exit_time = ts
-                            if pe_active:
-                                pe_active = False
-                                pe_exit_p = round(float(p_bar['close']) * (1.0 - config.SLIPPAGE_PCT), 2)
-                                pe_reason = 'Time Stop (120m)'
-                                pe_exit_time = ts
-                            break
-
-                        if not ce_active and not pe_active:
-                            break
-
-                    final_exit_time = max(ce_exit_time, pe_exit_time) if (ce_exit_time and pe_exit_time) else trade["exit_time"]
-                    trade["exit_time"] = final_exit_time
-                    trade["exit_p"] = round(ce_exit_p + pe_exit_p, 2)
-                    gross_ce = (ce_exit_p - real_ce_entry) * config.LOT_SIZE
-                    gross_pe = (pe_exit_p - real_pe_entry) * config.LOT_SIZE
-                    trade["gross"] = round(gross_ce + gross_pe, 2)
-
-                    buy_v = trade["entry_p"] * config.LOT_SIZE
-                    sell_v = trade["exit_p"] * config.LOT_SIZE
-                    turn = buy_v + sell_v
-                    brok = 80.0
-                    stt = sell_v * 0.001
-                    exch = turn * 0.0005
-                    gst = (brok + exch) * 0.18
-                    trade["charges"] = round(brok + stt + exch + gst, 2)
-                    trade["net"] = round(trade["gross"] - trade["charges"], 2)
-                    trade["exit_reason"] = f"{pe_reason} | {ce_reason}"
-                    feed_label = f"Angel One Real Traded ({ce_contract['symbol']} + {pe_contract['symbol']})"
-
-    info["status"] = "TRADE_EXECUTED"
-    info["trade_occurred"] = True
-    info["entry_time"] = trade["entry_time"].strftime("%H:%M:%S") if hasattr(trade["entry_time"], 'strftime') else str(trade["entry_time"])
-    info["exit_time"] = trade["exit_time"].strftime("%H:%M:%S") if hasattr(trade["exit_time"], 'strftime') else str(trade["exit_time"])
-    info["strike"] = trade.get("strike", "Dual OTM")
-    info["opt_type"] = trade.get("opt_type", "CE+PE")
-    info["entry_p"] = trade.get("entry_p", 0.0)
-    info["exit_p"] = trade.get("exit_p", 0.0)
-    info["cost"] = trade.get("cost", 0.0)
-    info["gross_pnl"] = round(trade["gross"], 2)
-    info["charges"] = round(trade["charges"], 2)
-    info["net_pnl"] = round(trade["net"], 2)
-    info["exit_reason"] = trade["exit_reason"]
-    info["data_feed"] = feed_label
+    info.update({
+        "status": "TRADE_EXECUTED",
+        "trade_occurred": True,
+        "strategy": "Strategy 1: Nifty 15M Directional Breakout",
+        "symbol": sym,
+        "entry_time": entry_ts.strftime("%H:%M:%S") if hasattr(entry_ts, 'strftime') else str(entry_ts),
+        "exit_time": exit_ts.strftime("%H:%M:%S") if hasattr(exit_ts, 'strftime') else str(exit_ts),
+        "strike": strike,
+        "opt_type": opt_type,
+        "entry_p": entry_p,
+        "exit_p": exit_p,
+        "cost": cost,
+        "gross_pnl": round(gross, 2),
+        "charges": charges,
+        "net_pnl": net,
+        "exit_reason": exit_reason,
+        "data_feed": feed_label
+    })
     return info
 
 def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
@@ -343,8 +322,9 @@ def evaluate_strategy_2(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
     trade = res["trades_df"].iloc[0].to_dict()
     feed_label = "Mathematical (BSM)"
-    contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
-    if contract:
+    if api:
+        contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
+        if contract:
             t_min = day_bars["timestamp"].min()
             t_max = day_bars["timestamp"].max()
             df_opt = fetch_real_option_candles(api, contract, t_min, t_max)
@@ -466,8 +446,9 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
     trade = res["trades_df"].iloc[0].to_dict()
     feed_label = "Mathematical (BSM)"
-    contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
-    if contract:
+    if api:
+        contract = get_active_option_contract(target_date, trade["strike"], trade["opt_type"])
+        if contract:
             t_min = day_bars["timestamp"].min()
             t_max = day_bars["timestamp"].max()
             df_opt = fetch_real_option_candles(api, contract, t_min, t_max)
@@ -590,12 +571,142 @@ def evaluate_strategy_7(df_banknifty: pd.DataFrame, target_date: datetime.date, 
 
 def evaluate_strategy_8(df_banknifty: pd.DataFrame, target_date: datetime.date, api: SmartConnect = None) -> dict:
     """
-    Strategy 8: BankNIFTY Hedged Long Strangle (15M Box)
-    Tuesday (1-DTE) & Wednesday (0-DTE) Expiry Sessions with Opening Compression (<0.35%).
-    15M Box OTM Strangle at 09:30 IST, +70% Target, -30% Basket SL, 45-min hold.
-    Budget <= INR 8,500 (fits INR 10,000 account limit).
+    Strategy 8: BankNIFTY 15M Directional Breakout (Trend Aligned 100-pt OTM)
+    Morning 15-minute Box (09:15 - 09:30).
+    Filters: Box range <= 1.20% of spot open.
+    Triggers: Upper = box_high + 25.0, Lower = box_low - 25.0.
+    Trend Filter: Confirms Spot > 20-EMA for CE, Spot < 20-EMA for PE.
+    Strikes: 100-pt OTM.
+    Exits: +80% Target, -25% SL, 15:15 EOD.
     """
-    return evaluate_banknifty_strangle_for_day(df_banknifty, target_date, api=api)
+    data = df_banknifty.copy()
+    data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+    data['date'] = data['timestamp'].dt.date
+
+    day_bars = data[data['date'] == target_date].copy().sort_values("timestamp").reset_index(drop=True)
+    if day_bars.empty or len(day_bars) < 15:
+        return {"status": "NO_DATA", "reason": "No market data (holiday/weekend)"}
+
+    box_bars = day_bars[(day_bars["timestamp"].dt.time >= datetime.time(9, 15)) & (day_bars["timestamp"].dt.time <= datetime.time(9, 30))]
+    if len(box_bars) < 10:
+        return {"status": "INCOMPLETE", "reason": "15-minute box is forming"}
+
+    box_h = float(box_bars["high"].max())
+    box_l = float(box_bars["low"].min())
+    box_range = box_h - box_l
+    spot_open = float(box_bars["close"].iloc[0])
+    box_pct = (box_range / spot_open) * 100.0
+
+    u_trig = round(box_h + config.S8_BUFFER_PTS, 2)
+    l_trig = round(box_l - config.S8_BUFFER_PTS, 2)
+
+    info = {
+        "box_high": round(box_h, 2), "box_low": round(box_l, 2),
+        "box_range_pts": round(box_range, 2), "box_pct": round(box_pct, 2),
+        "upper_trigger": u_trig, "lower_trigger": l_trig
+    }
+
+    if box_pct > config.S8_MAX_BOX_PCT:
+        info["status"] = "FILTERED_WIDE_BOX"
+        info["trade_occurred"] = False
+        info["reason"] = f"Box width {box_range:.1f} pts ({box_pct:.2f}% > {config.S8_MAX_BOX_PCT:.2f}%). Filtered out to avoid chop."
+        return info
+
+    # Compute 20-EMA
+    day_bars["ema_20"] = day_bars["close"].ewm(span=20, adjust=False).mean()
+    post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(15, 0))]
+
+    trade_entry = None
+    for _, row in post_bars.iterrows():
+        c = float(row["close"])
+        ema = float(row["ema_20"])
+        ts = row["timestamp"]
+
+        if c >= u_trig and (not config.S8_USE_EMA_TREND or c > ema):
+            atm = int(round(c / 100.0) * 100)
+            trade_entry = (ts, "CE", atm + config.S8_OTM_OFFSET)
+            break
+        elif c <= l_trig and (not config.S8_USE_EMA_TREND or c < ema):
+            atm = int(round(c / 100.0) * 100)
+            trade_entry = (ts, "PE", atm - config.S8_OTM_OFFSET)
+            break
+
+    if not trade_entry:
+        info["status"] = "NO_BREAKOUT"
+        info["trade_occurred"] = False
+        info["reason"] = f"Price stayed within triggers ({l_trig} - {u_trig}) or failed 20-EMA trend alignment."
+        return info
+
+    entry_ts, opt_type, strike = trade_entry
+    from scratch.evaluate_optimized_on_real_options import get_candle_feed
+    df_opt, sym, feed_label = get_candle_feed(api, target_date, strike, opt_type, "BANKNIFTY", day_bars)
+
+    sub_opt = df_opt[df_opt.index >= entry_ts]
+    if sub_opt.empty:
+        info["status"] = "NO_OPTION_DATA"
+        info["trade_occurred"] = False
+        info["reason"] = "Could not fetch option candle data."
+        return info
+
+    entry_p = round(float(sub_opt.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+    cost = round(entry_p * config.BANKNIFTY_LOT_SIZE, 2)
+    if cost > config.INITIAL_CAPITAL:
+        info["status"] = "BUDGET_EXCEEDED"
+        info["trade_occurred"] = False
+        info["reason"] = f"Option premium INR {entry_p} exceeds budget limit (Cost: INR {cost:,.2f})."
+        return info
+
+    tgt_p = entry_p * (1.0 + config.S8_TARGET_PCT)
+    sl_p = entry_p * (1.0 - config.S8_SL_PCT)
+    exit_p = entry_p
+    exit_ts = sub_opt.index[-1]
+    exit_reason = "EOD (15:15)"
+
+    for o_ts, o_row in sub_opt.iloc[1:].iterrows():
+        if float(o_row["high"]) >= tgt_p:
+            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = f"Target Hit (+{int(config.S8_TARGET_PCT*100)}%)"
+            break
+        elif float(o_row["low"]) <= sl_p:
+            exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = f"SL Hit (-{int(config.S8_SL_PCT*100)}%)"
+            break
+        elif o_ts.time() >= datetime.time(15, 15):
+            exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = "EOD (15:15)"
+            break
+
+    gross = (exit_p - entry_p) * config.BANKNIFTY_LOT_SIZE
+    turn = (entry_p + exit_p) * config.BANKNIFTY_LOT_SIZE
+    brok = 40.0
+    stt = (exit_p * config.BANKNIFTY_LOT_SIZE) * config.STT_PCT_ON_SELL
+    exch = turn * config.EXCHANGE_TURNOVER_PCT
+    gst = (brok + exch) * config.GST_PCT
+    charges = round(brok + stt + exch + gst, 2)
+    net = round(gross - charges, 2)
+
+    info.update({
+        "status": "TRADE_EXECUTED",
+        "trade_occurred": True,
+        "strategy": "Strategy 8: BankNIFTY 15M Directional Breakout",
+        "symbol": sym,
+        "entry_time": entry_ts.strftime("%H:%M:%S") if hasattr(entry_ts, 'strftime') else str(entry_ts),
+        "exit_time": exit_ts.strftime("%H:%M:%S") if hasattr(exit_ts, 'strftime') else str(exit_ts),
+        "strike": strike,
+        "opt_type": opt_type,
+        "entry_p": entry_p,
+        "exit_p": exit_p,
+        "cost": cost,
+        "gross_pnl": round(gross, 2),
+        "charges": charges,
+        "net_pnl": net,
+        "exit_reason": exit_reason,
+        "data_feed": feed_label
+    })
+    return info
 
 def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3: dict, s4: dict, s5: dict, s6: dict = None, s7: dict = None, s8: dict = None):
     print("\n" + "=" * 95)
@@ -626,14 +737,14 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
             print(f"   Reason: {s.get('reason', '')}")
         print("-" * 95)
 
-    print_strategy_box("STRATEGY 1: HEDGED LONG STRANGLE (15M BOX BREAKOUT - NIFTY)", s1)
-    print_strategy_box("STRATEGY 2: 0-DTE / 1-DTE EXPIRY GAMMA SQUEEZE (NIFTY TUESDAY EXPIRY)", s2)
-    print_strategy_box("STRATEGY 3: 30-MINUTE STATISTICAL BOX BREAKOUT (DIRECTIONAL ITM_50 - NIFTY)", s3)
-    print_strategy_box("STRATEGY 4: DECOUPLED ASYMMETRIC STRANGLE (DAS - NIFTY)", s4)
-    print_strategy_box("STRATEGY 5: DECOUPLED ASYMMETRIC STRANGLE (DAS - BANKNIFTY)", s5)
-    if s6 is not None: print_strategy_box("STRATEGY 6: DIRECTIONAL BOX BREAKOUT (DBB - BANKNIFTY)", s6)
-    if s7 is not None: print_strategy_box("STRATEGY 7: EXPIRY GAMMA SQUEEZE MOMENTUM (GSM - BANKNIFTY)", s7)
-    if s8 is not None: print_strategy_box("STRATEGY 8: HEDGED LONG STRANGLE (15M BOX - BANKNIFTY)", s8)
+    print_strategy_box("STRATEGY 1: NIFTY 15M DIRECTIONAL BREAKOUT (POWER-3 CORE)", s1)
+    print_strategy_box("STRATEGY 8: BANKNIFTY 15M DIRECTIONAL BREAKOUT (POWER-3 CORE)", s8)
+    print_strategy_box("STRATEGY 4: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS - POWER-3 CORE)", s4)
+    if config.S2_ENABLED: print_strategy_box("STRATEGY 2: 0-DTE / 1-DTE EXPIRY GAMMA SQUEEZE (NIFTY TUESDAY EXPIRY)", s2)
+    if config.S3_ENABLED: print_strategy_box("STRATEGY 3: 30-MINUTE STATISTICAL BOX BREAKOUT (DIRECTIONAL ITM_50 - NIFTY)", s3)
+    if config.S5_ENABLED: print_strategy_box("STRATEGY 5: DECOUPLED ASYMMETRIC STRANGLE (DAS - BANKNIFTY)", s5)
+    if config.S6_ENABLED and s6 is not None: print_strategy_box("STRATEGY 6: DIRECTIONAL BOX BREAKOUT (DBB - BANKNIFTY)", s6)
+    if config.S7_ENABLED and s7 is not None: print_strategy_box("STRATEGY 7: EXPIRY GAMMA SQUEEZE MOMENTUM (GSM - BANKNIFTY)", s7)
 
     # Dynamic computation of portfolio table directly from trade_journal.csv
     portfolio_table = []
@@ -651,18 +762,22 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     else:
         df_j = pd.DataFrame()
 
-    strat_list = [
-        ("Strategy 1", "Strategy 1: Hedged Strangle (15M Box - NIFTY)"),
-        ("Strategy 2", "Strategy 2: Expiry Gamma Squeeze (NIFTY)"),
-        ("Strategy 3", "Strategy 3: 30M Directional ITM (NIFTY)"),
-        ("Strategy 4", "Strategy 4: Decoupled Strangle (DAS - NIFTY)"),
-        ("Strategy 5", "Strategy 5: Decoupled Strangle (DAS - BANKNIFTY)"),
-        ("Strategy 6", "Strategy 6: Directional Box Breakout (DBB - BANKNIFTY)"),
-        ("Strategy 7", "Strategy 7: Expiry Gamma Squeeze (GSM - BANKNIFTY)"),
-        ("Strategy 8", "Strategy 8: Hedged Long Strangle (15M Box - BANKNIFTY)"),
+    core_list = [
+        ("Strategy 1", "Strategy 1: Nifty 15M Directional Breakout (Active Core)"),
+        ("Strategy 8", "Strategy 8: BankNIFTY 15M Directional Breakout (Active Core)"),
+        ("Strategy 4", "Strategy 4: Nifty Decoupled DAS (Active Core)"),
+    ]
+    retired_list = [
+        ("Strategy 2", "Strategy 2: Expiry Gamma Squeeze (NIFTY - Retired)"),
+        ("Strategy 3", "Strategy 3: 30M Directional ITM (NIFTY - Retired)"),
+        ("Strategy 5", "Strategy 5: Decoupled Strangle (DAS - BANKNIFTY - Retired)"),
+        ("Strategy 6", "Strategy 6: Directional Box Breakout (DBB - BANKNIFTY - Retired)"),
+        ("Strategy 7", "Strategy 7: Expiry Gamma Squeeze (GSM - BANKNIFTY - Retired)"),
     ]
 
-    for key_pattern, label in strat_list:
+    core_trades, core_wins, core_net, core_gwin, core_gloss = 0, 0, 0.0, 0.0, 0.0
+
+    for key_pattern, label in core_list:
         if not df_j.empty and "strategy" in df_j.columns:
             g = df_j[df_j["strategy"].str.contains(key_pattern, na=False, case=False)]
         else:
@@ -677,8 +792,46 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
             pf = round(g_win / g_loss, 2) if g_loss > 0 else (99.0 if g_win > 0 else 0.0)
             net_val = float(g["net_pnl"].sum())
             cum = g["net_pnl"].cumsum()
-            peak = cum.cummax()
-            dd = float((peak - cum).max()) if not cum.empty else 0.0
+            dd = float((cum.cummax() - cum).max()) if not cum.empty else 0.0
+            
+            tot_trades_all += t_count
+            tot_wins_all += wins
+            tot_net_all += net_val
+            tot_gross_win_all += g_win
+            tot_gross_loss_all += g_loss
+
+            core_trades += t_count
+            core_wins += wins
+            core_net += net_val
+            core_gwin += g_win
+            core_gloss += g_loss
+            
+            p_sign = "+" if net_val >= 0 else ""
+            portfolio_table.append([label, f"{t_count} Trades", f"{wr:.1f}% Win Rate", f"{pf:.2f} PF", f"Max DD: INR {dd:,.0f}", f"{p_sign}INR {net_val:,.2f}"])
+        else:
+            portfolio_table.append([label, "0 Trades", "0.0% Win Rate", "0.00 PF", "Max DD: INR 0", "INR 0.00"])
+
+    c_wr = (core_wins / core_trades * 100.0) if core_trades > 0 else 0.0
+    c_pf = round(core_gwin / core_gloss, 2) if core_gloss > 0 else 0.0
+    c_sign = "+" if core_net >= 0 else ""
+    portfolio_table.append(["--> POWER-3 ACTIVE CORE SUB-TOTAL", f"{core_trades} Trades", f"{c_wr:.1f}% Win Rate", f"{c_pf:.2f} PF", "-", f"{c_sign}INR {core_net:,.2f}"])
+
+    for key_pattern, label in retired_list:
+        if not df_j.empty and "strategy" in df_j.columns:
+            g = df_j[df_j["strategy"].str.contains(key_pattern, na=False, case=False)]
+        else:
+            g = pd.DataFrame()
+
+        t_count = len(g)
+        if t_count > 0:
+            wins = len(g[g["net_pnl"] > 0])
+            wr = (wins / t_count) * 100.0
+            g_win = float(g[g["net_pnl"] > 0]["net_pnl"].sum())
+            g_loss = float(abs(g[g["net_pnl"] <= 0]["net_pnl"].sum()))
+            pf = round(g_win / g_loss, 2) if g_loss > 0 else (99.0 if g_win > 0 else 0.0)
+            net_val = float(g["net_pnl"].sum())
+            cum = g["net_pnl"].cumsum()
+            dd = float((cum.cummax() - cum).max()) if not cum.empty else 0.0
             
             tot_trades_all += t_count
             tot_wins_all += wins
@@ -687,14 +840,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
             tot_gross_loss_all += g_loss
             
             p_sign = "+" if net_val >= 0 else ""
-            portfolio_table.append([
-                label,
-                f"{t_count} Trades",
-                f"{wr:.1f}% Win Rate",
-                f"{pf:.2f} PF",
-                f"Max DD: INR {dd:,.0f}",
-                f"{p_sign}INR {net_val:,.2f}"
-            ])
+            portfolio_table.append([label, f"{t_count} Trades", f"{wr:.1f}% Win Rate", f"{pf:.2f} PF", f"Max DD: INR {dd:,.0f}", f"{p_sign}INR {net_val:,.2f}"])
         else:
             portfolio_table.append([label, "0 Trades", "0.0% Win Rate", "0.00 PF", "Max DD: INR 0", "INR 0.00"])
 
@@ -705,7 +851,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     comb_sign = "+" if tot_net_all >= 0 else ""
 
     portfolio_table.append([
-        "COMBINED 8-STRATEGY MULTI-INDEX PORTFOLIO",
+        "COMBINED ALL-STRATEGY HISTORICAL PORTFOLIO",
         f"{tot_trades_all} Trades",
         f"{comb_wr:.1f}% Win Rate",
         f"{comb_pf:.2f} PF",
@@ -784,7 +930,7 @@ def run():
 
     def get_strategy_evaluation(strat_key, strat_full_name, eval_func, df_candles, is_bn=False):
         # Check if actual live trades occurred today for this strategy
-        strat_trades = [t for t in today_live_trades if strat_key.lower() in str(t.get("strategy", "")).lower()]
+        strat_trades = [t for t in today_live_trades if strat_full_name.lower() in str(t.get("strategy", "")).lower() or strat_key.lower() == str(t.get("strategy", "")).lower()]
         if strat_trades:
             net_tot = round(sum(float(t.get("net_pnl", 0.0)) for t in strat_trades), 2)
             gross_tot = round(sum(float(t.get("gross_pnl", 0.0)) for t in strat_trades), 2)
@@ -815,29 +961,30 @@ def run():
             return {"status": "NO_DATA", "trade_occurred": False, "reason": "No market data available"}
         return eval_func(df_candles, target_date, api=api)
 
-    s1_res = get_strategy_evaluation("Strategy 1", "Strategy 1: Hedged Strangle", evaluate_strategy_1, df_all)
-    s2_res = get_strategy_evaluation("Strategy 2", "Strategy 2: Expiry Gamma Squeeze", evaluate_strategy_2, df_all)
-    s3_res = get_strategy_evaluation("Strategy 3", "Strategy 3: 30M Directional ITM", evaluate_strategy_3, df_all)
-    s4_res = get_strategy_evaluation("Strategy 4", "Strategy 4: Decoupled Asymmetric Strangle", evaluate_strategy_4, df_all)
-    s5_res = get_strategy_evaluation("Strategy 5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", evaluate_strategy_5, df_bn, is_bn=True)
-    s6_res = get_strategy_evaluation("Strategy 6", "Strategy 6: BankNIFTY Directional Box Breakout (DBB)", evaluate_strategy_6, df_bn, is_bn=True)
-    s7_res = get_strategy_evaluation("Strategy 7", "Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", evaluate_strategy_7, df_bn, is_bn=True)
-    s8_res = get_strategy_evaluation("Strategy 8", "Strategy 8: BankNIFTY Hedged Long Strangle", evaluate_strategy_8, df_bn, is_bn=True)
+    s1_res = get_strategy_evaluation("Strategy 1", "Strategy 1: Nifty 15M Directional Breakout", evaluate_strategy_1, df_all) if config.S1_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired to eliminate over-trading"}
+    s8_res = get_strategy_evaluation("Strategy 8", "Strategy 8: BankNIFTY 15M Directional Breakout", evaluate_strategy_8, df_bn, is_bn=True) if config.S8_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired to eliminate over-trading"}
+    s4_res = get_strategy_evaluation("Strategy 4", "Strategy 4: Decoupled Asymmetric Strangle", evaluate_strategy_4, df_all) if config.S4_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired to eliminate over-trading"}
+    s2_res = get_strategy_evaluation("Strategy 2", "Strategy 2: Expiry Gamma Squeeze", evaluate_strategy_2, df_all) if config.S2_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired (friction drag)"}
+    s3_res = get_strategy_evaluation("Strategy 3", "Strategy 3: 30M Directional ITM", evaluate_strategy_3, df_all) if config.S3_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired (sparse frequency 1 trade/mo)"}
+    s5_res = get_strategy_evaluation("Strategy 5", "Strategy 5: BankNIFTY Decoupled Strangle (DAS)", evaluate_strategy_5, df_bn, is_bn=True) if config.S5_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired (low 20% win-rate)"}
+    s6_res = get_strategy_evaluation("Strategy 6", "Strategy 6: BankNIFTY Directional Box Breakout (DBB)", evaluate_strategy_6, df_bn, is_bn=True) if config.S6_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired (redundant with S8)"}
+    s7_res = get_strategy_evaluation("Strategy 7", "Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", evaluate_strategy_7, df_bn, is_bn=True) if config.S7_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy retired (17% win-rate)"}
 
     print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res, s5_res, s6_res, s7_res, s8_res)
 
     # Record any unrecorded simulation trades only if no live trades existed today
     if not today_live_trades:
-        for s_name, s_res in [
-            ("Strategy 1: Hedged Strangle", s1_res),
-            ("Strategy 2: Expiry Gamma Squeeze", s2_res),
-            ("Strategy 3: 30M Directional ITM", s3_res),
-            ("Strategy 4: Decoupled Asymmetric Strangle", s4_res),
-            ("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res),
-            ("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res),
-            ("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res),
-            ("Strategy 8: BankNIFTY Hedged Long Strangle", s8_res)
-        ]:
+        active_evals = []
+        if config.S1_ENABLED: active_evals.append(("Strategy 1: Nifty 15M Directional Breakout", s1_res))
+        if config.S8_ENABLED: active_evals.append(("Strategy 8: BankNIFTY 15M Directional Breakout", s8_res))
+        if config.S4_ENABLED: active_evals.append(("Strategy 4: Decoupled Asymmetric Strangle", s4_res))
+        if config.S2_ENABLED: active_evals.append(("Strategy 2: Expiry Gamma Squeeze", s2_res))
+        if config.S3_ENABLED: active_evals.append(("Strategy 3: 30M Directional ITM", s3_res))
+        if config.S5_ENABLED: active_evals.append(("Strategy 5: BankNIFTY Decoupled Strangle (DAS)", s5_res))
+        if config.S6_ENABLED: active_evals.append(("Strategy 6: BankNIFTY Directional Box Breakout (DBB)", s6_res))
+        if config.S7_ENABLED: active_evals.append(("Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)", s7_res))
+
+        for s_name, s_res in active_evals:
             if s_res.get("trade_occurred", False):
                 if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
                     for sub_tr in s_res["all_trades"]:

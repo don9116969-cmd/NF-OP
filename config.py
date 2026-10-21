@@ -1,7 +1,12 @@
 """
-Configuration module for Nifty Option Buying Model and Backtesting Engine.
+Configuration module for Nifty & BankNifty Option Buying Portfolio Engine.
+Power-3 Core Production Architecture:
+1. Strategy 1: Nifty 15M Directional Breakout (Trend Aligned ATM, SL -16%, TP +60%)
+2. Strategy 8: BankNIFTY 15M Directional Breakout (Trend Aligned 100-pt OTM, SL -25%, TP +80%)
+3. Strategy 4: Nifty Decoupled Asymmetric Strangle (DAS) (Std < 30, Vel >= 35, Win +60%, Lose -12%)
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 
 @dataclass
 class TradingConfig:
@@ -9,47 +14,90 @@ class TradingConfig:
     INDEX_NAME: str = "NIFTY"
     LOT_SIZE: int = 65  # Official NSE Nifty standard lot size
     BANKNIFTY_LOT_SIZE: int = 30  # Official NSE BankNifty standard lot size
-    STRIKE_STEP: int = 50  # Nifty strike intervals (e.g. 24000, 24050, 24100)
+    STRIKE_STEP: int = 50  # Nifty strike intervals
+    BANKNIFTY_STRIKE_STEP: int = 100  # BankNifty strike intervals
     
     # Capital & Risk Controls (₹10,000 Budget)
     INITIAL_CAPITAL: float = 10000.0  # User's exact budget in INR
-    MAX_RISK_PER_TRADE: float = 1500.0  # Max risk on combined strangle per trade
-    MAX_TRADES_PER_WEEK: int = 4  # Strictly 3 to 4 quality trades per week
-    MAX_TRADES_PER_DAY: int = 1  # At most 1 trade per day (some days 0)
+    MAX_CAPITAL_PER_TRADE: float = 8500.0  # Safe cap to always preserve ₹1,500 buffer
+    MAX_CONCURRENT_POSITIONS: int = 1  # Strictly 1 active trade at any time across account
     
     # Execution & Charges (Indian Stock Market)
-    BROKERAGE_PER_ORDER: float = 20.0  # Angel One / Flat brokerage (INR 20 per order)
+    BROKERAGE_PER_ORDER: float = 20.0  # Angel One flat brokerage (INR 20 per order)
     STT_PCT_ON_SELL: float = 0.001  # STT 0.1% on option sell turnover
     EXCHANGE_TURNOVER_PCT: float = 0.0005  # ~0.05% NSE exchange charge
     GST_PCT: float = 0.18  # 18% GST on (Brokerage + Exchange turnover)
     SEBI_CHARGES_PCT: float = 0.000001  # INR 10 per crore
     STAMP_DUTY_PCT_BUY: float = 0.00003  # 0.003% on buy value
-    SLIPPAGE_PCT: float = 0.008  # 0.8% realistic execution slippage on option premium
+    SLIPPAGE_PCT: float = 0.005  # 0.5% realistic execution slippage
     
-    # Option Greeks & Strike Selection
-    PREFERRED_STRIKE: str = "ATM"  # ATM or ITM_1 (Avoid OTM for low risk)
+    # Greeks & Market Parameters
     RISK_FREE_RATE: float = 0.07  # RBI repo / risk-free rate ~7%
+    DEFAULT_IV: float = 0.15  # Benchmark IV 15%
     
     # Timing (IST)
     MARKET_START_TIME: str = "09:15"
-    TRADE_START_TIME: str = "09:25"  # Let initial 10 mins noise settle
-    SQUARE_OFF_TIME: str = "15:15"  # Force exit all intraday trades before close
+    TRADE_START_TIME: str = "09:30"
+    SQUARE_OFF_TIME: str = "15:15"
 
-    # Strategy 4: Decoupled Asymmetric Strangle (DAS) Settings
-    DAS_VOL_WINDOW: int = 15  # 15-minute rolling window for premium volatility
-    DAS_STD_THRESH: float = 5.0  # Premium standard deviation coiling threshold (<= 5.0)
-    DAS_VEL_THRESH: float = 1.0  # Premium velocity expansion threshold (>= 1.0)
-    DAS_WIN_TARGET_PCT: float = 0.50  # +50% profit target on winning leg
-    DAS_LOSE_STOP_PCT: float = 0.35  # -35% stop loss on decaying leg
-    DAS_COMBINED_STOP_PCT: float = 0.15  # -15% stop loss on total position
-    DAS_MAX_HOLD_MINS: int = 25  # 25-minute maximum holding time
-    DAS_MIN_LEG_PREMIUM: float = 35.0  # Minimum leg premium in points
-    DAS_MAX_LEG_PREMIUM: float = 68.0  # Maximum leg premium in points (ensures <= Rs 10k budget)
-    DAS_COOLDOWN_BARS: int = 30  # 30-minute cooldown between trades
-    DAS_TRADE_START: str = "09:45"  # DAS active trading window start
-    DAS_TRADE_END: str = "14:15"  # DAS active trading window end
-    DAS_CHOP_START: str = "11:30"  # Midday chop filter start
-    DAS_CHOP_END: str = "13:00"  # Midday chop filter end
+    # =========================================================================
+    # POWER-3 CORE STRATEGY PARAMETERS
+    # =========================================================================
+
+    # STRATEGY 1: NIFTY 15M DIRECTIONAL BREAKOUT
+    S1_ENABLED: bool = True
+    S1_BOX_START: str = "09:15"
+    S1_BOX_END: str = "09:30"
+    S1_BUFFER_PTS: float = 8.0  # 8.0 pt breakout buffer
+    S1_MAX_BOX_PCT: float = 0.30  # Filter out boxes wider than 0.30% to avoid chop
+    S1_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
+    S1_SL_PCT: float = 0.16  # -16% tight stop loss
+    S1_TARGET_PCT: float = 0.60  # +60% profit target
+    S1_MAX_BUDGET: float = 8500.0
+
+    # STRATEGY 8: BANKNIFTY 15M DIRECTIONAL BREAKOUT
+    S8_ENABLED: bool = True
+    S8_BOX_START: str = "09:15"
+    S8_BOX_END: str = "09:30"
+    S8_BUFFER_PTS: float = 25.0  # 25.0 pt breakout buffer
+    S8_MAX_BOX_PCT: float = 1.20  # Filter out boxes wider than 1.20%
+    S8_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
+    S8_OTM_OFFSET: int = 100  # 100-pt OTM option
+    S8_SL_PCT: float = 0.25  # -25% stop loss
+    S8_TARGET_PCT: float = 0.80  # +80% profit target
+    S8_MAX_BUDGET: float = 8500.0
+
+    # STRATEGY 4: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)
+    S4_ENABLED: bool = True
+    DAS_VOL_WINDOW: int = 20  # 20-min rolling window for std
+    DAS_STD_THRESH: float = 30.0  # Rolling standard deviation compression (< 30.0)
+    DAS_VEL_THRESH: float = 35.0  # Kinetic expansion velocity (>= 35.0 pts in 5 mins)
+    DAS_MIN_LEG_PREMIUM: float = 35.0  # Min premium per leg for DAS strike selection
+    DAS_MAX_LEG_PREMIUM: float = 68.0  # Max premium per leg for DAS strike selection
+    DAS_WIN_TARGET_PCT: float = 0.60  # +60% target on surging winning leg
+    DAS_LOSE_STOP_PCT: float = 0.12  # -12% tight stop loss on decaying losing leg
+    DAS_COMBINED_STOP_PCT: float = 0.25  # Combined basket stop loss
+    DAS_MAX_HOLD_MINS: int = 50  # 50-minute maximum holding cutoff
+    DAS_COOLDOWN_BARS: int = 15  # 15-minute cooldown between entries
+    DAS_TRADE_START: str = "09:30"
+    DAS_TRADE_END: str = "14:00"
+    DAS_MAX_BUDGET: float = 8500.0
+
+    # Risk Controls
+    MAX_DAILY_LOSS: float = 2500.0  # Max account daily loss limit
+    MAX_TRADES_PER_DAY: int = 4  # Max trades across portfolio per day
+
+    # RETIRED / SECONDARY STRATEGIES (Set to False to eliminate over-trading & noise)
+    S2_ENABLED: bool = False  # Nifty Afternoon Gamma (Optional Tuesday-only)
+    S3_ENABLED: bool = False  # Nifty 30M ITM (Retired: sparse 1 trade/month)
+    S5_ENABLED: bool = False  # BankNifty DAS (Retired: 20% win-rate drag)
+    S6_ENABLED: bool = False  # BankNifty DBB (Retired: redundant with S8)
+    S7_ENABLED: bool = False  # BankNifty GSM (Retired: 17% win-rate drag)
+
+    ACTIVE_STRATEGIES: List[str] = field(default_factory=lambda: [
+        "Strategy 1: Nifty 15M Directional Breakout",
+        "Strategy 8: BankNIFTY 15M Directional Breakout",
+        "Strategy 4: Nifty Decoupled Asymmetric Strangle (DAS)"
+    ])
 
 config = TradingConfig()
-

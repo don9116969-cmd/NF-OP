@@ -52,15 +52,16 @@ def ensure_scrip_master(max_age_hours: int = 168, name: str = "NIFTY") -> list:
 
     return _SCRIP_CACHE.get(target_name, [])
 
-def get_active_option_contract(target_date: datetime.date, strike: int, opt_type: str, underlying: str = "NIFTY") -> dict:
-    """
-    Finds the active option contract matching the strike, opt_type, and nearest expiry for NIFTY or BANKNIFTY.
-    """
-    opts = ensure_scrip_master(name=underlying)
-    opt_type_upper = opt_type.upper()
+_EXP_MAP_CACHE = {}
+_LOOKUP_CACHE = {}
 
-    # Collect all available expiries
+def _init_lookup_cache(underlying: str):
+    global _EXP_MAP_CACHE, _LOOKUP_CACHE
+    if underlying in _LOOKUP_CACHE:
+        return
+    opts = ensure_scrip_master(name=underlying)
     exp_map = {}
+    lookup = {}
     for d in opts:
         exp_str = d.get("expiry")
         if exp_str and exp_str not in exp_map:
@@ -69,45 +70,101 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
                 exp_map[exp_str] = exp_dt
             except Exception:
                 pass
+        
+        sym = d.get("symbol", "")
+        opt_type = "CE" if sym.endswith("CE") else ("PE" if sym.endswith("PE") else "")
+        if opt_type and exp_str:
+            d_strike = float(d.get("strike", 0))
+            strike_pt = int(round(d_strike / 100.0))
+            exp_dt = exp_map.get(exp_str)
+            if exp_dt:
+                contract_info = {
+                    "token": d["token"],
+                    "symbol": d["symbol"],
+                    "expiry": exp_str,
+                    "expiry_date": exp_dt,
+                    "strike": strike_pt,
+                    "opt_type": opt_type,
+                    "exch_seg": d.get("exch_seg", "NFO"),
+                    "lotsize": int(d.get("lotsize", 65 if underlying == "NIFTY" else 30))
+                }
+                lookup[(exp_str, opt_type, strike_pt)] = contract_info
+
+    # Also index all pre-downloaded contracts from cache directories
+    import re
+    cache_dirs = [
+        os.path.join(BASE_DIR, "data", "real_options_cache"),
+        os.path.join(BASE_DIR, "data", "banknifty_options_cache"),
+        os.path.join(BASE_DIR, "testing", "data", "real_options_cache")
+    ]
+    for c_dir in cache_dirs:
+        if not os.path.exists(c_dir):
+            continue
+        for f in os.listdir(c_dir):
+            if not f.endswith(".csv"):
+                continue
+            base = f[:-4]
+            m = re.match(r"^([A-Z]+)([0-9]{2}[A-Z]{3}[0-9]{2})([0-9]+)(CE|PE)$", base)
+            if not m:
+                continue
+            u, exp_str, strike_str, o_type = m.groups()
+            if u != underlying:
+                continue
+            try:
+                exp_dt = datetime.datetime.strptime(exp_str, "%d%b%y").date()
+                norm_exp_str = exp_dt.strftime("%d%b%Y").upper()
+            except Exception:
+                continue
+            if norm_exp_str not in exp_map:
+                exp_map[norm_exp_str] = exp_dt
+            s_pt = int(strike_str)
+            key = (norm_exp_str, o_type, s_pt)
+            if key not in lookup:
+                lookup[key] = {
+                    "token": base,
+                    "symbol": base,
+                    "expiry": norm_exp_str,
+                    "expiry_date": exp_dt,
+                    "strike": s_pt,
+                    "opt_type": o_type,
+                    "exch_seg": "NFO",
+                    "lotsize": 65 if underlying == "NIFTY" else 30
+                }
+
+    _EXP_MAP_CACHE[underlying] = sorted(list(exp_map.items()), key=lambda x: x[1])
+    _LOOKUP_CACHE[underlying] = lookup
+
+def get_active_option_contract(target_date: datetime.date, strike: int, opt_type: str, underlying: str = "NIFTY") -> dict:
+    """
+    Finds the active option contract matching the strike, opt_type, and nearest expiry for NIFTY or BANKNIFTY in O(1) time.
+    """
+    underlying = underlying.upper()
+    _init_lookup_cache(underlying)
+
+    exp_list = _EXP_MAP_CACHE.get(underlying, [])
+    if not exp_list:
+        return None
+
+    opt_type_upper = opt_type.upper()
 
     # Find nearest expiry on or after target_date
-    valid_expiries = [(exp_str, exp_dt) for exp_str, exp_dt in exp_map.items() if exp_dt >= target_date]
-    if not valid_expiries:
-        # Fallback to the latest available expiry before target_date for historical playback
-        past_expiries = [(exp_str, exp_dt) for exp_str, exp_dt in exp_map.items() if exp_dt <= target_date]
-        if past_expiries:
-            past_expiries.sort(key=lambda x: x[1], reverse=True)
-            valid_expiries = [past_expiries[0]]
+    valid = [e for e in exp_list if e[1] >= target_date]
+    if valid:
+        nearest_exp_str, nearest_exp_dt = valid[0]
+    else:
+        # Fallback to latest available expiry before target_date for historical playback
+        past = [e for e in exp_list if e[1] <= target_date]
+        if past:
+            nearest_exp_str, nearest_exp_dt = past[-1]
         else:
             return None
 
-    valid_expiries.sort(key=lambda x: x[1])
-    nearest_exp_str, nearest_exp_dt = valid_expiries[0]
-
-    # Target strike in paise
-    target_paise = float(strike * 100)
-
-    for d in opts:
-        if d.get("expiry") == nearest_exp_str:
-            sym = d.get("symbol", "")
-            if sym.endswith(opt_type_upper):
-                d_strike = float(d.get("strike", 0))
-                if abs(d_strike - target_paise) < 1.0 or int(round(d_strike / 100.0)) == strike:
-                    return {
-                        "token": d["token"],
-                        "symbol": d["symbol"],
-                        "expiry": nearest_exp_str,
-                        "expiry_date": nearest_exp_dt,
-                        "strike": strike,
-                        "opt_type": opt_type_upper,
-                        "exch_seg": d.get("exch_seg", "NFO"),
-                        "lotsize": int(d.get("lotsize", 65 if underlying == "NIFTY" else 30))
-                    }
-
-    return None
+    lookup = _LOOKUP_CACHE.get(underlying, {})
+    return lookup.get((nearest_exp_str, opt_type_upper, strike))
 
 OPTIONS_CACHE_DIR = os.path.join(BASE_DIR, "data", "real_options_cache")
 BN_LEGACY_CACHE_DIR = os.path.join(BASE_DIR, "data", "banknifty_options_cache")
+TEST_CACHE_DIR = os.path.join(BASE_DIR, "testing", "data", "real_options_cache")
 os.makedirs(OPTIONS_CACHE_DIR, exist_ok=True)
 
 def load_cached_contract_candles(symbol: str) -> pd.DataFrame:
@@ -115,38 +172,30 @@ def load_cached_contract_candles(symbol: str) -> pd.DataFrame:
     if not symbol:
         return pd.DataFrame()
 
-    p_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.parquet")
-    if os.path.exists(p_file):
-        try:
-            df = pd.read_parquet(p_file)
-            if not isinstance(df.index, pd.DatetimeIndex):
-                if "timestamp" in df.columns:
-                    df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-                    df.set_index("timestamp", inplace=True)
-            return df
-        except Exception:
-            pass
+    for c_dir in [OPTIONS_CACHE_DIR, BN_LEGACY_CACHE_DIR, TEST_CACHE_DIR]:
+        if not os.path.exists(c_dir):
+            continue
+        p_file = os.path.join(c_dir, f"{symbol}.parquet")
+        if os.path.exists(p_file):
+            try:
+                df = pd.read_parquet(p_file)
+                if not isinstance(df.index, pd.DatetimeIndex):
+                    if "timestamp" in df.columns:
+                        df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+                        df.set_index("timestamp", inplace=True)
+                return df
+            except Exception:
+                pass
 
-    c_file = os.path.join(OPTIONS_CACHE_DIR, f"{symbol}.csv")
-    if os.path.exists(c_file):
-        try:
-            df = pd.read_csv(c_file)
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-            df.set_index("timestamp", inplace=True)
-            return df
-        except Exception:
-            pass
-
-    # Fallback to legacy banknifty cache if present
-    bn_file = os.path.join(BN_LEGACY_CACHE_DIR, f"{symbol}.csv")
-    if os.path.exists(bn_file):
-        try:
-            df = pd.read_csv(bn_file)
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-            df.set_index("timestamp", inplace=True)
-            return df
-        except Exception:
-            pass
+        c_file = os.path.join(c_dir, f"{symbol}.csv")
+        if os.path.exists(c_file):
+            try:
+                df = pd.read_csv(c_file)
+                df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+                df.set_index("timestamp", inplace=True)
+                return df
+            except Exception:
+                pass
 
     return pd.DataFrame()
 
@@ -200,12 +249,22 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
     if not force_api and sym:
         df_cached = load_cached_contract_candles(sym)
         if not df_cached.empty:
-            min_ts = df_cached.index.min()
-            max_ts = df_cached.index.max()
-            if min_ts <= from_date and max_ts >= to_date:
-                sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
-                if not sub.empty:
-                    return sub
+            sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+            if len(sub) >= 5:
+                return sub
+            # If the session date matches any data in df_cached, return what we have
+            day_sub = df_cached[df_cached.index.date == from_date.date()]
+            if not day_sub.empty:
+                return day_sub
+
+    # If token is non-numeric (e.g. symbol name from offline indexing), cannot query SmartAPI
+    if not str(contract.get("token", "")).isdigit():
+        df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
+        if not df_cached.empty:
+            sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+            if not sub.empty:
+                return sub
+        return pd.DataFrame()
 
     if not api:
         # Return whatever is in cache if API is offline

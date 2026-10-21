@@ -47,21 +47,28 @@ def get_banknifty_dte(ts: pd.Timestamp, target_date: datetime.date = None) -> fl
     global _BN_EXPIRY_CACHE
     if target_date not in _BN_EXPIRY_CACHE:
         sample_c = get_active_option_contract(target_date, 54000, "CE", underlying="BANKNIFTY")
-        _BN_EXPIRY_CACHE[target_date] = sample_c.get("expiry_date") if sample_c else None
+        if sample_c and sample_c.get("expiry_date"):
+            exp = sample_c["expiry_date"]
+            if 0 <= (exp - target_date).days <= 7:
+                _BN_EXPIRY_CACHE[target_date] = exp
+            else:
+                _BN_EXPIRY_CACHE[target_date] = None
+        else:
+            _BN_EXPIRY_CACHE[target_date] = None
 
     exp_date = _BN_EXPIRY_CACHE.get(target_date)
     if exp_date:
-        days_ahead = max(1, (exp_date - target_date).days)
-        mins = max(1.0, 930 - (ts.hour * 60 + ts.minute))
-        frac = mins / 375.0
-        d = max(0.01, (days_ahead - 1) + frac if days_ahead > 0 else frac * 0.5)
-        return d / 365.0
+        days_ahead = max(0, (exp_date - target_date).days)
+    else:
+        # BankNIFTY weekly contracts expire on Wednesday (weekday 2)
+        weekday = ts.weekday()
+        target_exp = 2
+        days_ahead = target_exp - weekday if weekday <= target_exp else 7 - (weekday - target_exp)
 
-    # Fallback if scrip not loaded (BankNIFTY monthly is last Thursday)
-    weekday = ts.weekday()
-    target_exp = 3
-    days_ahead = target_exp - weekday if weekday <= target_exp else 7 - (weekday - target_exp)
-    return max(1, days_ahead) / 365.0
+    mins = max(1.0, 930 - (ts.hour * 60 + ts.minute))
+    frac = mins / 375.0
+    d = max(0.01, (days_ahead - 1) + frac if days_ahead > 0 else frac * 0.5)
+    return d / 365.0
 
 def select_banknifty_affordable_strikes(
     spot: float,
@@ -72,31 +79,33 @@ def select_banknifty_affordable_strikes(
 ):
     """
     Selects CE and PE strikes whose combined cost for 1 lot (30 Qty) fits strictly under max_budget (Rs 10,000).
-    Starts at ATM (offset 0). If ATM exceeds the budget (e.g. monthly ~27 DTE time value), steps into
-    the next cheap OTM strikes where combined premium <= Rs 333 (Rs 10,000 / 30).
+    Starts at ATM (offset 0). If ATM exceeds the budget, steps into
+    the next cheap OTM strikes where combined premium <= Rs 283 (Rs 8,500 / 30).
     Uses high-speed BSM to determine the affordable strike offset instantaneously, then resolves active contracts.
     """
     atm = int(round(spot / 100.0) * 100)
 
-    chosen_offset = 0
+    chosen_offset = None
     chosen_ce_p = 0.0
     chosen_pe_p = 0.0
     chosen_tot = 0.0
 
-    # Scan in 100-pt steps until combined cost <= 8500 in theoretical BSM
-    # (guarantees real traded option market cost stays comfortably under Rs 10,000)
-    for offset in range(0, 5000, 100):
+    # Scan in 100-pt steps up to 3500 pts until combined cost <= 8500 in theoretical BSM
+    for offset in range(0, 3500, 100):
         k_ce = atm + offset
         k_pe = atm - offset
         p_ce = bs_price(spot, k_ce, dte, "CE")
         p_pe = bs_price(spot, k_pe, dte, "PE")
         tot = (p_ce + p_pe) * LOT_SIZE
-        if tot <= 8500.0:
+        if tot <= 8500.0 and p_ce >= 10.0 and p_pe >= 10.0:
             chosen_offset = offset
             chosen_ce_p = p_ce
             chosen_pe_p = p_pe
             chosen_tot = tot
             break
+
+    if chosen_offset is None or chosen_tot <= 0.0:
+        return 0, 0, 0.0, 0.0, 999999.0, None, None
 
     k_ce = atm + chosen_offset
     k_pe = atm - chosen_offset
