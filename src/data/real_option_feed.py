@@ -338,7 +338,7 @@ def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
     days_ahead = (1 - target_date.weekday()) % 7 if underlying == "NIFTY" else (2 - target_date.weekday()) % 7
     dte = max(0.001, float(days_ahead) / 365.25)
     df_synth = pd.DataFrame(index=day_df["timestamp"])
-    prices = [black_scholes_price(float(s), float(strike), dte, 0.07, 0.15, opt_type.lower()) for s in day_df["close"]]
+    prices = [black_scholes_price(float(s), float(strike), dte, 0.07, 0.15, opt_type.upper()) for s in day_df["close"]]
     df_synth["open"] = prices
     df_synth["high"] = prices
     df_synth["low"] = prices
