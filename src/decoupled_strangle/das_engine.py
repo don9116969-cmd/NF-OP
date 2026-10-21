@@ -309,6 +309,13 @@ def evaluate_das_for_day(
             if strike_res:
                 ce_strike, pe_strike, ce_entry_p, pe_entry_p, _ = strike_res
 
+        if not ce_strike or not pe_strike or not ce_entry_p or not pe_entry_p:
+            continue
+
+        tot_cap = (ce_entry_p + pe_entry_p) * lot_size
+        if tot_cap > config.INITIAL_CAPITAL:
+            continue
+
         # Check Rolling Premium Volatility Compression & Kinetic Expansion
         if has_real_options and chosen_ce and chosen_pe:
             ce_df = opt_data[chosen_ce]

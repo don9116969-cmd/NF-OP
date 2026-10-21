@@ -106,7 +106,7 @@ def git_sync_pull() -> bool:
         git_env["GIT_TERMINAL_PROMPT"] = "0"
         for remote in ["cloud", "origin"]:
             res = subprocess.run(
-                ["git", "pull", "--rebase", "--autostash", remote, "main"],
+                ["git", "pull", "--ff-only", remote, "main"],
                 capture_output=True,
                 text=True,
                 check=False,
