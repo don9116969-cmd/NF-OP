@@ -429,41 +429,40 @@ def run_whole_year_simulation():
     df_b["date"] = df_b["timestamp"].dt.date
     df_b["time"] = df_b["timestamp"].dt.time
 
-    dates = sorted(df_n["date"].unique())
+    print("Pre-indexing datasets by date...")
+    n_days = {d: group.copy().reset_index(drop=True) for d, group in df_n.groupby("date")}
+    b_days = {d: group.copy().reset_index(drop=True) for d, group in df_b.groupby("date")}
+    dates = sorted(list(set(n_days.keys()).union(set(b_days.keys()))))
     print(f"Loaded {len(df_n)} Nifty candles & {len(df_b)} BankNifty candles across {len(dates)} trading days.")
-    print(f"Evaluating each session from {dates[0]} to {dates[-1]}...")
+    print(f"Evaluating each session from {dates[0]} to {dates[-1]} (Independent Concurrent Execution)...")
 
     trades = []
-    # Max concurrent positions = 1 across portfolio
+    # All 3 strategies execute independently without blocking each other
     for idx, d in enumerate(dates):
-        day_n = df_n[df_n["date"] == d].copy()
-        day_b = df_b[df_b["date"] == d].copy()
+        day_n = n_days.get(d)
+        day_b = b_days.get(d)
 
-        # Check Strategy 1 (Nifty Directional)
-        t1 = eval_s1(day_n, d)
-        # Check Strategy 2 (BankNifty Directional)
-        t2 = eval_s2(day_b, d) if not day_b.empty else None
-        # Check Strategy 3 (Nifty DAS)
-        t3 = eval_s3(day_n, d)
+        # Strategy 1 (Nifty 15M Directional Breakout)
+        if day_n is not None:
+            t1 = eval_s1(day_n, d)
+            if t1:
+                trades.append(t1)
 
-        day_candidates = [t for t in [t1, t2, t3] if t is not None]
-        if not day_candidates:
-            continue
+            # Strategy 3 (Nifty Decoupled Asymmetric Strangle DAS)
+            t3 = eval_s3(day_n, d)
+            if t3:
+                trades.append(t3)
 
-        # Sort by entry time
-        day_candidates.sort(key=lambda x: x["entry_time"])
-
-        # Select non-overlapping trades (Max concurrent = 1)
-        cur_exit = "00:00:00"
-        for tr in day_candidates:
-            if tr["entry_time"] >= cur_exit:
-                trades.append(tr)
-                cur_exit = tr["exit_time"]
+        # Strategy 2 (BankNIFTY 15M Directional Breakout)
+        if day_b is not None:
+            t2 = eval_s2(day_b, d)
+            if t2:
+                trades.append(t2)
 
     df_trades = pd.DataFrame(trades)
     df_trades.sort_values(by=["date", "entry_time"], inplace=True)
     df_trades.to_csv(JOURNAL_CSV, index=False)
-    print(f"\n[DONE] Successfully simulated {len(df_trades)} trades across the full year dataset!")
+    print(f"\n[DONE] Successfully simulated {len(df_trades)} unblocked trades across the full multi-year dataset!")
     print(f"Saved CSV journal to: {JOURNAL_CSV}")
 
     # Generate Markdown Journal
@@ -524,8 +523,8 @@ def run_whole_year_simulation():
         f.write(f"*Evaluated: Full 389 Trading Days ({dates[0]} to {dates[-1]}) on 1-Minute Exchange Candles*\n\n")
         f.write("---\n\n")
         f.write("## 📊 Whole-Year Performance Summary\n\n")
-        f.write(f"- **Starting Portfolio Capital**: INR 10,000.00\n")
-        f.write(f"- **Total Executed Trades**: **{tot_trades} Trades** (Max 1 concurrent position)\n")
+        f.write(f"- **Benchmark Base Capital**: INR 10,000.00\n")
+        f.write(f"- **Total Executed Trades**: **{tot_trades} Trades** (Independent Concurrent Execution Across Strategies 1, 2, 3)\n")
         f.write(f"- **Win Rate**: **{wr:.1f}%** ({wins} Wins / {losses} Losses)\n")
         f.write(f"- **Profit Factor**: **{pf:.2f}**\n")
         f.write(f"- **Max Drawdown**: **INR {max_dd:,.2f}**\n")

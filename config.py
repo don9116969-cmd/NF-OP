@@ -18,9 +18,9 @@ class TradingConfig:
     BANKNIFTY_STRIKE_STEP: int = 100  # BankNifty strike intervals
     
     # Capital & Risk Controls (₹10,000 Budget)
-    INITIAL_CAPITAL: float = 10000.0  # User's exact budget in INR
-    MAX_CAPITAL_PER_TRADE: float = 8500.0  # Safe cap to always preserve ₹1,500 buffer
-    MAX_CONCURRENT_POSITIONS: int = 1  # Strictly 1 active trade at any time across account
+    INITIAL_CAPITAL: float = 10000.0  # Benchmark base per trade / account
+    MAX_CAPITAL_PER_TRADE: float = 8500.0  # Safe cap per trade to preserve buffer
+    MAX_CONCURRENT_POSITIONS: int = 3  # All 3 strategies execute independently as signals fire
     
     # Execution & Charges (Indian Stock Market)
     BROKERAGE_PER_ORDER: float = 20.0  # Angel One flat brokerage (INR 20 per order)
