@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-21 11:08:43 IST*
+*Last Updated: 2026-10-21 11:37:24 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)** | `PE` | 54900 | 11:08:29 | ₹222.57 | ₹311.60 | ₹178.06 | ₹6677.10 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 81
-- **Win Rate**: 32.1% (26 Wins / 55 Losses)
-- **Net Realized PnL**: **INR -8,393.69**
-- **Current Account Balance**: **INR +1,606.31** (-83.9% Return)
+- **Total Executed Trades**: 82
+- **Win Rate**: 32.9% (27 Wins / 55 Losses)
+- **Net Realized PnL**: **INR -5,869.27**
+- **Current Account Balance**: **INR +4,130.73** (-58.7% Return)
 
 ---
 
@@ -107,4 +106,5 @@
 | 2026-10-19 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | NIFTY19OCT2622950CE + NIFTY19OCT2622850PE | 13:43:00 | 13:46:04 | ₹31.26 | ₹46.52 | ₹2031.90 | **+₹891.27** | CE Target (+50%) & PE Target (+50%) | Mathematical (BSM) |
 | 2026-10-20 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2656800CE + BANKNIFTY27OCT2654200PE | 09:30:37 | 10:15:59 | ₹257.34 | ₹255.28 | ₹7720.20 | **-₹172.93** | Time Exit (45m) | Mathematical (BSM) |
 | 2026-10-21 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2656600CE + BANKNIFTY27OCT2654400PE | 10:26:00 | 10:28:51 | ₹266.05 | ₹232.26 | ₹7981.50 | **-₹1124.02** | Combined Capital SL (-12%) | Mathematical (BSM) |
+| 2026-10-21 | Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM) | PE | BANKNIFTY27OCT2654900PE | 11:08:29 | 11:36:57 | ₹222.57 | ₹309.11 | ₹6677.10 | **+₹2524.42** | Target Hit (+40%) | Angel One Real Traded (BANKNIFTY27OCT2654900PE) |
 
