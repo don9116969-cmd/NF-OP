@@ -59,9 +59,8 @@ from src.utils.journal_manager import (
     auto_catchup_missing_trading_days,
     mark_day_as_audited
 )
-from src.utils.git_sync import git_sync_push
 from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles, get_candle_feed
-from run_strangle_grid_exhaustive import compute_calendar_dte
+from src.features.greeks import black_scholes_price, compute_calendar_dte
 
 load_dotenv()
 

@@ -3,7 +3,33 @@ Black-Scholes Options Pricing & Greeks Calculator for Indian Index Options.
 """
 import numpy as np
 from scipy.stats import norm
+import pandas as pd
 from typing import Dict, Tuple
+
+def compute_calendar_dte(ts: pd.Timestamp) -> float:
+    """
+    Computes exact fractional DTE to weekly Tuesday 15:30 expiry (Official NSE Rule).
+    Tuesday (1): 0-DTE (Expiry Day, fractional 0.5 to 0.01)
+    Monday (0): 1-DTE (~0.88 to 1.0 day)
+    Friday (4): 3-DTE (~3.88 days)
+    Thursday (3): 4-DTE (~4.88 days)
+    Wednesday (2): 5-DTE (~5.88 days)
+    """
+    weekday = ts.weekday()
+    target_tuesday = 1
+    if weekday <= target_tuesday:
+        days_ahead = target_tuesday - weekday
+    else:
+        days_ahead = 7 - (weekday - target_tuesday)
+        
+    mins_to_expiry = max(1.0, (15 * 60 + 30) - (ts.hour * 60 + ts.minute))
+    fractional_day = mins_to_expiry / 375.0
+    
+    if days_ahead == 0:
+        return max(0.01, fractional_day * 0.5)
+    else:
+        return (days_ahead - 1) + fractional_day
+
 
 def black_scholes_price(
     S: float,       # Underlying Spot Price

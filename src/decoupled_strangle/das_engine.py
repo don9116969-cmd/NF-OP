@@ -121,7 +121,7 @@ def evaluate_das_for_day(
         spot_h = float(bar_spot['high'])
         spot_l = float(bar_spot['low'])
 
-        from run_strangle_grid_exhaustive import compute_calendar_dte
+        from src.features.greeks import compute_calendar_dte
         T_years = max(1e-4, compute_calendar_dte(t) / 365.0)
         iv = 0.135
 
