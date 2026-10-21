@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-21 10:27:49 IST*
+*Last Updated: 2026-10-21 10:29:10 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 5: BankNIFTY Decoupled Strangle (DAS)** | `CE+PE` | BANKNIFTY27OCT2656600CE + BANKNIFTY27OCT2654400PE | 10:26:00 | ₹266.05 | CE: ₹223.7 | PE: ₹202.0 | CE: ₹123.0 | PE: ₹111.1 | ₹7981.50 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 80
-- **Win Rate**: 32.5% (26 Wins / 54 Losses)
-- **Net Realized PnL**: **INR -7,269.67**
-- **Current Account Balance**: **INR +2,730.33** (-72.7% Return)
+- **Total Executed Trades**: 81
+- **Win Rate**: 32.1% (26 Wins / 55 Losses)
+- **Net Realized PnL**: **INR -8,393.69**
+- **Current Account Balance**: **INR +1,606.31** (-83.9% Return)
 
 ---
 
@@ -106,4 +105,5 @@
 | 2026-10-19 | Strategy 2: Expiry Gamma Squeeze | CE | 23150 | 10:23:00 | 10:34:05 | ₹42.84 | ₹31.87 | ₹2784.60 | **-₹765.19** | SL Hit (-25%) | Angel One Real Traded (NIFTY19OCT2623150CE) |
 | 2026-10-19 | Strategy 4: Decoupled Asymmetric Strangle | CE+PE | NIFTY19OCT2622950CE + NIFTY19OCT2622850PE | 13:43:00 | 13:46:04 | ₹31.26 | ₹46.52 | ₹2031.90 | **+₹891.27** | CE Target (+50%) & PE Target (+50%) | Mathematical (BSM) |
 | 2026-10-20 | Strategy 8: BankNIFTY Hedged Long Strangle | CE+PE | BANKNIFTY27OCT2656800CE + BANKNIFTY27OCT2654200PE | 09:30:37 | 10:15:59 | ₹257.34 | ₹255.28 | ₹7720.20 | **-₹172.93** | Time Exit (45m) | Mathematical (BSM) |
+| 2026-10-21 | Strategy 5: BankNIFTY Decoupled Strangle (DAS) | CE+PE | BANKNIFTY27OCT2656600CE + BANKNIFTY27OCT2654400PE | 10:26:00 | 10:28:51 | ₹266.05 | ₹232.26 | ₹7981.50 | **-₹1124.02** | Combined Capital SL (-12%) | Mathematical (BSM) |
 
