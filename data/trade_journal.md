@@ -1,13 +1,14 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-21 10:29:10 IST*
+*Last Updated: 2026-10-21 11:08:43 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 7: BankNIFTY Expiry Gamma Squeeze (GSM)** | `PE` | 54900 | 11:08:29 | ₹222.57 | ₹311.60 | ₹178.06 | ₹6677.10 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 
