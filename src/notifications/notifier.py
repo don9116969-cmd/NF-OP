@@ -207,7 +207,9 @@ def send_telegram_alert(
                 if r2.status_code == 200:
                     delivered = True
                     break
-        except Exception:
+            else:
+                print(f"[TELEGRAM ERROR] HTTP {r.status_code}: {r.text}")
+        except Exception as e:
             pass
 
         # Urllib fallback attempt
@@ -225,8 +227,10 @@ def send_telegram_alert(
     if delivered:
         if alert_key:
             mark_alert_as_sent(alert_key)
+        print(f"[TELEGRAM] Alert delivered successfully.")
         return True
 
+    print(f"[WARN] Failed to deliver Telegram alert after retries.")
     return False
 
 def send_trade_entry_alert(

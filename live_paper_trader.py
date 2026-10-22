@@ -27,7 +27,7 @@ try:
 except ImportError:
     SmartConnect = None
 
-from src.features.greeks import black_scholes_price
+from src.features.greeks import black_scholes_price, compute_calendar_dte
 from config import config
 from src.decoupled_strangle.das_signals import (
     select_affordable_strikes,
@@ -43,6 +43,8 @@ from src.notifications.notifier import (
     is_alert_already_sent,
     mark_alert_as_sent
 )
+from src.notifications.telegram_interactive_bot import start_interactive_bot_daemon
+
 from daily_result_checker import (
     evaluate_strategy_1,
     evaluate_strategy_2,
@@ -839,24 +841,44 @@ class LiveTriPaperTrader:
             if df_all.empty:
                 return
 
-            c_ce, c_pe, ce_strike, pe_strike = select_affordable_strikes(
-                self.smart_api, today_date, spot,
-                min_prem=config.DAS_MIN_LEG_PREMIUM, max_prem=config.DAS_MAX_LEG_PREMIUM,
-                budget=config.DAS_MAX_BUDGET, opt_data=self.opt_data
+            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+
+            strike_res = select_affordable_strikes(
+                spot=spot,
+                current_time=ist_now,
+                T_years=t_exp_years,
+                min_prem=config.DAS_MIN_LEG_PREMIUM,
+                max_prem=config.DAS_MAX_LEG_PREMIUM,
+                max_budget=config.DAS_MAX_BUDGET
             )
-            if not (c_ce and c_pe):
+            if not strike_res:
+                return
+            ce_strike, pe_strike, bsm_ce, bsm_pe, _ = strike_res
+
+            day_bars = df_all[df_all["timestamp"].dt.date == today_date].sort_values("timestamp")
+            if len(day_bars) < config.DAS_VOL_WINDOW:
                 return
 
+            recent_spots = day_bars["close"].iloc[-config.DAS_VOL_WINDOW:].values
+            comb_hist = []
+            for s_val in recent_spots:
+                cp = black_scholes_price(s_val, ce_strike, t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
+                pp = black_scholes_price(s_val, pe_strike, t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
+                comb_hist.append(cp + pp)
+            comb_hist = np.array(comb_hist)
+
             triggered, std_val, vel_val = check_compression_expansion(
-                self.smart_api, c_ce, c_pe, ist_now,
-                std_thresh=config.DAS_STD_THRESH, vel_thresh=config.DAS_VEL_THRESH,
-                opt_data=self.opt_data
+                comb_hist,
+                std_thresh=config.DAS_STD_THRESH,
+                vel_thresh=config.DAS_VEL_THRESH
             )
             if not triggered:
                 return
 
-            ce_entry_p = 50.0
-            pe_entry_p = 50.0
+            c_ce = get_active_option_contract(today_date, ce_strike, "CE", underlying="NIFTY") if self.smart_api else None
+            c_pe = get_active_option_contract(today_date, pe_strike, "PE", underlying="NIFTY") if self.smart_api else None
+            ce_entry_p = bsm_ce
+            pe_entry_p = bsm_pe
             feed_label = "Mathematical (BSM)"
 
             if self.smart_api and c_ce and c_pe:
@@ -871,6 +893,7 @@ class LiveTriPaperTrader:
             tot_cost = round(entry_tot * self.lot_size, 2)
             if tot_cost > config.MAX_CAPITAL_PER_TRADE:
                 return
+
 
             ce_tgt = round(ce_entry_p * (1.0 + config.DAS_WIN_TARGET_PCT), 2)
             ce_sl = round(ce_entry_p * (1.0 - config.DAS_LOSE_STOP_PCT), 2)
@@ -939,9 +962,11 @@ class LiveTriPaperTrader:
             f"• Strategy 1: Nifty 15M Directional Breakout (Trend-Aligned ATM, SL -16%, TP +60%)\n"
             f"• Strategy 2: BankNIFTY 15M Directional Breakout (Trend-Aligned 100-pt OTM, SL -25%, TP +80%)\n"
             f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n\n"
-            f"🛡️ *Position Rule:* Max 1 active position concurrently (₹10,000 capital safety limit)\n"
-            f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!",
-            alert_key=f"WAKEUP:{today_date}"
+            f"🛡️ *Position Rule:* Max 3 active positions concurrently (₹10,000 capital per trade limit)\n"
+            f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!\n\n"
+            f"💡 *Live Bot Commands:* Send /status, /today, or /pnl anytime for live updates.",
+            alert_key=f"WAKEUP:{today_date}",
+            force=True
         )
 
         while get_ist_now().time() <= dtime(15, 12):
@@ -958,7 +983,7 @@ class LiveTriPaperTrader:
                 print(f"[WARN] Nifty candle sync error: {e}")
                 df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
 
-            time.sleep(2.0)  # Enforce 2.0s pause to prevent Angel One rate limit between instruments
+            time.sleep(3.0)  # Enforce 3.0s pause to prevent Angel One rate limit between instruments
 
             try:
                 if self.smart_api:
@@ -1149,6 +1174,13 @@ class LiveTriPaperTrader:
 
         print(f"\n[STARTUP] Option Trading Engine Initialized at {now.strftime('%Y-%m-%d %H:%M:%S')} IST.")
         self.connect_angel_one()
+
+        # Start interactive Telegram listener daemon in background
+        try:
+            self.tg_thread, self.tg_stop = start_interactive_bot_daemon(api=self.smart_api)
+            print("[SUCCESS] Interactive Telegram bot listener daemon started.")
+        except Exception as e:
+            print(f"[WARN] Could not start interactive Telegram bot daemon: {e}")
 
         if self.is_market_open_now():
             print("[MARKET STATUS] Live NSE market is OPEN right now.")

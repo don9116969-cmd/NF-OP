@@ -10,13 +10,24 @@ from datetime import time as dtime
 from config import config
 from src.features.greeks import black_scholes_price
 
-def is_trade_window_valid(t_time: dtime) -> bool:
+def is_trade_window_valid(t_time: dtime, t_start=None, t_end=None) -> bool:
     """
-    Validates if current time falls within active trading window (09:45 - 14:15)
+    Validates if current time falls within active trading window (default 09:30 - 14:00)
     and excludes midday low-liquidity chop (11:30 - 13:00).
+    Supports either datetime.time objects or "HH:MM" string representations.
     """
-    t_start = dtime(9, 45)
-    t_end = dtime(14, 15)
+    if t_start is None:
+        t_start = dtime(9, 30)
+    elif isinstance(t_start, str):
+        h, m = map(int, t_start.split(":"))
+        t_start = dtime(h, m)
+
+    if t_end is None:
+        t_end = dtime(14, 0)
+    elif isinstance(t_end, str):
+        h, m = map(int, t_end.split(":"))
+        t_end = dtime(h, m)
+
     chop_start = dtime(11, 30)
     chop_end = dtime(13, 0)
 
@@ -28,15 +39,19 @@ def is_trade_window_valid(t_time: dtime) -> bool:
 
 def select_affordable_strikes(
     spot: float,
-    current_time,
+    current_time=None,
     opt_data: dict = None,
     expiry_prefix: str = "NIFTY29SEP26",
     T_years: float = 0.015,
     iv: float = 0.135,
     min_prem: float = config.DAS_MIN_LEG_PREMIUM,
     max_prem: float = config.DAS_MAX_LEG_PREMIUM,
-    max_budget: float = config.INITIAL_CAPITAL
+    max_budget: float = config.INITIAL_CAPITAL,
+    budget: float = None
 ):
+    if budget is not None:
+        max_budget = budget
+
     """
     Dynamically scans strikes around spot to find CE and PE strikes whose
     individual premiums fit the target range (35 to 68 pts) and combined capital <= Rs 10,000.

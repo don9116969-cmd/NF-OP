@@ -92,34 +92,44 @@ def sync_and_update_candles(api: SmartConnect, local_file: str = CANDLE_FILE, sy
         instrument_name = "BankNIFTY" if symbol_token == "99926009" else "NIFTY 50"
         print(f"[AUTO-SYNC] Checking Angel One for new {instrument_name} candles from {from_str} to {to_str}...")
 
-        try:
-            res = api.getCandleData({
-                "exchange": "NSE",
-                "symboltoken": symbol_token,
-                "interval": "ONE_MINUTE",
-                "fromdate": from_str,
-                "todate": to_str
-            })
-            if res and res.get("status") and res.get("data"):
-                new_bars = pd.DataFrame(res["data"], columns=["timestamp", "open", "high", "low", "close", "volume"])
-                new_bars["timestamp"] = pd.to_datetime(new_bars["timestamp"]).dt.tz_localize(None)
-                print(f"[AUTO-SYNC] Downloaded {len(new_bars)} live/recent candles from Angel One.")
+        import time as time_lib
+        res = None
+        for attempt in range(2):
+            try:
+                res = api.getCandleData({
+                    "exchange": "NSE",
+                    "symboltoken": symbol_token,
+                    "interval": "ONE_MINUTE",
+                    "fromdate": from_str,
+                    "todate": to_str
+                })
+                break
+            except Exception as e:
+                if ("exceeding access rate" in str(e) or "Access denied" in str(e)) and attempt == 0:
+                    time_lib.sleep(2.5)
+                    continue
+                print(f"[WARN] Auto-sync failed: {e}")
+                break
 
-                if not df_existing.empty:
-                    df_combined = pd.concat([df_existing, new_bars], ignore_index=True)
-                else:
-                    df_combined = new_bars
+        if res and res.get("status") and res.get("data"):
+            new_bars = pd.DataFrame(res["data"], columns=["timestamp", "open", "high", "low", "close", "volume"])
+            new_bars["timestamp"] = pd.to_datetime(new_bars["timestamp"]).dt.tz_localize(None)
+            print(f"[AUTO-SYNC] Downloaded {len(new_bars)} live/recent candles from Angel One.")
 
-                df_combined.drop_duplicates(subset=["timestamp"], inplace=True)
-                df_combined.sort_values("timestamp", inplace=True)
-                df_combined.reset_index(drop=True, inplace=True)
-                df_combined.to_csv(local_file, index=False)
-                print(f"[AUTO-SYNC] Successfully updated {local_file}! Total dataset: {len(df_combined)} candles (Latest: {df_combined['timestamp'].max()}).")
-                return df_combined
+            if not df_existing.empty:
+                df_combined = pd.concat([df_existing, new_bars], ignore_index=True)
             else:
-                print(f"[AUTO-SYNC] Candles are up to date.")
-        except Exception as e:
-            print(f"[WARN] Auto-sync failed: {e}")
+                df_combined = new_bars
+
+            df_combined.drop_duplicates(subset=["timestamp"], inplace=True)
+            df_combined.sort_values("timestamp", inplace=True)
+            df_combined.reset_index(drop=True, inplace=True)
+            df_combined.to_csv(local_file, index=False)
+            print(f"[AUTO-SYNC] Successfully updated {local_file}! Total dataset: {len(df_combined)} candles (Latest: {df_combined['timestamp'].max()}).")
+            return df_combined
+        elif res and res.get("status"):
+            print(f"[AUTO-SYNC] Candles are up to date.")
+
 
     return df_existing
 
