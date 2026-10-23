@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-22 10:57:15 IST*
+*Last Updated: 2026-10-23 20:55:42 IST*
 
 ---
 
@@ -14,10 +14,10 @@
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 11
-- **Win Rate**: 54.5% (6 Wins / 5 Losses)
-- **Net Realized PnL**: **INR +10,888.53**
-- **Current Account Balance**: **INR +20,888.53** (+108.9% Return)
+- **Total Executed Trades**: 12
+- **Win Rate**: 58.3% (7 Wins / 5 Losses)
+- **Net Realized PnL**: **INR +17,468.80**
+- **Current Account Balance**: **INR +27,468.80** (+174.7% Return)
 
 ---
 
@@ -36,4 +36,5 @@
 | 2026-10-06 | Strategy 1: Nifty 15M Directional Breakout | CE | NIFTY06OCT2622650CE | 09:48:00 | 10:10:00 | ₹53.92 | ₹45.07 | ₹3504.80 | **-₹634.50** | SL Hit (-16%) | Real Option Tick |
 | 2026-10-12 | Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) | CE+PE | NIFTY_12OCT26_22600_CE+NIFTY_12OCT26_22400_PE | 09:52:00 | 10:29:00 | ₹63.48 | ₹55.58 | ₹4126.20 | **-₹615.38** | SL Hit (-12%) | SL Hit (-12%) | BSM Fallback |
 | 2026-10-19 | Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) | CE+PE | NIFTY19OCT2623150CE+NIFTY19OCT2622950PE | 09:56:00 | 09:58:00 | ₹69.45 | ₹60.82 | ₹4514.25 | **-₹663.54** | SL Hit (-12%) | SL Hit (-12%) | Real Option Tick |
+| 2026-10-23 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 54500 | 09:48:00 | 10:15:00 | ₹280.50 | ₹502.38 | ₹8415.00 | **+₹6580.27** | Target Hit (+80%) | Real Option Tick |
 
