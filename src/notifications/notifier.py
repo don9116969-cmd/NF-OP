@@ -64,19 +64,15 @@ def normalize_date_str(d) -> str:
     return d_str[:10]
 
 def normalize_strategy_code(strategy: str) -> str:
-    """Normalizes any strategy name variant to a short canonical code (S1..S5)."""
+    """Normalizes any strategy name variant to a short canonical code (S1..S3)."""
     s = str(strategy).lower()
-    if "strategy 1" in s or "s1" in s or "15m" in s:
+    if "strategy 1" in s or "s1" in s or ("nifty" in s and "directional" in s):
         return "S1"
-    if "strategy 2" in s or "s2" in s or "gamma" in s:
+    if "strategy 2" in s or "s2" in s or "banknifty" in s:
         return "S2"
-    if "strategy 3" in s or "s3" in s or "directional" in s:
+    if "strategy 3" in s or "s3" in s or "das" in s or "strangle" in s:
         return "S3"
-    if "strategy 5" in s or "s5" in s or "banknifty" in s:
-        return "S5"
-    if "strategy 4" in s or "s4" in s or "das" in s:
-        return "S4"
-    return re.sub(r'[^A-Z0-9]', '', str(strategy).upper())
+    return re.sub(r'[^A-Z0-9]', '', str(strategy).upper())[:4]
 
 def normalize_contract_key(ce_str: str = "", pe_str: str = "", strike: str = "", opt_type: str = "") -> str:
     """Creates a clean alphanumeric identifier for strikes/contracts."""
@@ -259,11 +255,35 @@ def send_trade_entry_alert(
     norm_date = normalize_date_str(date_str)
     s_code = normalize_strategy_code(strategy)
 
-    # Detect if single-leg trade (e.g. Strategy 2 Gamma Squeeze or Strategy 3 Directional ITM)
-    if opt_type in ["CE", "PE"] or (entry_p > 0 and not (ce_str and pe_str)):
-        leg_type = opt_type if opt_type in ["CE", "PE"] else ("CE" if "CE" in str(strike) else "PE")
+    # Clean string 'None' inputs
+    if str(ce_str).lower() in ["none", ""]:
+        ce_str = ""
+    if str(pe_str).lower() in ["none", ""]:
+        pe_str = ""
+
+    # Detect if single-leg trade (Strategy 1, Strategy 2, or explicit single-leg)
+    is_single = (
+        (opt_type in ["CE", "PE"])
+        or (bool(ce_str) != bool(pe_str))
+        or ("Strategy 1" in strategy or "Strategy 2" in strategy)
+        or (entry_p > 0 and (not ce_p or not pe_p))
+    )
+
+    if is_single:
+        if opt_type in ["CE", "PE"]:
+            leg_type = opt_type
+        elif ce_str and not pe_str:
+            leg_type = "CE"
+        elif pe_str and not ce_str:
+            leg_type = "PE"
+        elif "PE" in str(strike) or pe_p > 0:
+            leg_type = "PE"
+        else:
+            leg_type = "CE"
+
         p_val = entry_p if entry_p > 0 else (ce_p if leg_type == "CE" else pe_p)
-        sym_val = f"{strike} {leg_type}" if strike and leg_type not in str(strike) else (strike or f"OPTION {leg_type}")
+        raw_sym = strike or (ce_str if leg_type == "CE" else pe_str) or f"OPTION {leg_type}"
+        sym_val = f"{raw_sym} {leg_type}" if leg_type not in str(raw_sym) and not any(x in str(raw_sym) for x in ["CE", "PE"]) else str(raw_sym)
         cost_val = tot_cost if tot_cost > 0 else (p_val * qty)
         tgt_val = p_val * (1.0 + win_target_pct)
         sl_val = p_val * (1.0 - lose_stop_pct)

@@ -429,15 +429,30 @@ class LiveTriPaperTrader:
 
             candle_ts = pd.to_datetime(cur_bar["timestamp"]).to_pydatetime() if "timestamp" in cur_bar else ist_now
             c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="NIFTY") if self.smart_api else None
-            t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-            real_p = black_scholes_price(c, strike, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type)
+            real_p = None
             feed_label = "Mathematical (BSM)"
 
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=10), ist_now)
+            # 1. First priority: Live LTP directly from Angel One (instant tick, zero candle lag)
+            if self.smart_api and c_opt and c_opt.get("token"):
+                try:
+                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
+                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                        real_p = round(float(ltp_res["data"]["ltp"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                        feed_label = f"Angel One Real Traded LTP ({c_opt['symbol']})"
+                except Exception:
+                    pass
+
+            # 2. Second priority: Real option candles from Angel One (look back 60 minutes)
+            if real_p is None and self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=60), ist_now)
                 if not df_opt.empty:
                     real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                     feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
+
+            # 3. Third priority: BSM fallback if API is completely offline
+            if real_p is None:
+                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                real_p = round(black_scholes_price(c, strike, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type), 2)
 
             entry_p = round(real_p, 2)
             cost = round(entry_p * self.lot_size, 2)
@@ -465,15 +480,18 @@ class LiveTriPaperTrader:
             send_trade_entry_alert(
                 strategy="Strategy 1: Nifty 15M Directional Breakout",
                 spot=c,
-                ce_str=sym_str if opt_type == "CE" else "None",
-                pe_str=sym_str if opt_type == "PE" else "None",
+                opt_type=opt_type,
+                strike=str(sym_str),
+                entry_p=entry_p,
+                ce_str=sym_str if opt_type == "CE" else "",
+                pe_str=sym_str if opt_type == "PE" else "",
                 ce_p=entry_p if opt_type == "CE" else 0.0,
                 pe_p=entry_p if opt_type == "PE" else 0.0,
                 tot_cost=cost,
                 win_target_pct=config.S1_TARGET_PCT,
                 lose_stop_pct=config.S1_SL_PCT,
                 max_hold_mins=360,
-                time_str=candle_ts.strftime("%H:%M:%S"),
+                time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
                 qty=self.lot_size,
                 date_str=str(today_date)
             )
@@ -616,15 +634,30 @@ class LiveTriPaperTrader:
             dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
 
             c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="BANKNIFTY") if self.smart_api else None
-            from src.banknifty.banknifty_das import bs_price
-            real_p = bs_price(c, strike, dte_y, opt_type, sigma=0.18)
+            real_p = None
             feed_label = "Mathematical (BSM)"
 
-            if self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=10), ist_now)
+            # 1. First priority: Live LTP directly from Angel One (instant tick, zero candle lag)
+            if self.smart_api and c_opt and c_opt.get("token"):
+                try:
+                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
+                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                        real_p = round(float(ltp_res["data"]["ltp"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                        feed_label = f"Angel One Real Traded LTP ({c_opt['symbol']})"
+                except Exception:
+                    pass
+
+            # 2. Second priority: Real option candles from Angel One (look back 60 minutes)
+            if real_p is None and self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=60), ist_now)
                 if not df_opt.empty:
                     real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                     feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
+
+            # 3. Third priority: BSM fallback if API is completely offline
+            if real_p is None:
+                from src.banknifty.banknifty_das import bs_price
+                real_p = round(bs_price(c, strike, dte_y, opt_type, sigma=0.18), 2)
 
             entry_p = round(real_p, 2)
             cost = round(entry_p * self.bn_lot_size, 2)
@@ -652,15 +685,18 @@ class LiveTriPaperTrader:
             send_trade_entry_alert(
                 strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
                 spot=c,
-                ce_str=sym_str if opt_type == "CE" else "None",
-                pe_str=sym_str if opt_type == "PE" else "None",
+                opt_type=opt_type,
+                strike=str(sym_str),
+                entry_p=entry_p,
+                ce_str=sym_str if opt_type == "CE" else "",
+                pe_str=sym_str if opt_type == "PE" else "",
                 ce_p=entry_p if opt_type == "CE" else 0.0,
                 pe_p=entry_p if opt_type == "PE" else 0.0,
                 tot_cost=cost,
                 win_target_pct=config.S2_TARGET_PCT,
                 lose_stop_pct=config.S2_SL_PCT,
                 max_hold_mins=360,
-                time_str=candle_ts.strftime("%H:%M:%S"),
+                time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
                 qty=self.bn_lot_size,
                 date_str=str(today_date)
             )
@@ -1091,17 +1127,44 @@ class LiveTriPaperTrader:
                     trades_to_notify = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
                     for sub_tr in trades_to_notify:
                         log_trade_to_journal(today, s_name, sub_tr)
+
+                        sub_opt = sub_tr.get("opt_type", sub_tr.get("leg", ""))
+                        sub_stk = str(sub_tr.get("strike", ""))
+                        sub_ep = float(sub_tr.get("entry_p", 0.0))
+                        sub_c = float(sub_tr.get("cost", sub_tr.get("capital_used", 0.0)))
+                        sub_t = str(sub_tr.get("entry_time", ""))
+
+                        # Send Entry Alert if not already sent
+                        send_trade_entry_alert(
+                            strategy=s_name,
+                            spot=float(sub_tr.get("spot_entry", spot if "Nifty 15M" in s_name else bn_spot)),
+                            opt_type=sub_opt,
+                            strike=sub_stk,
+                            entry_p=sub_ep,
+                            ce_str=sub_stk if "CE" in sub_opt else "",
+                            pe_str=sub_stk if "PE" in sub_opt else "",
+                            ce_p=sub_ep if "CE" in sub_opt else 0.0,
+                            pe_p=sub_ep if "PE" in sub_opt else 0.0,
+                            tot_cost=sub_c,
+                            win_target_pct=config.S1_TARGET_PCT if "Strategy 1" in s_name else (config.S2_TARGET_PCT if "Strategy 2" in s_name else 0.60),
+                            lose_stop_pct=config.S1_SL_PCT if "Strategy 1" in s_name else (config.S2_SL_PCT if "Strategy 2" in s_name else 0.12),
+                            max_hold_mins=360,
+                            time_str=sub_t,
+                            qty=self.bn_lot_size if "BankNIFTY" in s_name else self.lot_size,
+                            date_str=str(today)
+                        )
+
                         send_trade_exit_alert(
                             strategy=s_name,
                             exit_reason=sub_tr.get("exit_reason", "EOD Reconciliation"),
                             gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
                             charges=sub_tr.get("charges", 0.0),
                             net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
-                            details=f"{sub_tr.get('strike', '')} | Entry: ₹{sub_tr.get('entry_p', 0):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
+                            details=f"{sub_stk} | Entry: ₹{sub_ep:.2f} ({sub_t}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
                             time_str=str(sub_tr.get("exit_time", "")),
                             date_str=str(today),
-                            entry_time=str(sub_tr.get("entry_time", "")),
-                            strike=str(sub_tr.get("strike", ""))
+                            entry_time=sub_t,
+                            strike=sub_stk
                         )
 
         # Read cumulative PnL directly from journal

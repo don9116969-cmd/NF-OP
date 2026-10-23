@@ -57,12 +57,19 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
         git_env = os.environ.copy()
         git_env["GIT_TERMINAL_PROMPT"] = "0"
 
-        # Check for GitHub Actions environment with GITHUB_TOKEN
+        # Check for GitHub Actions environment with GITHUB_TOKEN or local remote
         remote_target = "origin"
         token = os.getenv("GITHUB_TOKEN")
         repo = os.getenv("GITHUB_REPOSITORY")
         if token and repo:
             remote_target = f"https://x-access-token:{token}@github.com/{repo}.git"
+        else:
+            res = subprocess.run(["git", "remote"], capture_output=True, text=True, timeout=5)
+            remotes = res.stdout.split()
+            if "cloud" in remotes:
+                remote_target = "cloud"
+            elif "origin" in remotes:
+                remote_target = "origin"
 
         # Push with pull --rebase retry loop
         for attempt in range(retries):

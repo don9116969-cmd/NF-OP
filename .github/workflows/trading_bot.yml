@@ -53,6 +53,8 @@ jobs:
 
       - name: Commit and Push Journal Updates
         if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "Nifty Bot Cloud Runner"
           git config --global user.email "bot@github-actions.internal"
@@ -62,7 +64,7 @@ jobs:
           else
             git commit -m "Auto-update trade journal and market candles [skip ci]"
             git pull --rebase --autostash origin main || true
-            git push origin main || echo "Git push deferred."
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main || git push origin main || echo "Git push deferred."
           fi
 
       - name: Clean Up Redundant Queued Runs
