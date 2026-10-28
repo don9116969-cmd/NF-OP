@@ -11,3 +11,4 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-10-12,Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS),CE+PE,NIFTY_12OCT26_22600_CE+NIFTY_12OCT26_22400_PE,09:52:00,10:29:00,63.48,55.58,4126.2,-513.5,101.88,-615.38,SL Hit (-12%) | SL Hit (-12%),BSM Fallback
 2026-10-19,Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS),CE+PE,NIFTY19OCT2623150CE+NIFTY19OCT2622950PE,09:56:00,09:58:00,69.45,60.82,4514.25,-560.95,102.59,-663.54,SL Hit (-12%) | SL Hit (-12%),Real Option Tick
 2026-10-23,Strategy 2: BankNIFTY 15M Directional Breakout,PE,54500,09:48:00,10:15:00,280.5,502.38,8415.0,6656.4,76.13,6580.27,Target Hit (+80%),Real Option Tick
+2026-10-27,Strategy 2: BankNIFTY 15M Directional Breakout,CE,54700,09:43:00,09:56:00,172.11,128.44,5163.3,-1310.1,56.37,-1366.47,SL Hit (-25%),Real Option Tick
