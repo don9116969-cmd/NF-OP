@@ -19,7 +19,7 @@ permissions:
 jobs:
   trade:
     runs-on: ubuntu-latest
-    timeout-minutes: 355 # Full trading day coverage (09:14 AM to 15:12 PM IST, under 360-min cap)
+    timeout-minutes: 360 # Full trading day coverage (09:14 AM to 15:06 PM IST, safe within GitHub 360-min cap)
 
     steps:
       - name: Checkout Code
@@ -72,7 +72,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run list --workflow trading_bot.yml --status waiting --json databaseId --jq '.[].databaseId' | while read -r run_id; do
+          gh run list --workflow trading_bot.yml --status queued --json databaseId --jq '.[].databaseId' | while read -r run_id; do
             if [ -n "$run_id" ]; then
               echo "Cancelling redundant queued run: $run_id"
               gh run cancel "$run_id" || true

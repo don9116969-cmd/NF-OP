@@ -180,10 +180,22 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
         else:
             p_val = float(pos.get("entry_p", 0.0))
             leg_type = str(pos.get("opt_type", "CE")).upper()
-            tgt_p = float(pos.get("target_p", p_val * 1.80))
-            sl_p = float(pos.get("stop_p", p_val * 0.75))
-            mult = 0.55 if leg_type == "CE" else -0.55
-            cur_p = max(0.5, round(p_val + (spot_diff * mult), 2))
+            tgt_p = float(pos.get("target_p", p_val * (1.60 if "Strategy 1" in s_name else 1.80)))
+            sl_p = float(pos.get("sl_p", pos.get("stop_p", p_val * (0.84 if "Strategy 1" in s_name else 0.75))))
+
+            cur_p = None
+            c_opt = pos.get("contract")
+            if api and c_opt and isinstance(c_opt, dict) and c_opt.get("token"):
+                try:
+                    ltp_res = api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt.get("symbol", sym_str), str(c_opt["token"]))
+                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                        cur_p = round(float(ltp_res["data"]["ltp"]), 2)
+                except Exception:
+                    pass
+
+            if cur_p is None:
+                mult = 0.55 if leg_type == "CE" else -0.55
+                cur_p = max(0.5, round(p_val + (spot_diff * mult), 2))
             unrealized_pnl = round((cur_p - p_val) * lot_size, 2)
             unrealized_pct = round(((cur_p - p_val) / max(0.1, p_val)) * 100.0, 1)
 

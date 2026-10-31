@@ -61,6 +61,7 @@ from src.utils.journal_manager import (
     auto_catchup_missing_trading_days,
     mark_day_as_audited
 )
+from src.utils.git_sync import git_sync_push
 from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles, get_candle_feed
 from src.features.greeks import black_scholes_price, compute_calendar_dte
 
@@ -231,20 +232,32 @@ class LiveTriPaperTrader:
         self.active_positions[s_key] = pos
         self.daily_trade_count[s_key] += 1
         self.save_active_positions()
-        refresh_markdown_journal()
+        try:
+            refresh_markdown_journal()
+        except Exception as e:
+            print(f"[WARN] Failed to refresh markdown journal: {e}")
         sym_str = pos.get("strike") or pos.get("symbol") or f"{pos.get('ce_symbol', '')} + {pos.get('pe_symbol', '')}"
         print(f"[LIVE JOURNAL] [ENTRY] Active trade logged in trade_journal.md for {s_name} ({sym_str})")
-        git_sync_push(f"Auto-Journal: 🟢 Entry {s_name} ({sym_str})")
+        try:
+            git_sync_push(f"Auto-Journal: 🟢 Entry {s_name} ({sym_str})")
+        except Exception as e:
+            print(f"[WARN] Non-blocking git push deferred: {e}")
 
     def on_trade_exit(self, s_key: str, s_name: str, tr_log: dict):
         """Called immediately upon trade exit: clears active position, appends to journal, and pushes to git."""
         self.active_positions[s_key] = None
         self.save_active_positions()
-        log_trade_to_journal(tr_log["date"], s_name, tr_log)
-        refresh_markdown_journal()
+        try:
+            log_trade_to_journal(tr_log["date"], s_name, tr_log)
+            refresh_markdown_journal()
+        except Exception as e:
+            print(f"[WARN] Failed to log trade to journal: {e}")
         net_val = float(tr_log.get("net_pnl", 0.0))
         print(f"[LIVE JOURNAL] [EXIT] Trade exit logged in trade_journal.md for {s_name} [PnL: INR {net_val:+.2f}]")
-        git_sync_push(f"Auto-Journal: 🔴 Exit {s_name} [PnL: INR {net_val:+.2f}]")
+        try:
+            git_sync_push(f"Auto-Journal: 🔴 Exit {s_name} [PnL: INR {net_val:+.2f}]")
+        except Exception as e:
+            print(f"[WARN] Non-blocking git push deferred: {e}")
 
     def load_active_positions(self, today_date):
         """Loads and restores any in-flight open positions for today from data/active_positions.json."""
@@ -303,18 +316,43 @@ class LiveTriPaperTrader:
         if pos is not None:
             c_opt = pos.get("contract")
             cur_p = pos["entry_p"]
-            high_p, low_p = cur_p, cur_p
+            high_p = pos.get("high_p", cur_p)
+            low_p = pos.get("low_p", cur_p)
 
-            if self.smart_api and c_opt:
+            # 1. Priority 1: Instant live LTP from Angel One SmartAPI
+            live_p_found = False
+            if self.smart_api and c_opt and c_opt.get("token"):
+                try:
+                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
+                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                        cur_p = round(float(ltp_res["data"]["ltp"]), 2)
+                        high_p = max(high_p, cur_p)
+                        low_p = min(low_p, cur_p)
+                        pos["high_p"] = high_p
+                        pos["low_p"] = low_p
+                        live_p_found = True
+                except Exception:
+                    pass
+
+            # 2. Priority 2: Real option candles from Angel One
+            if not live_p_found and self.smart_api and c_opt:
                 df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
                     cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = float(df_opt["high"].max())
-                    low_p = float(df_opt["low"].min())
-            else:
+                    high_p = max(high_p, float(df_opt["high"].max()))
+                    low_p = min(low_p, float(df_opt["low"].min()))
+                    pos["high_p"] = high_p
+                    pos["low_p"] = low_p
+                    live_p_found = True
+
+            # 3. Priority 3: BSM fallback if API is completely offline
+            if not live_p_found:
                 t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
                 cur_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
-                high_p, low_p = cur_p, cur_p
+                high_p = max(high_p, cur_p)
+                low_p = min(low_p, cur_p)
+                pos["high_p"] = high_p
+                pos["low_p"] = low_p
 
             exit_triggered = False
             exit_p = cur_p
@@ -328,10 +366,10 @@ class LiveTriPaperTrader:
                 exit_triggered = True
                 exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
                 exit_reason = f"SL Hit (-{int(config.S1_SL_PCT * 100)}%)"
-            elif ist_now.time() >= dtime(15, 15):
+            elif ist_now.time() >= dtime(15, 5):
                 exit_triggered = True
                 exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD Squareoff (15:15)"
+                exit_reason = "EOD Squareoff (15:05)"
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.lot_size
@@ -360,19 +398,22 @@ class LiveTriPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
+                try:
+                    send_trade_exit_alert(
+                        strategy="Strategy 1: Nifty 15M Directional Breakout",
+                        exit_reason=exit_reason,
+                        gross_pnl=round(gross, 2),
+                        charges=charges,
+                        net_pnl=net,
+                        details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
+                        time_str=ist_now.strftime("%H:%M:%S"),
+                        date_str=str(today_date),
+                        entry_time=str(tr_log["entry_time"]),
+                        strike=str(pos["symbol"])
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to send S1 exit alert: {e}")
                 self.on_trade_exit("s1", "Strategy 1: Nifty 15M Directional Breakout", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 1: Nifty 15M Directional Breakout",
-                    exit_reason=exit_reason,
-                    gross_pnl=round(gross, 2),
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(tr_log["entry_time"]),
-                    strike=str(pos["symbol"])
-                )
                 self.cooldown_until["s1"] = ist_now + timedelta(minutes=30)
                 return
 
@@ -476,25 +517,28 @@ class LiveTriPaperTrader:
                 "sl_p": sl_p,
                 "data_feed": feed_label
             }
+            try:
+                send_trade_entry_alert(
+                    strategy="Strategy 1: Nifty 15M Directional Breakout",
+                    spot=c,
+                    opt_type=opt_type,
+                    strike=str(sym_str),
+                    entry_p=entry_p,
+                    ce_str=sym_str if opt_type == "CE" else "",
+                    pe_str=sym_str if opt_type == "PE" else "",
+                    ce_p=entry_p if opt_type == "CE" else 0.0,
+                    pe_p=entry_p if opt_type == "PE" else 0.0,
+                    tot_cost=cost,
+                    win_target_pct=config.S1_TARGET_PCT,
+                    lose_stop_pct=config.S1_SL_PCT,
+                    max_hold_mins=360,
+                    time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
+                    qty=self.lot_size,
+                    date_str=str(today_date)
+                )
+            except Exception as e:
+                print(f"[WARN] Failed to send S1 entry alert: {e}")
             self.on_trade_entry("s1", "Strategy 1: Nifty 15M Directional Breakout", pos_data)
-            send_trade_entry_alert(
-                strategy="Strategy 1: Nifty 15M Directional Breakout",
-                spot=c,
-                opt_type=opt_type,
-                strike=str(sym_str),
-                entry_p=entry_p,
-                ce_str=sym_str if opt_type == "CE" else "",
-                pe_str=sym_str if opt_type == "PE" else "",
-                ce_p=entry_p if opt_type == "CE" else 0.0,
-                pe_p=entry_p if opt_type == "PE" else 0.0,
-                tot_cost=cost,
-                win_target_pct=config.S1_TARGET_PCT,
-                lose_stop_pct=config.S1_SL_PCT,
-                max_hold_mins=360,
-                time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
-                qty=self.lot_size,
-                date_str=str(today_date)
-            )
 
     def process_live_strategy_2(self, df_bn: pd.DataFrame, today_date, ist_now, bn_spot: float):
         """Real-time live position tracking and entry engine for Strategy 2: BankNIFTY 15M Directional Breakout."""
@@ -503,19 +547,44 @@ class LiveTriPaperTrader:
         if pos is not None:
             c_opt = pos.get("contract")
             cur_p = pos["entry_p"]
-            high_p, low_p = cur_p, cur_p
+            high_p = pos.get("high_p", cur_p)
+            low_p = pos.get("low_p", cur_p)
 
-            if self.smart_api and c_opt:
+            # 1. Priority 1: Instant live LTP from Angel One SmartAPI
+            live_p_found = False
+            if self.smart_api and c_opt and c_opt.get("token"):
+                try:
+                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
+                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                        cur_p = round(float(ltp_res["data"]["ltp"]), 2)
+                        high_p = max(high_p, cur_p)
+                        low_p = min(low_p, cur_p)
+                        pos["high_p"] = high_p
+                        pos["low_p"] = low_p
+                        live_p_found = True
+                except Exception:
+                    pass
+
+            # 2. Priority 2: Real option candles from Angel One
+            if not live_p_found and self.smart_api and c_opt:
                 df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
                     cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = float(df_opt["high"].max())
-                    low_p = float(df_opt["low"].min())
-            else:
+                    high_p = max(high_p, float(df_opt["high"].max()))
+                    low_p = min(low_p, float(df_opt["low"].min()))
+                    pos["high_p"] = high_p
+                    pos["low_p"] = low_p
+                    live_p_found = True
+
+            # 3. Priority 3: BSM fallback if API is completely offline
+            if not live_p_found:
                 dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
                 from src.banknifty.banknifty_das import bs_price
                 cur_p = bs_price(bn_spot, pos["strike"], dte, pos["opt_type"], sigma=0.18)
-                high_p, low_p = cur_p, cur_p
+                high_p = max(high_p, cur_p)
+                low_p = min(low_p, cur_p)
+                pos["high_p"] = high_p
+                pos["low_p"] = low_p
 
             exit_triggered = False
             exit_p = cur_p
@@ -529,10 +598,10 @@ class LiveTriPaperTrader:
                 exit_triggered = True
                 exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
                 exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
-            elif ist_now.time() >= dtime(15, 15):
+            elif ist_now.time() >= dtime(15, 5):
                 exit_triggered = True
                 exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD Squareoff (15:15)"
+                exit_reason = "EOD Squareoff (15:05)"
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
@@ -561,19 +630,22 @@ class LiveTriPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
+                try:
+                    send_trade_exit_alert(
+                        strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
+                        exit_reason=exit_reason,
+                        gross_pnl=round(gross, 2),
+                        charges=charges,
+                        net_pnl=net,
+                        details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
+                        time_str=ist_now.strftime("%H:%M:%S"),
+                        date_str=str(today_date),
+                        entry_time=str(tr_log["entry_time"]),
+                        strike=str(pos["symbol"])
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to send S2 exit alert: {e}")
                 self.on_trade_exit("s2", "Strategy 2: BankNIFTY 15M Directional Breakout", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
-                    exit_reason=exit_reason,
-                    gross_pnl=round(gross, 2),
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(tr_log["entry_time"]),
-                    strike=str(pos["symbol"])
-                )
                 self.cooldown_until["s2"] = ist_now + timedelta(minutes=30)
                 return
 
@@ -681,25 +753,28 @@ class LiveTriPaperTrader:
                 "sl_p": sl_p,
                 "data_feed": feed_label
             }
+            try:
+                send_trade_entry_alert(
+                    strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
+                    spot=c,
+                    opt_type=opt_type,
+                    strike=str(sym_str),
+                    entry_p=entry_p,
+                    ce_str=sym_str if opt_type == "CE" else "",
+                    pe_str=sym_str if opt_type == "PE" else "",
+                    ce_p=entry_p if opt_type == "CE" else 0.0,
+                    pe_p=entry_p if opt_type == "PE" else 0.0,
+                    tot_cost=cost,
+                    win_target_pct=config.S2_TARGET_PCT,
+                    lose_stop_pct=config.S2_SL_PCT,
+                    max_hold_mins=360,
+                    time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
+                    qty=self.bn_lot_size,
+                    date_str=str(today_date)
+                )
+            except Exception as e:
+                print(f"[WARN] Failed to send S2 entry alert: {e}")
             self.on_trade_entry("s2", "Strategy 2: BankNIFTY 15M Directional Breakout", pos_data)
-            send_trade_entry_alert(
-                strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
-                spot=c,
-                opt_type=opt_type,
-                strike=str(sym_str),
-                entry_p=entry_p,
-                ce_str=sym_str if opt_type == "CE" else "",
-                pe_str=sym_str if opt_type == "PE" else "",
-                ce_p=entry_p if opt_type == "CE" else 0.0,
-                pe_p=entry_p if opt_type == "PE" else 0.0,
-                tot_cost=cost,
-                win_target_pct=config.S2_TARGET_PCT,
-                lose_stop_pct=config.S2_SL_PCT,
-                max_hold_mins=360,
-                time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
-                qty=self.bn_lot_size,
-                date_str=str(today_date)
-            )
 
     def process_live_strategy_3(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)."""
@@ -709,26 +784,75 @@ class LiveTriPaperTrader:
             elapsed_mins = (ist_now - pos["entry_time"]).total_seconds() / 60.0
             p_c = pos["ce_entry"]
             p_p = pos["pe_entry"]
-            high_c, low_c = p_c, p_c
-            high_p, low_p = p_p, p_p
+            high_c = pos.get("high_c", p_c)
+            low_c = pos.get("low_c", p_c)
+            high_p = pos.get("high_p", p_p)
+            low_p = pos.get("low_p", p_p)
 
-            if self.smart_api and pos.get("c_ce") and pos.get("c_pe"):
-                df_c = fetch_real_option_candles(self.smart_api, pos["c_ce"], pos["entry_time"], ist_now)
-                df_p = fetch_real_option_candles(self.smart_api, pos["c_pe"], pos["entry_time"], ist_now)
+            # 1. Priority 1: Instant live LTP from Angel One SmartAPI for both legs
+            c_ce = pos.get("c_ce")
+            c_pe = pos.get("c_pe")
+            ce_live_found = False
+            pe_live_found = False
+
+            if self.smart_api and c_ce and c_ce.get("token"):
+                try:
+                    res_c = self.smart_api.ltpData(c_ce.get("exch_seg", "NFO"), c_ce["symbol"], str(c_ce["token"]))
+                    if res_c and res_c.get("status") and res_c.get("data") and float(res_c["data"].get("ltp", 0)) > 0:
+                        p_c = round(float(res_c["data"]["ltp"]), 2)
+                        high_c = max(high_c, p_c)
+                        low_c = min(low_c, p_c)
+                        pos["high_c"] = high_c
+                        pos["low_c"] = low_c
+                        ce_live_found = True
+                except Exception:
+                    pass
+
+            if self.smart_api and c_pe and c_pe.get("token"):
+                try:
+                    res_p = self.smart_api.ltpData(c_pe.get("exch_seg", "NFO"), c_pe["symbol"], str(c_pe["token"]))
+                    if res_p and res_p.get("status") and res_p.get("data") and float(res_p["data"].get("ltp", 0)) > 0:
+                        p_p = round(float(res_p["data"]["ltp"]), 2)
+                        high_p = max(high_p, p_p)
+                        low_p = min(low_p, p_p)
+                        pos["high_p"] = high_p
+                        pos["low_p"] = low_p
+                        pe_live_found = True
+                except Exception:
+                    pass
+
+            # 2. Priority 2: Real option candles from Angel One if LTP was unavailable
+            if not ce_live_found and self.smart_api and c_ce:
+                df_c = fetch_real_option_candles(self.smart_api, c_ce, pos["entry_time"], ist_now)
                 if not df_c.empty:
                     p_c = float(df_c.iloc[-1]["close"])
-                    high_c = float(df_c["high"].max())
-                    low_c = float(df_c["low"].min())
+                    high_c = max(high_c, float(df_c["high"].max()))
+                    low_c = min(low_c, float(df_c["low"].min()))
+                    pos["high_c"] = high_c
+                    pos["low_c"] = low_c
+
+            if not pe_live_found and self.smart_api and c_pe:
+                df_p = fetch_real_option_candles(self.smart_api, c_pe, pos["entry_time"], ist_now)
                 if not df_p.empty:
                     p_p = float(df_p.iloc[-1]["close"])
-                    high_p = float(df_p["high"].max())
-                    low_p = float(df_p["low"].min())
-            else:
+                    high_p = max(high_p, float(df_p["high"].max()))
+                    low_p = min(low_p, float(df_p["low"].min()))
+                    pos["high_p"] = high_p
+                    pos["low_p"] = low_p
+
+            # 3. Priority 3: BSM fallback if API is completely offline
+            if not ce_live_found and not pe_live_found and not self.smart_api:
                 t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
                 p_c = black_scholes_price(spot, pos["ce_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "CE")
                 p_p = black_scholes_price(spot, pos["pe_strike"], t_exp_years, config.RISK_FREE_RATE, 0.135, "PE")
-                high_c, low_c = p_c, p_c
-                high_p, low_p = p_p, p_p
+                high_c = max(high_c, p_c)
+                low_c = min(low_c, p_c)
+                high_p = max(high_p, p_p)
+                low_p = min(low_p, p_p)
+                pos["high_c"] = high_c
+                pos["low_c"] = low_c
+                pos["high_p"] = high_p
+                pos["low_p"] = low_p
 
             if not pos["ce_exited"]:
                 if high_c >= pos["ce_tgt"]:
@@ -802,7 +926,7 @@ class LiveTriPaperTrader:
             exit_p = pos["pe_exit_p"] if pos["pe_exited"] else round(p_p * (1.0 - config.SLIPPAGE_PCT), 2)
             cur_tot = exit_c + exit_p
             comb_ret = (cur_tot - pos["entry_tot"]) / max(0.1, pos["entry_tot"])
-            is_time_up = (elapsed_mins >= config.DAS_MAX_HOLD_MINS) or (ist_now.time() >= dtime(15, 15))
+            is_time_up = (elapsed_mins >= config.DAS_MAX_HOLD_MINS) or (ist_now.time() >= dtime(15, 5))
             is_comb_stop = comb_ret <= -config.DAS_COMBINED_STOP_PCT
 
             if (pos["ce_exited"] and pos["pe_exited"]) or is_time_up or is_comb_stop:
@@ -846,19 +970,22 @@ class LiveTriPaperTrader:
                     "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
+                try:
+                    send_trade_exit_alert(
+                        strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
+                        exit_reason=exit_reason,
+                        gross_pnl=round(gross, 2),
+                        charges=charges,
+                        net_pnl=net,
+                        details=f"{pos['ce_symbol']} + {pos['pe_symbol']} | Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f}",
+                        time_str=ist_now.strftime("%H:%M:%S"),
+                        date_str=str(today_date),
+                        entry_time=str(tr_log["entry_time"]),
+                        strike=f"{pos['ce_strike']} CE / {pos['pe_strike']} PE"
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to send S3 exit alert: {e}")
                 self.on_trade_exit("s3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", tr_log)
-                send_trade_exit_alert(
-                    strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
-                    exit_reason=exit_reason,
-                    gross_pnl=round(gross, 2),
-                    charges=charges,
-                    net_pnl=net,
-                    details=f"{pos['ce_symbol']} + {pos['pe_symbol']} | Entry: ₹{pos['entry_tot']:.2f} -> Exit: ₹{cur_tot:.2f}",
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    entry_time=str(tr_log["entry_time"]),
-                    strike=f"{pos['ce_strike']} CE / {pos['pe_strike']} PE"
-                )
                 self.cooldown_until["s3"] = ist_now + timedelta(minutes=config.DAS_COOLDOWN_BARS)
                 return
 
@@ -961,22 +1088,25 @@ class LiveTriPaperTrader:
                 "pe_reason": None,
                 "data_feed": feed_label
             }
+            try:
+                send_trade_entry_alert(
+                    strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
+                    spot=spot,
+                    ce_str=f"{ce_strike} CE ({c_ce['symbol'] if c_ce else ''})",
+                    pe_str=f"{pe_strike} PE ({c_pe['symbol'] if c_pe else ''})",
+                    ce_p=ce_entry_p,
+                    pe_p=pe_entry_p,
+                    tot_cost=tot_cost,
+                    win_target_pct=config.DAS_WIN_TARGET_PCT,
+                    lose_stop_pct=config.DAS_LOSE_STOP_PCT,
+                    max_hold_mins=config.DAS_MAX_HOLD_MINS,
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    qty=self.lot_size,
+                    date_str=str(today_date)
+                )
+            except Exception as e:
+                print(f"[WARN] Failed to send S3 entry alert: {e}")
             self.on_trade_entry("s3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", pos_data)
-            send_trade_entry_alert(
-                strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
-                spot=spot,
-                ce_str=f"{ce_strike} CE ({c_ce['symbol'] if c_ce else ''})",
-                pe_str=f"{pe_strike} PE ({c_pe['symbol'] if c_pe else ''})",
-                ce_p=ce_entry_p,
-                pe_p=pe_entry_p,
-                tot_cost=tot_cost,
-                win_target_pct=config.DAS_WIN_TARGET_PCT,
-                lose_stop_pct=config.DAS_LOSE_STOP_PCT,
-                max_hold_mins=config.DAS_MAX_HOLD_MINS,
-                time_str=ist_now.strftime("%H:%M:%S"),
-                qty=self.lot_size,
-                date_str=str(today_date)
-            )
 
     def run_live_loop(self):
         """Continuously monitors live market during trading hours across all 3 active strategies in real-time."""
@@ -1002,10 +1132,10 @@ class LiveTriPaperTrader:
             f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!\n\n"
             f"💡 *Live Bot Commands:* Send /status, /today, or /pnl anytime for live updates.",
             alert_key=f"WAKEUP:{today_date}",
-            force=True
+            force=False
         )
 
-        while get_ist_now().time() <= dtime(15, 12):
+        while get_ist_now().time() < dtime(15, 5):
             ist_now = get_ist_now()
             today_date = ist_now.date()
 
@@ -1069,8 +1199,8 @@ class LiveTriPaperTrader:
 
             time.sleep(60)
 
-        # Market Close Procedure at 15:12 IST
-        print("[MARKET CLOSE] Squareoff time reached (15:12 IST). Performing EOD audit...")
+        # Market Close Procedure at 15:05 IST
+        print("[MARKET CLOSE] Squareoff time reached (15:05 IST). Performing EOD audit...")
         self.run_eod_accounting()
 
     def run_eod_accounting(self):
@@ -1087,6 +1217,53 @@ class LiveTriPaperTrader:
         df_all = pd.read_csv(CANDLE_FILE) if os.path.exists(CANDLE_FILE) else pd.DataFrame()
         df_bn = pd.read_csv(BANKNIFTY_CANDLE_FILE) if os.path.exists(BANKNIFTY_CANDLE_FILE) else pd.DataFrame()
         today = get_ist_now().date()
+        spot = self.get_nifty_spot_price()
+        bn_spot = self.get_banknifty_spot_price()
+
+        # Force square off any remaining active positions at 15:05 IST
+        for s_key in ["s1", "s2", "s3"]:
+            pos = self.active_positions.get(s_key)
+            if pos is not None:
+                print(f"[EOD SQUAREOFF] Closing open position for {s_key} at market cutoff.")
+                s_name = pos.get("strategy_name", f"Strategy {s_key.upper()}")
+                cur_p = pos.get("entry_p", 100.0)
+                lot = self.bn_lot_size if "banknifty" in s_name.lower() else self.lot_size
+                gross = 0.0
+                charges = 40.0
+                net = -charges
+                tr_log = {
+                    "date": str(today),
+                    "strategy": s_name,
+                    "leg": pos.get("opt_type", "CE"),
+                    "strike": pos.get("symbol", ""),
+                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
+                    "exit_time": "15:05:00",
+                    "entry_p": cur_p,
+                    "exit_p": cur_p,
+                    "cost": pos.get("cost", 0.0),
+                    "capital_used": pos.get("cost", 0.0),
+                    "gross_pnl": 0.0,
+                    "charges": charges,
+                    "net_pnl": net,
+                    "exit_reason": "EOD Squareoff (15:05)",
+                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
+                }
+                try:
+                    send_trade_exit_alert(
+                        strategy=s_name,
+                        exit_reason="EOD Squareoff (15:05)",
+                        gross_pnl=0.0,
+                        charges=charges,
+                        net_pnl=net,
+                        details=f"{pos.get('symbol', '')} | EOD Market Squareoff @ ₹{cur_p:.2f}",
+                        time_str="15:05:00",
+                        date_str=str(today),
+                        entry_time=str(tr_log["entry_time"]),
+                        strike=str(pos.get("symbol", ""))
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to send EOD exit alert: {e}")
+                self.on_trade_exit(s_key, s_name, tr_log)
 
         daily_net = 0.0
         trades_today = 0
