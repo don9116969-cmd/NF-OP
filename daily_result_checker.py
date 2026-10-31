@@ -654,22 +654,22 @@ def run():
     s2_res = get_strategy_evaluation("Strategy 2", "Strategy 2: BankNIFTY 15M Directional Breakout", evaluate_strategy_2, df_bn) if config.S2_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy disabled"}
     s3_res = get_strategy_evaluation("Strategy 3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", evaluate_strategy_3, df_all) if config.S3_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy disabled"}
 
+    # Record any unrecorded simulation trades for strategies that haven't traded yet today
+    active_evals = []
+    if config.S1_ENABLED: active_evals.append(("Strategy 1: Nifty 15M Directional Breakout", s1_res))
+    if config.S2_ENABLED: active_evals.append(("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res))
+    if config.S3_ENABLED: active_evals.append(("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res))
+
+    for s_name, s_res in active_evals:
+        has_strat_trade = any(s_name.lower() in str(t.get("strategy", "")).lower() for t in today_live_trades)
+        if not has_strat_trade and s_res.get("trade_occurred", False):
+            if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
+                for sub_tr in s_res["all_trades"]:
+                    log_trade_to_journal(target_date, s_name, sub_tr)
+            else:
+                log_trade_to_journal(target_date, s_name, s_res)
+
     print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res)
-
-    # Record any unrecorded simulation trades only if no live trades existed today
-    if not today_live_trades:
-        active_evals = []
-        if config.S1_ENABLED: active_evals.append(("Strategy 1: Nifty 15M Directional Breakout", s1_res))
-        if config.S2_ENABLED: active_evals.append(("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res))
-        if config.S3_ENABLED: active_evals.append(("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res))
-
-        for s_name, s_res in active_evals:
-            if s_res.get("trade_occurred", False):
-                if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
-                    for sub_tr in s_res["all_trades"]:
-                        log_trade_to_journal(target_date, s_name, sub_tr)
-                else:
-                    log_trade_to_journal(target_date, s_name, s_res)
 
     # Mark day as audited
     mark_day_as_audited(str(target_date))
