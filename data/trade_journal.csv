@@ -13,3 +13,4 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-10-23,Strategy 2: BankNIFTY 15M Directional Breakout,PE,54500,09:48:00,10:15:00,280.5,502.38,8415.0,6656.4,76.13,6580.27,Target Hit (+80%),Real Option Tick
 2026-10-27,Strategy 2: BankNIFTY 15M Directional Breakout,CE,54700,09:43:00,09:56:00,172.11,128.44,5163.3,-1310.1,56.37,-1366.47,SL Hit (-25%),Real Option Tick
 2026-10-30,Strategy 1: Nifty 15M Directional Breakout,CE,23000,09:34:00,09:48:00,133.26,111.38,8661.9,-1422.2,63.82,-1486.02,SL Hit (-16%),Real Option Tick
+2026-10-30,Strategy 2: BankNIFTY 15M Directional Breakout,PE,53100,10:16:00,11:58:00,310.7,231.86,9321.0,-2365.2,63.76,-2428.96,SL Hit (-25%),Real Option Tick

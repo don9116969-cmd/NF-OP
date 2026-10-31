@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-10-31 13:28:04 IST*
+*Last Updated: 2026-10-31 13:31:21 IST*
 
 ---
 
@@ -14,10 +14,10 @@
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 14
-- **Win Rate**: 50.0% (7 Wins / 7 Losses)
-- **Net Realized PnL**: **INR +14,616.31**
-- **Current Account Balance**: **INR +24,616.31** (+146.2% Return)
+- **Total Executed Trades**: 15
+- **Win Rate**: 46.7% (7 Wins / 8 Losses)
+- **Net Realized PnL**: **INR +12,187.35**
+- **Current Account Balance**: **INR +22,187.35** (+121.9% Return)
 
 ---
 
@@ -39,4 +39,5 @@
 | 2026-10-23 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 54500 | 09:48:00 | 10:15:00 | ₹280.50 | ₹502.38 | ₹8415.00 | **+₹6580.27** | Target Hit (+80%) | Real Option Tick |
 | 2026-10-27 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | 54700 | 09:43:00 | 09:56:00 | ₹172.11 | ₹128.44 | ₹5163.30 | **-₹1366.47** | SL Hit (-25%) | Real Option Tick |
 | 2026-10-30 | Strategy 1: Nifty 15M Directional Breakout | CE | 23000 | 09:34:00 | 09:48:00 | ₹133.26 | ₹111.38 | ₹8661.90 | **-₹1486.02** | SL Hit (-16%) | Real Option Tick |
+| 2026-10-30 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 53100 | 10:16:00 | 11:58:00 | ₹310.70 | ₹231.86 | ₹9321.00 | **-₹2428.96** | SL Hit (-25%) | Real Option Tick |
 
