@@ -25,7 +25,12 @@ from SmartApi import SmartConnect
 
 from src.features.greeks import black_scholes_price
 from src.decoupled_strangle.das_engine import evaluate_das_for_day
-from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles, get_candle_feed
+from src.data.real_option_feed import (
+    get_active_option_contract,
+    fetch_real_option_candles,
+    get_candle_feed,
+    select_dynamic_affordable_strike
+)
 from config import config
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -200,8 +205,16 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
         info["reason"] = f"Price stayed within triggers ({l_trig} - {u_trig}) or failed 20-EMA trend alignment."
         return info
 
-    entry_ts, opt_type, strike = trade_entry
-    df_opt, sym, feed_label = get_candle_feed(api, target_date, strike, opt_type, "NIFTY", day_bars)
+    entry_ts, opt_type, initial_strike = trade_entry
+    entry_spot = float(post_bars.loc[post_bars["timestamp"] == entry_ts, "close"].iloc[0])
+
+    if config.DYNAMIC_STRIKE_ENABLED:
+        strike, df_opt, sym, feed_label, _, _ = select_dynamic_affordable_strike(
+            api, target_date, entry_spot, opt_type, "NIFTY", day_bars, entry_ts=entry_ts, max_budget=config.MAX_CAPITAL_PER_TRADE
+        )
+    else:
+        strike = initial_strike
+        df_opt, sym, feed_label = get_candle_feed(api, target_date, strike, opt_type, "NIFTY", day_bars)
 
     sub_opt = df_opt[df_opt.index >= entry_ts]
     if sub_opt.empty:
@@ -212,7 +225,7 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
     entry_p = round(float(sub_opt.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
     cost = round(entry_p * config.LOT_SIZE, 2)
-    if cost > config.INITIAL_CAPITAL:
+    if cost > config.MAX_CAPITAL_PER_TRADE:
         info["status"] = "BUDGET_EXCEEDED"
         info["trade_occurred"] = False
         info["reason"] = f"Option premium INR {entry_p} exceeds budget limit (Cost: INR {cost:,.2f})."
@@ -340,8 +353,16 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
         info["reason"] = f"Price stayed within triggers ({l_trig} - {u_trig}) or failed 20-EMA trend alignment."
         return info
 
-    entry_ts, opt_type, strike = trade_entry
-    df_opt, sym, feed_label = get_candle_feed(api, target_date, strike, opt_type, "BANKNIFTY", day_bars)
+    entry_ts, opt_type, initial_strike = trade_entry
+    entry_spot = float(post_bars.loc[post_bars["timestamp"] == entry_ts, "close"].iloc[0])
+
+    if config.DYNAMIC_STRIKE_ENABLED:
+        strike, df_opt, sym, feed_label, _, _ = select_dynamic_affordable_strike(
+            api, target_date, entry_spot, opt_type, "BANKNIFTY", day_bars, entry_ts=entry_ts, max_budget=config.MAX_CAPITAL_PER_TRADE
+        )
+    else:
+        strike = initial_strike
+        df_opt, sym, feed_label = get_candle_feed(api, target_date, strike, opt_type, "BANKNIFTY", day_bars)
 
     sub_opt = df_opt[df_opt.index >= entry_ts]
     if sub_opt.empty:
@@ -352,7 +373,7 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
 
     entry_p = round(float(sub_opt.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
     cost = round(entry_p * config.BANKNIFTY_LOT_SIZE, 2)
-    if cost > config.INITIAL_CAPITAL:
+    if cost > config.MAX_CAPITAL_PER_TRADE:
         info["status"] = "BUDGET_EXCEEDED"
         info["trade_occurred"] = False
         info["reason"] = f"Option premium INR {entry_p} exceeds budget limit (Cost: INR {cost:,.2f})."

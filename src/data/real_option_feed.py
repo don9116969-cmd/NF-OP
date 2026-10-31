@@ -9,6 +9,7 @@ import datetime
 import urllib.request
 import pandas as pd
 from SmartApi import SmartConnect
+from config import config
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIP_MASTER_PATH = os.path.join(BASE_DIR, "data", "angel_scrip_master.json")
@@ -334,24 +335,18 @@ def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
             return df_opt, contract["symbol"], "Real Option Tick"
 
     from src.features.greeks import black_scholes_price
-    # Accurate DTE: Nifty (weekly Thursday) and BankNifty (monthly last Thursday)
-    if underlying.upper() == "NIFTY":
-        days_ahead = (3 - target_date.weekday()) % 7
+    # Determine exact DTE from real contract expiry or official scrip master
+    if contract and contract.get("expiry_date"):
+        days_ahead = max(0, (contract["expiry_date"] - target_date).days)
     else:
-        m = target_date.month
-        y = target_date.year
-        next_m = datetime.date(y + 1, 1, 1) if m == 12 else datetime.date(y, m + 1, 1)
-        last_day = next_m - datetime.timedelta(days=1)
-        offset = (last_day.weekday() - 3) % 7
-        last_thu = last_day - datetime.timedelta(days=offset)
-        if target_date > last_thu:
-            nm = m + 1 if m < 12 else 1
-            ny = y if m < 12 else y + 1
-            nn_m = datetime.date(ny + 1, 1, 1) if nm == 12 else datetime.date(ny, nm + 1, 1)
-            last_day = nn_m - datetime.timedelta(days=1)
-            offset = (last_day.weekday() - 3) % 7
-            last_thu = last_day - datetime.timedelta(days=offset)
-        days_ahead = (last_thu - target_date).days
+        underlying_u = underlying.upper()
+        _init_lookup_cache(underlying_u)
+        exp_list = _EXP_MAP_CACHE.get(underlying_u, [])
+        valid = [e for e in exp_list if e[1] >= target_date]
+        if valid:
+            days_ahead = max(0, (valid[0][1] - target_date).days)
+        else:
+            days_ahead = 0
     dte = max(0.001, float(days_ahead) / 365.25)
     df_synth = pd.DataFrame(index=day_df["timestamp"])
     prices = [black_scholes_price(float(s), float(strike), dte, 0.07, 0.15, opt_type.upper()) for s in day_df["close"]]
@@ -362,3 +357,67 @@ def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
     sym = f"{underlying}_{target_date.strftime('%d%b%y').upper()}_{strike}_{opt_type}"
     return df_synth, sym, "BSM Fallback"
 
+
+
+def get_nearest_expiry_date(target_date: datetime.date, underlying: str = "NIFTY") -> datetime.date:
+    """Finds the nearest valid expiry date on or after target_date from the contract database."""
+    underlying_u = underlying.upper()
+    _init_lookup_cache(underlying_u)
+    exp_list = _EXP_MAP_CACHE.get(underlying_u, [])
+    valid = [e for e in exp_list if e[1] >= target_date]
+    if valid:
+        return valid[0][1]
+    past = [e for e in exp_list if e[1] <= target_date]
+    if past:
+        return past[-1][1]
+    return target_date
+
+def select_dynamic_affordable_strike(
+    api: SmartConnect,
+    target_date: datetime.date,
+    spot: float,
+    opt_type: str,
+    underlying: str,
+    day_df: pd.DataFrame,
+    entry_ts: pd.Timestamp = None,
+    max_budget: float = None,
+    min_premium: float = None
+) -> tuple:
+    """
+    Selects the optimal strike matching breakout direction within max_budget.
+    If the preferred ATM / OTM strike exceeds max_budget, dynamically scans
+    progressively further OTM strikes until an affordable strike is found.
+    
+    Returns:
+        (strike, df_opt, symbol, feed_label, entry_p, cost)
+    """
+    if max_budget is None:
+        max_budget = config.MAX_CAPITAL_PER_TRADE
+    if min_premium is None:
+        min_premium = config.DYNAMIC_MIN_PREMIUM
+
+    underlying = underlying.upper()
+    lot_size = config.BANKNIFTY_LOT_SIZE if underlying == "BANKNIFTY" else config.LOT_SIZE
+    step = config.BANKNIFTY_STRIKE_STEP if underlying == "BANKNIFTY" else config.STRIKE_STEP
+    init_offset = config.S2_OTM_OFFSET if underlying == "BANKNIFTY" else 0
+    max_offset = 3500 if underlying == "BANKNIFTY" else 600
+    atm = int(round(spot / float(step)) * step)
+
+    offsets = list(range(init_offset, max_offset + step, step))
+    best_candidate = None
+
+    for off in offsets:
+        k = (atm + off) if opt_type.upper() == "CE" else (atm - off)
+        df_opt, sym, feed = get_candle_feed(api, target_date, k, opt_type, underlying, day_df)
+        if not df_opt.empty:
+            sub = df_opt[df_opt.index >= entry_ts] if entry_ts is not None else df_opt
+            if not sub.empty:
+                p = round(float(sub.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                cost = round(p * lot_size, 2)
+                candidate = (k, df_opt, sym, feed, p, cost)
+                if best_candidate is None or cost < best_candidate[5]:
+                    best_candidate = candidate
+                if cost <= max_budget and p >= min_premium:
+                    return candidate
+
+    return best_candidate if best_candidate else (atm, pd.DataFrame(), "", "", 0.0, 0.0)

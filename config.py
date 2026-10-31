@@ -19,8 +19,10 @@ class TradingConfig:
     
     # Capital & Risk Controls (₹10,000 Budget)
     INITIAL_CAPITAL: float = 10000.0  # Benchmark base per trade / account
-    MAX_CAPITAL_PER_TRADE: float = 8500.0  # Safe cap per trade to preserve buffer
+    MAX_CAPITAL_PER_TRADE: float = 9500.0  # Safe cap per trade to preserve buffer
     MAX_CONCURRENT_POSITIONS: int = 3  # All 3 strategies execute independently as signals fire
+    DYNAMIC_STRIKE_ENABLED: bool = True  # Dynamically pick cheaper OTM strike if premium exceeds budget
+    DYNAMIC_MIN_PREMIUM: float = 25.0  # Ensure candidate strike has sufficient delta & liquidity
     
     # Execution & Charges (Indian Stock Market)
     BROKERAGE_PER_ORDER: float = 20.0  # Angel One flat brokerage (INR 20 per order)
@@ -53,7 +55,7 @@ class TradingConfig:
     S1_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
     S1_SL_PCT: float = 0.16  # -16% tight stop loss
     S1_TARGET_PCT: float = 0.60  # +60% profit target
-    S1_MAX_BUDGET: float = 8500.0
+    S1_MAX_BUDGET: float = 9500.0
 
     # STRATEGY 2: BANKNIFTY 15M DIRECTIONAL BREAKOUT
     S2_ENABLED: bool = True
@@ -65,7 +67,7 @@ class TradingConfig:
     S2_OTM_OFFSET: int = 100  # 100-pt OTM option
     S2_SL_PCT: float = 0.25  # -25% stop loss
     S2_TARGET_PCT: float = 0.80  # +80% profit target
-    S2_MAX_BUDGET: float = 8500.0
+    S2_MAX_BUDGET: float = 9500.0
 
     # STRATEGY 3: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)
     S3_ENABLED: bool = True
@@ -81,7 +83,7 @@ class TradingConfig:
     DAS_COOLDOWN_BARS: int = 15  # 15-minute cooldown between entries
     DAS_TRADE_START: str = "09:30"
     DAS_TRADE_END: str = "14:00"
-    DAS_MAX_BUDGET: float = 8500.0
+    DAS_MAX_BUDGET: float = 9500.0
 
     # Risk Controls
     MAX_DAILY_LOSS: float = 2500.0  # Max account daily loss limit

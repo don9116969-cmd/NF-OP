@@ -72,23 +72,11 @@ def get_ist_now() -> datetime:
     return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).replace(tzinfo=None)
 
 def get_banknifty_dte(ist_now: datetime, target_date) -> float:
-    """Calculates DTE in years for BankNIFTY monthly options (last Thursday expiry)."""
+    """Calculates accurate DTE in years for BankNIFTY using real contract expiry from database."""
     target_dt = target_date if isinstance(target_date, datetime) else datetime.combine(target_date, dtime(15, 30))
-    d = target_dt.date()
-    m = d.month
-    y = d.year
-    next_m = datetime(y + 1, 1, 1).date() if m == 12 else datetime(y, m + 1, 1).date()
-    last_day = next_m - timedelta(days=1)
-    offset = (last_day.weekday() - 3) % 7
-    last_thu = last_day - timedelta(days=offset)
-    if d > last_thu:
-        nm = m + 1 if m < 12 else 1
-        ny = y if m < 12 else y + 1
-        nn_m = datetime(ny + 1, 1, 1).date() if nm == 12 else datetime(ny, nm + 1, 1).date()
-        last_day = nn_m - timedelta(days=1)
-        offset = (last_day.weekday() - 3) % 7
-        last_thu = last_day - timedelta(days=offset)
-    days_ahead = (last_thu - d).days
+    from src.data.real_option_feed import get_nearest_expiry_date
+    exp_dt = get_nearest_expiry_date(target_dt.date(), "BANKNIFTY")
+    days_ahead = max(0, (exp_dt - target_dt.date()).days)
     return max(0.001, float(days_ahead) / 365.25)
 
 class LiveTriPaperTrader:
@@ -469,54 +457,90 @@ class LiveTriPaperTrader:
             box_pct = (box_range / open_p) * 100.0
             if box_pct > config.S1_MAX_BOX_PCT:
                 return
-            cur_bar = day_bars.iloc[-1]
-            c = float(cur_bar["close"])
-            ema = float(cur_bar["ema_20"])
             u_trig = box_h + config.S1_BUFFER_PTS
             l_trig = box_l - config.S1_BUFFER_PTS
 
-            opt_type = None
-            strike = None
-            atm = int(round(c / 50.0) * 50)
-
-            if c >= u_trig and (not config.S1_USE_EMA_TREND or c > ema):
-                opt_type = "CE"
-                strike = atm
-            elif c <= l_trig and (not config.S1_USE_EMA_TREND or c < ema):
-                opt_type = "PE"
-                strike = atm
-            else:
+            post_bars = day_bars[(day_bars["timestamp"].dt.time > dtime(9, 30)) & (day_bars["timestamp"].dt.time <= dtime(15, 0))]
+            if post_bars.empty:
                 return
 
-            candle_ts = pd.to_datetime(cur_bar["timestamp"]).to_pydatetime() if "timestamp" in cur_bar else ist_now
-            c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="NIFTY") if self.smart_api else None
-            real_p = None
-            feed_label = "Mathematical (BSM)"
+            breakout_bar = None
+            opt_type = None
+            for _, b_row in post_bars.iterrows():
+                b_c = float(b_row["close"])
+                b_ema = float(b_row["ema_20"])
+                if b_c >= u_trig and (not config.S1_USE_EMA_TREND or b_c > b_ema):
+                    breakout_bar = b_row
+                    opt_type = "CE"
+                    break
+                elif b_c <= l_trig and (not config.S1_USE_EMA_TREND or b_c < b_ema):
+                    breakout_bar = b_row
+                    opt_type = "PE"
+                    break
 
-            # 1. First priority: Live LTP directly from Angel One (instant tick, zero candle lag)
-            if self.smart_api and c_opt and c_opt.get("token"):
-                try:
-                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
-                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
-                        real_p = round(float(ltp_res["data"]["ltp"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                        feed_label = f"Angel One Real Traded LTP ({c_opt['symbol']})"
-                except Exception:
-                    pass
+            if breakout_bar is None:
+                return
 
-            # 2. Second priority: Real option candles from Angel One (look back 60 minutes)
-            if real_p is None and self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=60), ist_now)
-                if not df_opt.empty:
-                    real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
+            c = float(breakout_bar["close"])
+            candle_ts = pd.to_datetime(breakout_bar["timestamp"]).to_pydatetime()
+            atm = int(round(c / 50.0) * 50)
 
-            # 3. Third priority: BSM fallback if API is completely offline
-            if real_p is None:
-                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-                real_p = round(black_scholes_price(c, strike, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type), 2)
+            # Dynamic strike scan within MAX_CAPITAL_PER_TRADE budget
+            offsets = list(range(0, 650, 50))
+            chosen_strike = None
+            chosen_c_opt = None
+            chosen_p = None
+            chosen_cost = None
+            chosen_feed = "Mathematical (BSM)"
 
-            entry_p = round(real_p, 2)
-            cost = round(entry_p * self.lot_size, 2)
+            for off in offsets:
+                cand_k = (atm + off) if opt_type == "CE" else (atm - off)
+                cand_opt = get_active_option_contract(today_date, cand_k, opt_type, underlying="NIFTY") if self.smart_api else None
+                cand_p = None
+                cand_feed = "Mathematical (BSM)"
+
+                if self.smart_api and cand_opt and cand_opt.get("token"):
+                    try:
+                        ltp_res = self.smart_api.ltpData(cand_opt.get("exch_seg", "NFO"), cand_opt["symbol"], str(cand_opt["token"]))
+                        if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                            cand_p = round(float(ltp_res["data"]["ltp"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                            cand_feed = f"Angel One Real Traded LTP ({cand_opt['symbol']})"
+                    except Exception:
+                        pass
+
+                if cand_p is None and self.smart_api and cand_opt:
+                    df_o = fetch_real_option_candles(self.smart_api, cand_opt, candle_ts - timedelta(minutes=5), ist_now)
+                    if not df_o.empty:
+                        sub_o = df_o[df_o.index >= candle_ts]
+                        cand_p = round(float((sub_o.iloc[0] if not sub_o.empty else df_o.iloc[-1])["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                        cand_feed = f"Angel One Real Traded ({cand_opt['symbol']})"
+
+                if cand_p is None:
+                    t_exp_years = max(1e-4, compute_calendar_dte(candle_ts) / 365.0)
+                    cand_p = round(black_scholes_price(c, cand_k, t_exp_years, config.RISK_FREE_RATE, 0.14, opt_type), 2)
+
+                cand_cost = round(cand_p * self.lot_size, 2)
+                if chosen_strike is None or cand_cost < chosen_cost:
+                    chosen_strike = cand_k
+                    chosen_c_opt = cand_opt
+                    chosen_p = cand_p
+                    chosen_cost = cand_cost
+                    chosen_feed = cand_feed
+
+                if cand_cost <= config.MAX_CAPITAL_PER_TRADE and cand_p >= config.DYNAMIC_MIN_PREMIUM:
+                    chosen_strike = cand_k
+                    chosen_c_opt = cand_opt
+                    chosen_p = cand_p
+                    chosen_cost = cand_cost
+                    chosen_feed = cand_feed
+                    break
+
+            strike = chosen_strike
+            c_opt = chosen_c_opt
+            entry_p = chosen_p
+            cost = chosen_cost
+            feed_label = chosen_feed
+
             if cost > config.MAX_CAPITAL_PER_TRADE:
                 return
 
@@ -524,9 +548,63 @@ class LiveTriPaperTrader:
             if (total_deployed + cost) > config.INITIAL_CAPITAL:
                 return
 
-            sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
             target_p = round(entry_p * (1.0 + config.S1_TARGET_PCT), 2)
             sl_p = round(entry_p * (1.0 - config.S1_SL_PCT), 2)
+
+            # Late wake-up / restart resolution check
+            if candle_ts < ist_now and self.smart_api and c_opt:
+                df_history = fetch_real_option_candles(self.smart_api, c_opt, candle_ts, ist_now)
+                if not df_history.empty:
+                    resolved = False
+                    res_exit_p = entry_p
+                    res_exit_t = ist_now
+                    res_reason = ""
+                    for c_ts, c_row in df_history.iterrows():
+                        if float(c_row["low"]) <= sl_p:
+                            resolved = True
+                            res_exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            res_exit_t = c_ts
+                            res_reason = f"SL Hit (-{int(config.S1_SL_PCT * 100)}%)"
+                            break
+                        elif float(c_row["high"]) >= target_p:
+                            resolved = True
+                            res_exit_p = round(target_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            res_exit_t = c_ts
+                            res_reason = f"Target Hit (+{int(config.S1_TARGET_PCT * 100)}%)"
+                            break
+
+                    if resolved:
+                        gross = (res_exit_p - entry_p) * self.lot_size
+                        turn = (entry_p + res_exit_p) * self.lot_size
+                        brok = 40.0
+                        stt = (res_exit_p * self.lot_size) * config.STT_PCT_ON_SELL
+                        exch = turn * config.EXCHANGE_TURNOVER_PCT
+                        gst = (brok + exch) * config.GST_PCT
+                        charges = round(brok + stt + exch + gst, 2)
+                        net = round(gross - charges, 2)
+                        sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
+                        tr_log = {
+                            "date": str(today_date),
+                            "strategy": "Strategy 1: Nifty 15M Directional Breakout",
+                            "symbol": sym_str,
+                            "entry_time": str(candle_ts),
+                            "exit_time": str(res_exit_t),
+                            "strike": strike,
+                            "opt_type": opt_type,
+                            "entry_p": entry_p,
+                            "exit_p": res_exit_p,
+                            "cost": cost,
+                            "gross_pnl": round(gross, 2),
+                            "charges": charges,
+                            "net_pnl": net,
+                            "exit_reason": res_reason,
+                            "data_feed": feed_label
+                        }
+                        self.on_trade_exit("s1", "Strategy 1: Nifty 15M Directional Breakout", tr_log)
+                        self.cooldown_until["s1"] = ist_now + timedelta(minutes=30)
+                        return
+
+            sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
 
             pos_data = {
                 "entry_time": candle_ts,
@@ -712,56 +790,91 @@ class LiveTriPaperTrader:
             b_pct = (b_rng / open_p) * 100.0
             if b_pct > config.S2_MAX_BOX_PCT:
                 return
-            cur_bar = day_df.iloc[-1]
-            c = float(cur_bar["close"])
-            ema = float(cur_bar["ema_20"])
             u_trig = box_h + config.S2_BUFFER_PTS
             l_trig = box_l - config.S2_BUFFER_PTS
 
-            opt_type = None
-            strike = None
-            atm = int(round(c / 100.0) * 100)
-
-            if c >= u_trig and (not config.S2_USE_EMA_TREND or c > ema):
-                opt_type = "CE"
-                strike = atm + config.S2_OTM_OFFSET
-            elif c <= l_trig and (not config.S2_USE_EMA_TREND or c < ema):
-                opt_type = "PE"
-                strike = atm - config.S2_OTM_OFFSET
-            else:
+            post_bars = day_df[(day_df["timestamp"].dt.time > dtime(9, 30)) & (day_df["timestamp"].dt.time <= dtime(15, 0))]
+            if post_bars.empty:
                 return
 
-            candle_ts = pd.to_datetime(cur_bar["timestamp"]).to_pydatetime() if "timestamp" in cur_bar else ist_now
-            dte_y = max(1e-4, get_banknifty_dte(ist_now, today_date))
+            breakout_bar = None
+            opt_type = None
+            for _, b_row in post_bars.iterrows():
+                b_c = float(b_row["close"])
+                b_ema = float(b_row["ema_20"])
+                if b_c >= u_trig and (not config.S2_USE_EMA_TREND or b_c > b_ema):
+                    breakout_bar = b_row
+                    opt_type = "CE"
+                    break
+                elif b_c <= l_trig and (not config.S2_USE_EMA_TREND or b_c < b_ema):
+                    breakout_bar = b_row
+                    opt_type = "PE"
+                    break
 
-            c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="BANKNIFTY") if self.smart_api else None
-            real_p = None
-            feed_label = "Mathematical (BSM)"
+            if breakout_bar is None:
+                return
 
-            # 1. First priority: Live LTP directly from Angel One (instant tick, zero candle lag)
-            if self.smart_api and c_opt and c_opt.get("token"):
-                try:
-                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
-                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
-                        real_p = round(float(ltp_res["data"]["ltp"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                        feed_label = f"Angel One Real Traded LTP ({c_opt['symbol']})"
-                except Exception:
-                    pass
+            c = float(breakout_bar["close"])
+            candle_ts = pd.to_datetime(breakout_bar["timestamp"]).to_pydatetime()
+            atm = int(round(c / 100.0) * 100)
+            dte_y = max(1e-4, get_banknifty_dte(candle_ts, today_date))
 
-            # 2. Second priority: Real option candles from Angel One (look back 60 minutes)
-            if real_p is None and self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, ist_now - timedelta(minutes=60), ist_now)
-                if not df_opt.empty:
-                    real_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-                    feed_label = f"Angel One Real Traded ({c_opt['symbol']})"
+            # Dynamic strike scan for affordable BankNifty contract
+            offsets = list(range(config.S2_OTM_OFFSET, 3600, 100))
+            chosen_strike = None
+            chosen_c_opt = None
+            chosen_p = None
+            chosen_cost = None
+            chosen_feed = "Mathematical (BSM)"
 
-            # 3. Third priority: BSM fallback if API is completely offline
-            if real_p is None:
-                from src.banknifty.banknifty_das import bs_price
-                real_p = round(bs_price(c, strike, dte_y, opt_type, sigma=0.18), 2)
+            for off in offsets:
+                cand_k = (atm + off) if opt_type == "CE" else (atm - off)
+                cand_opt = get_active_option_contract(today_date, cand_k, opt_type, underlying="BANKNIFTY") if self.smart_api else None
+                cand_p = None
+                cand_feed = "Mathematical (BSM)"
 
-            entry_p = round(real_p, 2)
-            cost = round(entry_p * self.bn_lot_size, 2)
+                if self.smart_api and cand_opt and cand_opt.get("token"):
+                    try:
+                        ltp_res = self.smart_api.ltpData(cand_opt.get("exch_seg", "NFO"), cand_opt["symbol"], str(cand_opt["token"]))
+                        if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                            cand_p = round(float(ltp_res["data"]["ltp"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                            cand_feed = f"Angel One Real Traded LTP ({cand_opt['symbol']})"
+                    except Exception:
+                        pass
+
+                if cand_p is None and self.smart_api and cand_opt:
+                    df_o = fetch_real_option_candles(self.smart_api, cand_opt, candle_ts - timedelta(minutes=5), ist_now)
+                    if not df_o.empty:
+                        sub_o = df_o[df_o.index >= candle_ts]
+                        cand_p = round(float((sub_o.iloc[0] if not sub_o.empty else df_o.iloc[-1])["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                        cand_feed = f"Angel One Real Traded ({cand_opt['symbol']})"
+
+                if cand_p is None:
+                    from src.banknifty.banknifty_das import bs_price
+                    cand_p = round(bs_price(c, cand_k, dte_y, opt_type, sigma=0.18), 2)
+
+                cand_cost = round(cand_p * self.bn_lot_size, 2)
+                if chosen_strike is None or cand_cost < chosen_cost:
+                    chosen_strike = cand_k
+                    chosen_c_opt = cand_opt
+                    chosen_p = cand_p
+                    chosen_cost = cand_cost
+                    chosen_feed = cand_feed
+
+                if cand_cost <= config.MAX_CAPITAL_PER_TRADE and cand_p >= config.DYNAMIC_MIN_PREMIUM:
+                    chosen_strike = cand_k
+                    chosen_c_opt = cand_opt
+                    chosen_p = cand_p
+                    chosen_cost = cand_cost
+                    chosen_feed = cand_feed
+                    break
+
+            strike = chosen_strike
+            c_opt = chosen_c_opt
+            entry_p = chosen_p
+            cost = chosen_cost
+            feed_label = chosen_feed
+
             if cost > config.MAX_CAPITAL_PER_TRADE:
                 return
 
@@ -769,9 +882,63 @@ class LiveTriPaperTrader:
             if (total_deployed + cost) > config.INITIAL_CAPITAL:
                 return
 
-            sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
             target_p = round(entry_p * (1.0 + config.S2_TARGET_PCT), 2)
             sl_p = round(entry_p * (1.0 - config.S2_SL_PCT), 2)
+
+            # Late wake-up / restart resolution check
+            if candle_ts < ist_now and self.smart_api and c_opt:
+                df_history = fetch_real_option_candles(self.smart_api, c_opt, candle_ts, ist_now)
+                if not df_history.empty:
+                    resolved = False
+                    res_exit_p = entry_p
+                    res_exit_t = ist_now
+                    res_reason = ""
+                    for c_ts, c_row in df_history.iterrows():
+                        if float(c_row["low"]) <= sl_p:
+                            resolved = True
+                            res_exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            res_exit_t = c_ts
+                            res_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+                            break
+                        elif float(c_row["high"]) >= target_p:
+                            resolved = True
+                            res_exit_p = round(target_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            res_exit_t = c_ts
+                            res_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
+                            break
+
+                    if resolved:
+                        gross = (res_exit_p - entry_p) * self.bn_lot_size
+                        turn = (entry_p + res_exit_p) * self.bn_lot_size
+                        brok = 40.0
+                        stt = (res_exit_p * self.bn_lot_size) * config.STT_PCT_ON_SELL
+                        exch = turn * config.EXCHANGE_TURNOVER_PCT
+                        gst = (brok + exch) * config.GST_PCT
+                        charges = round(brok + stt + exch + gst, 2)
+                        net = round(gross - charges, 2)
+                        sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
+                        tr_log = {
+                            "date": str(today_date),
+                            "strategy": "Strategy 2: BankNIFTY 15M Directional Breakout",
+                            "symbol": sym_str,
+                            "entry_time": str(candle_ts),
+                            "exit_time": str(res_exit_t),
+                            "strike": strike,
+                            "opt_type": opt_type,
+                            "entry_p": entry_p,
+                            "exit_p": res_exit_p,
+                            "cost": cost,
+                            "gross_pnl": round(gross, 2),
+                            "charges": charges,
+                            "net_pnl": net,
+                            "exit_reason": res_reason,
+                            "data_feed": feed_label
+                        }
+                        self.on_trade_exit("s2", "Strategy 2: BankNIFTY 15M Directional Breakout", tr_log)
+                        self.cooldown_until["s2"] = ist_now + timedelta(minutes=30)
+                        return
+
+            sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
 
             pos_data = {
                 "entry_time": candle_ts,
