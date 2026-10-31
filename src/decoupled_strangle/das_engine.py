@@ -63,8 +63,10 @@ def evaluate_das_for_day(
     or mathematical Black-Scholes model if outside historical option cache.
     """
     data = df_full.copy()
+    if not pd.api.types.is_datetime64_any_dtype(data['timestamp']):
+        data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
     if 'date' not in data.columns:
-        data['date'] = pd.to_datetime(data['timestamp']).dt.date
+        data['date'] = data['timestamp'].dt.date
 
     day_bars = data[data['date'] == target_date].copy().sort_values("timestamp")
     if day_bars.empty or len(day_bars) < 20:

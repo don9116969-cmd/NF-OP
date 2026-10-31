@@ -148,11 +148,14 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
     Strikes: ATM (single leg buy).
     Exits: +60% Target, -16% SL, 15:15 EOD.
     """
-    data = df_full.copy()
-    data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
-    data = data.sort_values("timestamp").reset_index(drop=True)
-    data['ema_20'] = data['close'].ewm(span=20, adjust=False).mean()
-    data['date'] = data['timestamp'].dt.date
+    if "ema_20" in df_full.columns and "date" in df_full.columns:
+        data = df_full
+    else:
+        data = df_full.copy()
+        data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+        data = data.sort_values("timestamp").reset_index(drop=True)
+        data['ema_20'] = data['close'].ewm(span=20, adjust=False).mean()
+        data['date'] = data['timestamp'].dt.date
 
     day_bars = data[data['date'] == target_date].copy().reset_index(drop=True)
     if day_bars.empty or len(day_bars) < 15:
@@ -294,11 +297,14 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
     Strikes: 100-pt OTM.
     Exits: +80% Target, -25% SL, 15:15 EOD.
     """
-    data = df_banknifty.copy()
-    data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
-    data = data.sort_values("timestamp").reset_index(drop=True)
-    data['ema_20'] = data['close'].ewm(span=20, adjust=False).mean()
-    data['date'] = data['timestamp'].dt.date
+    if "ema_20" in df_banknifty.columns and "date" in df_banknifty.columns:
+        data = df_banknifty
+    else:
+        data = df_banknifty.copy()
+        data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+        data = data.sort_values("timestamp").reset_index(drop=True)
+        data['ema_20'] = data['close'].ewm(span=20, adjust=False).mean()
+        data['date'] = data['timestamp'].dt.date
 
     day_bars = data[data['date'] == target_date].copy().reset_index(drop=True)
     if day_bars.empty or len(day_bars) < 15:

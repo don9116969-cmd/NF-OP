@@ -6,6 +6,7 @@ Fetches actual traded 1-minute OHLCV candles for active weekly Nifty option cont
 import os
 import json
 import datetime
+import calendar
 import urllib.request
 import pandas as pd
 from SmartApi import SmartConnect
@@ -339,17 +340,12 @@ def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
     if contract and contract.get("expiry_date"):
         days_ahead = max(0, (contract["expiry_date"] - target_date).days)
     else:
-        underlying_u = underlying.upper()
-        _init_lookup_cache(underlying_u)
-        exp_list = _EXP_MAP_CACHE.get(underlying_u, [])
-        valid = [e for e in exp_list if e[1] >= target_date]
-        if valid:
-            days_ahead = max(0, (valid[0][1] - target_date).days)
-        else:
-            days_ahead = 0
+        exp_date = get_nearest_expiry_date(target_date, underlying)
+        days_ahead = max(0, (exp_date - target_date).days)
     dte = max(0.001, float(days_ahead) / 365.25)
+    sigma = 0.18 if underlying.upper() == "BANKNIFTY" else 0.15
     df_synth = pd.DataFrame(index=day_df["timestamp"])
-    prices = [black_scholes_price(float(s), float(strike), dte, 0.07, 0.15, opt_type.upper()) for s in day_df["close"]]
+    prices = [black_scholes_price(float(s), float(strike), dte, 0.07, sigma, opt_type.upper()) for s in day_df["close"]]
     df_synth["open"] = prices
     df_synth["high"] = prices
     df_synth["low"] = prices
@@ -358,19 +354,38 @@ def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
     return df_synth, sym, "BSM Fallback"
 
 
+def get_banknifty_monthly_expiry(target_date: datetime.date) -> datetime.date:
+    """Computes the last Tuesday of the month for BankNifty monthly contracts."""
+    last_day = calendar.monthrange(target_date.year, target_date.month)[1]
+    d = datetime.date(target_date.year, target_date.month, last_day)
+    offset = (d.weekday() - 1) % 7
+    exp_this_month = d - datetime.timedelta(days=offset)
+    if target_date <= exp_this_month:
+        return exp_this_month
+    if target_date.month == 12:
+        next_year, next_month = target_date.year + 1, 1
+    else:
+        next_year, next_month = target_date.year, target_date.month + 1
+    last_day_next = calendar.monthrange(next_year, next_month)[1]
+    d_next = datetime.date(next_year, next_month, last_day_next)
+    offset_next = (d_next.weekday() - 1) % 7
+    return d_next - datetime.timedelta(days=offset_next)
+
 
 def get_nearest_expiry_date(target_date: datetime.date, underlying: str = "NIFTY") -> datetime.date:
-    """Finds the nearest valid expiry date on or after target_date from the contract database."""
+    """Finds the nearest valid expiry date on or after target_date from the contract database or calendar rules."""
     underlying_u = underlying.upper()
     _init_lookup_cache(underlying_u)
     exp_list = _EXP_MAP_CACHE.get(underlying_u, [])
-    valid = [e for e in exp_list if e[1] >= target_date]
+    # Only trust cached active contract if within 35 days (avoids matching far future 2026/2027 contract on 2025 dates)
+    valid = [e for e in exp_list if e[1] >= target_date and (e[1] - target_date).days <= 35]
     if valid:
         return valid[0][1]
-    past = [e for e in exp_list if e[1] <= target_date]
-    if past:
-        return past[-1][1]
-    return target_date
+    if underlying_u == "BANKNIFTY":
+        return get_banknifty_monthly_expiry(target_date)
+    else:
+        days_ahead = (1 - target_date.weekday()) % 7
+        return target_date + datetime.timedelta(days=days_ahead)
 
 def select_dynamic_affordable_strike(
     api: SmartConnect,
