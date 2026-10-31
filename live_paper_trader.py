@@ -72,9 +72,23 @@ def get_ist_now() -> datetime:
     return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).replace(tzinfo=None)
 
 def get_banknifty_dte(ist_now: datetime, target_date) -> float:
-    """Calculates DTE in years for BankNIFTY weekly options (Wednesday expiry)."""
+    """Calculates DTE in years for BankNIFTY monthly options (last Thursday expiry)."""
     target_dt = target_date if isinstance(target_date, datetime) else datetime.combine(target_date, dtime(15, 30))
-    days_ahead = (2 - target_dt.weekday()) % 7
+    d = target_dt.date()
+    m = d.month
+    y = d.year
+    next_m = datetime(y + 1, 1, 1).date() if m == 12 else datetime(y, m + 1, 1).date()
+    last_day = next_m - timedelta(days=1)
+    offset = (last_day.weekday() - 3) % 7
+    last_thu = last_day - timedelta(days=offset)
+    if d > last_thu:
+        nm = m + 1 if m < 12 else 1
+        ny = y if m < 12 else y + 1
+        nn_m = datetime(ny + 1, 1, 1).date() if nm == 12 else datetime(ny, nm + 1, 1).date()
+        last_day = nn_m - timedelta(days=1)
+        offset = (last_day.weekday() - 3) % 7
+        last_thu = last_day - timedelta(days=offset)
+    days_ahead = (last_thu - d).days
     return max(0.001, float(days_ahead) / 365.25)
 
 class LiveTriPaperTrader:
@@ -334,42 +348,47 @@ class LiveTriPaperTrader:
                 except Exception:
                     pass
 
-            # 2. Priority 2: Real option candles from Angel One
-            if not live_p_found and self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
-                if not df_opt.empty:
-                    cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = max(high_p, float(df_opt["high"].max()))
-                    low_p = min(low_p, float(df_opt["low"].min()))
-                    pos["high_p"] = high_p
-                    pos["low_p"] = low_p
-                    live_p_found = True
-
-            # 3. Priority 3: BSM fallback if API is completely offline
-            if not live_p_found:
-                t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
-                cur_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
-                high_p = max(high_p, cur_p)
-                low_p = min(low_p, cur_p)
-                pos["high_p"] = high_p
-                pos["low_p"] = low_p
-
             exit_triggered = False
             exit_p = cur_p
             exit_reason = ""
 
-            if high_p >= pos["target_p"]:
-                exit_triggered = True
-                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT * 100)}%)"
-            elif low_p <= pos["sl_p"]:
-                exit_triggered = True
-                exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = f"SL Hit (-{int(config.S1_SL_PCT * 100)}%)"
-            elif ist_now.time() >= dtime(15, 5):
-                exit_triggered = True
-                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD Squareoff (15:05)"
+            # Check candle sequence first (chronological order without lookahead bias)
+            if self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
+                if not df_opt.empty:
+                    for _, c_row in df_opt.iterrows():
+                        # Strict risk-first: check Stop Loss before Target on each candle
+                        if float(c_row["low"]) <= pos["sl_p"]:
+                            exit_triggered = True
+                            exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = f"SL Hit (-{int(config.S1_SL_PCT * 100)}%)"
+                            break
+                        elif float(c_row["high"]) >= pos["target_p"]:
+                            exit_triggered = True
+                            exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT * 100)}%)"
+                            break
+                    if not exit_triggered:
+                        cur_p = float(df_opt.iloc[-1]["close"])
+
+            # If no candle triggered, check latest real-time tick (LTP) or BSM fallback
+            if not exit_triggered:
+                if not live_p_found:
+                    t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                    cur_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
+
+                if cur_p <= pos["sl_p"]:
+                    exit_triggered = True
+                    exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = f"SL Hit (-{int(config.S1_SL_PCT * 100)}%)"
+                elif cur_p >= pos["target_p"]:
+                    exit_triggered = True
+                    exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT * 100)}%)"
+                elif ist_now.time() >= dtime(15, 5):
+                    exit_triggered = True
+                    exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = "EOD Squareoff (15:05)"
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.lot_size
@@ -432,6 +451,9 @@ class LiveTriPaperTrader:
             if df_all.empty:
                 return
 
+            if "ema_20" not in df_all.columns:
+                df_all = df_all.sort_values("timestamp")
+                df_all["ema_20"] = df_all["close"].ewm(span=20, adjust=False).mean()
             day_bars = df_all[df_all["timestamp"].dt.date == today_date].sort_values("timestamp")
             if day_bars.empty or len(day_bars) < 15:
                 return
@@ -447,8 +469,6 @@ class LiveTriPaperTrader:
             box_pct = (box_range / open_p) * 100.0
             if box_pct > config.S1_MAX_BOX_PCT:
                 return
-
-            day_bars["ema_20"] = day_bars["close"].ewm(span=20, adjust=False).mean()
             cur_bar = day_bars.iloc[-1]
             c = float(cur_bar["close"])
             ema = float(cur_bar["ema_20"])
@@ -498,6 +518,10 @@ class LiveTriPaperTrader:
             entry_p = round(real_p, 2)
             cost = round(entry_p * self.lot_size, 2)
             if cost > config.MAX_CAPITAL_PER_TRADE:
+                return
+
+            total_deployed = sum(p.get("cost", 0.0) for p in self.active_positions.values() if p is not None)
+            if (total_deployed + cost) > config.INITIAL_CAPITAL:
                 return
 
             sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
@@ -565,43 +589,48 @@ class LiveTriPaperTrader:
                 except Exception:
                     pass
 
-            # 2. Priority 2: Real option candles from Angel One
-            if not live_p_found and self.smart_api and c_opt:
-                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
-                if not df_opt.empty:
-                    cur_p = float(df_opt.iloc[-1]["close"])
-                    high_p = max(high_p, float(df_opt["high"].max()))
-                    low_p = min(low_p, float(df_opt["low"].min()))
-                    pos["high_p"] = high_p
-                    pos["low_p"] = low_p
-                    live_p_found = True
-
-            # 3. Priority 3: BSM fallback if API is completely offline
-            if not live_p_found:
-                dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
-                from src.banknifty.banknifty_das import bs_price
-                cur_p = bs_price(bn_spot, pos["strike"], dte, pos["opt_type"], sigma=0.18)
-                high_p = max(high_p, cur_p)
-                low_p = min(low_p, cur_p)
-                pos["high_p"] = high_p
-                pos["low_p"] = low_p
-
             exit_triggered = False
             exit_p = cur_p
             exit_reason = ""
 
-            if high_p >= pos["target_p"]:
-                exit_triggered = True
-                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
-            elif low_p <= pos["sl_p"]:
-                exit_triggered = True
-                exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
-            elif ist_now.time() >= dtime(15, 5):
-                exit_triggered = True
-                exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                exit_reason = "EOD Squareoff (15:05)"
+            # Check candle sequence first (chronological order without lookahead bias)
+            if self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
+                if not df_opt.empty:
+                    for _, c_row in df_opt.iterrows():
+                        # Strict risk-first: check Stop Loss before Target on each candle
+                        if float(c_row["low"]) <= pos["sl_p"]:
+                            exit_triggered = True
+                            exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+                            break
+                        elif float(c_row["high"]) >= pos["target_p"]:
+                            exit_triggered = True
+                            exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
+                            break
+                    if not exit_triggered:
+                        cur_p = float(df_opt.iloc[-1]["close"])
+
+            # If no candle triggered, check latest real-time tick (LTP) or BSM fallback
+            if not exit_triggered:
+                if not live_p_found:
+                    dte = max(1e-4, get_banknifty_dte(ist_now, today_date))
+                    from src.banknifty.banknifty_das import bs_price
+                    cur_p = bs_price(bn_spot, pos["strike"], dte, pos["opt_type"], sigma=0.18)
+
+                if cur_p <= pos["sl_p"]:
+                    exit_triggered = True
+                    exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+                elif cur_p >= pos["target_p"]:
+                    exit_triggered = True
+                    exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
+                elif ist_now.time() >= dtime(15, 5):
+                    exit_triggered = True
+                    exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = "EOD Squareoff (15:05)"
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
@@ -666,6 +695,8 @@ class LiveTriPaperTrader:
 
             df = df_bn.copy()
             df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+            df = df.sort_values("timestamp")
+            df["ema_20"] = df["close"].ewm(span=20, adjust=False).mean()
             day_df = df[df["timestamp"].dt.date == today_date].sort_values("timestamp")
             if len(day_df) < 15:
                 return
@@ -681,8 +712,6 @@ class LiveTriPaperTrader:
             b_pct = (b_rng / open_p) * 100.0
             if b_pct > config.S2_MAX_BOX_PCT:
                 return
-
-            day_df["ema_20"] = day_df["close"].ewm(span=20, adjust=False).mean()
             cur_bar = day_df.iloc[-1]
             c = float(cur_bar["close"])
             ema = float(cur_bar["ema_20"])
@@ -734,6 +763,10 @@ class LiveTriPaperTrader:
             entry_p = round(real_p, 2)
             cost = round(entry_p * self.bn_lot_size, 2)
             if cost > config.MAX_CAPITAL_PER_TRADE:
+                return
+
+            total_deployed = sum(p.get("cost", 0.0) for p in self.active_positions.values() if p is not None)
+            if (total_deployed + cost) > config.INITIAL_CAPITAL:
                 return
 
             sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
@@ -855,23 +888,7 @@ class LiveTriPaperTrader:
                 pos["low_p"] = low_p
 
             if not pos["ce_exited"]:
-                if high_c >= pos["ce_tgt"]:
-                    pos["ce_exited"] = True
-                    pos["ce_exit_p"] = round(pos["ce_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["ce_reason"] = f"CE Target (+{int(config.DAS_WIN_TARGET_PCT * 100)}%)"
-                    self.save_active_positions()
-                    if not pos["pe_exited"]:
-                        send_telegram_alert(
-                            f"🎯 *LEG PROFIT TARGET HIT*\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
-                            f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
-                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
-                            f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
-                            f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
-                        )
-                elif low_c <= pos["ce_sl"]:
+                if low_c <= pos["ce_sl"]:
                     pos["ce_exited"] = True
                     pos["ce_exit_p"] = round(pos["ce_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
                     pos["ce_reason"] = f"CE SL (-{int(config.DAS_LOSE_STOP_PCT * 100)}%)"
@@ -887,25 +904,25 @@ class LiveTriPaperTrader:
                             f"━━━━━━━━━━━━━━━━━━━━━━",
                             alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
                         )
-
-            if not pos["pe_exited"]:
-                if high_p >= pos["pe_tgt"]:
-                    pos["pe_exited"] = True
-                    pos["pe_exit_p"] = round(pos["pe_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    pos["pe_reason"] = f"PE Target (+{int(config.DAS_WIN_TARGET_PCT * 100)}%)"
+                elif high_c >= pos["ce_tgt"]:
+                    pos["ce_exited"] = True
+                    pos["ce_exit_p"] = round(pos["ce_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    pos["ce_reason"] = f"CE Target (+{int(config.DAS_WIN_TARGET_PCT * 100)}%)"
                     self.save_active_positions()
-                    if not pos["ce_exited"]:
+                    if not pos["pe_exited"]:
                         send_telegram_alert(
                             f"🎯 *LEG PROFIT TARGET HIT*\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━\n"
                             f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
                             f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
-                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
-                            f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
+                            f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
+                            f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
+                            alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
                         )
-                elif low_p <= pos["pe_sl"]:
+
+            if not pos["pe_exited"]:
+                if low_p <= pos["pe_sl"]:
                     pos["pe_exited"] = True
                     pos["pe_exit_p"] = round(pos["pe_sl"] * (1.0 - config.SLIPPAGE_PCT), 2)
                     pos["pe_reason"] = f"PE SL (-{int(config.DAS_LOSE_STOP_PCT * 100)}%)"
@@ -918,6 +935,22 @@ class LiveTriPaperTrader:
                             f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-{int(config.DAS_LOSE_STOP_PCT * 100)}% SL)\n"
                             f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━",
+                            alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
+                        )
+                elif high_p >= pos["pe_tgt"]:
+                    pos["pe_exited"] = True
+                    pos["pe_exit_p"] = round(pos["pe_tgt"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    pos["pe_reason"] = f"PE Target (+{int(config.DAS_WIN_TARGET_PCT * 100)}%)"
+                    self.save_active_positions()
+                    if not pos["ce_exited"]:
+                        send_telegram_alert(
+                            f"🎯 *LEG PROFIT TARGET HIT*\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"⏰ *Time:* {ist_now.strftime('%H:%M:%S')} IST\n"
+                            f"📊 *Strategy:* `Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)`\n"
+                            f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
+                            f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
                             alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
                         )
@@ -1055,6 +1088,10 @@ class LiveTriPaperTrader:
             entry_tot = round(ce_entry_p + pe_entry_p, 2)
             tot_cost = round(entry_tot * self.lot_size, 2)
             if tot_cost > config.MAX_CAPITAL_PER_TRADE:
+                return
+
+            total_deployed = sum(p.get("cost", 0.0) for p in self.active_positions.values() if p is not None)
+            if (total_deployed + tot_cost) > config.INITIAL_CAPITAL:
                 return
 
 

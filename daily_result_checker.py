@@ -145,9 +145,11 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
     """
     data = df_full.copy()
     data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+    data = data.sort_values("timestamp").reset_index(drop=True)
+    data['ema_20'] = data['close'].ewm(span=20, adjust=False).mean()
     data['date'] = data['timestamp'].dt.date
 
-    day_bars = data[data['date'] == target_date].copy().sort_values("timestamp").reset_index(drop=True)
+    day_bars = data[data['date'] == target_date].copy().reset_index(drop=True)
     if day_bars.empty or len(day_bars) < 15:
         return {"status": "NO_DATA", "trade_occurred": False, "reason": "No market data (holiday/weekend)"}
 
@@ -176,8 +178,7 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
         info["reason"] = f"Box width {box_range:.1f} pts ({box_pct:.2f}% > {config.S1_MAX_BOX_PCT:.2f}%). Filtered out to avoid chop."
         return info
 
-    # Compute 20-EMA
-    day_bars["ema_20"] = day_bars["close"].ewm(span=20, adjust=False).mean()
+    # 20-EMA pre-calculated with full historical warm-up
     post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(15, 0))]
 
     trade_entry = None
@@ -224,15 +225,16 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
     exit_reason = "EOD (15:15)"
 
     for o_ts, o_row in sub_opt.iloc[1:].iterrows():
-        if float(o_row["high"]) >= tgt_p:
-            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
-            exit_ts = o_ts
-            exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT*100)}%)"
-            break
-        elif float(o_row["low"]) <= sl_p:
+        # Evaluate Stop Loss before Target for strict conservative modeling (no lookahead bias)
+        if float(o_row["low"]) <= sl_p:
             exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = f"SL Hit (-{int(config.S1_SL_PCT*100)}%)"
+            break
+        elif float(o_row["high"]) >= tgt_p:
+            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT*100)}%)"
             break
         elif o_ts.time() >= datetime.time(15, 15):
             exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -281,9 +283,11 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
     """
     data = df_banknifty.copy()
     data['timestamp'] = pd.to_datetime(data['timestamp']).dt.tz_localize(None)
+    data = data.sort_values("timestamp").reset_index(drop=True)
+    data['ema_20'] = data['close'].ewm(span=20, adjust=False).mean()
     data['date'] = data['timestamp'].dt.date
 
-    day_bars = data[data['date'] == target_date].copy().sort_values("timestamp").reset_index(drop=True)
+    day_bars = data[data['date'] == target_date].copy().reset_index(drop=True)
     if day_bars.empty or len(day_bars) < 15:
         return {"status": "NO_DATA", "trade_occurred": False, "reason": "No market data (holiday/weekend)"}
 
@@ -312,8 +316,7 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
         info["reason"] = f"Box width {box_range:.1f} pts ({box_pct:.2f}% > {config.S2_MAX_BOX_PCT:.2f}%). Filtered out to avoid chop."
         return info
 
-    # Compute 20-EMA
-    day_bars["ema_20"] = day_bars["close"].ewm(span=20, adjust=False).mean()
+    # 20-EMA pre-calculated with full historical warm-up
     post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(15, 0))]
 
     trade_entry = None
@@ -362,15 +365,16 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
     exit_reason = "EOD (15:15)"
 
     for o_ts, o_row in sub_opt.iloc[1:].iterrows():
-        if float(o_row["high"]) >= tgt_p:
-            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
-            exit_ts = o_ts
-            exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT*100)}%)"
-            break
-        elif float(o_row["low"]) <= sl_p:
+        # Evaluate Stop Loss before Target for strict conservative modeling (no lookahead bias)
+        if float(o_row["low"]) <= sl_p:
             exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = f"SL Hit (-{int(config.S2_SL_PCT*100)}%)"
+            break
+        elif float(o_row["high"]) >= tgt_p:
+            exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = o_ts
+            exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT*100)}%)"
             break
         elif o_ts.time() >= datetime.time(15, 15):
             exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)

@@ -154,31 +154,31 @@ def evaluate_das_for_day(
                 pe_high = black_scholes_price(spot_l, pos['pe_strike'], T_years, config.RISK_FREE_RATE, iv, "PE")
                 pe_low = black_scholes_price(spot_h, pos['pe_strike'], T_years, config.RISK_FREE_RATE, iv, "PE")
 
-            # Check CE Leg Exit
+            # Check CE Leg Exit (Evaluate SL before Target for strict non-lookahead modeling)
             if not pos['ce_exited']:
-                if ce_high >= pos['ce_entry'] * (1.0 + win_target_pct):
-                    pos['ce_exit_p'] = round(pos['ce_entry'] * (1.0 + win_target_pct), 2)
-                    pos['ce_exit_t'] = t
-                    pos['ce_exited'] = True
-                    pos['ce_reason'] = f"CE Target (+{int(win_target_pct*100)}%)"
-                elif ce_low <= pos['ce_entry'] * (1.0 - lose_stop_pct):
+                if ce_low <= pos['ce_entry'] * (1.0 - lose_stop_pct):
                     pos['ce_exit_p'] = round(pos['ce_entry'] * (1.0 - lose_stop_pct), 2)
                     pos['ce_exit_t'] = t
                     pos['ce_exited'] = True
                     pos['ce_reason'] = f"CE SL (-{int(lose_stop_pct*100)}%)"
+                elif ce_high >= pos['ce_entry'] * (1.0 + win_target_pct):
+                    pos['ce_exit_p'] = round(pos['ce_entry'] * (1.0 + win_target_pct), 2)
+                    pos['ce_exit_t'] = t
+                    pos['ce_exited'] = True
+                    pos['ce_reason'] = f"CE Target (+{int(win_target_pct*100)}%)"
 
-            # Check PE Leg Exit
+            # Check PE Leg Exit (Evaluate SL before Target for strict non-lookahead modeling)
             if not pos['pe_exited']:
-                if pe_high >= pos['pe_entry'] * (1.0 + win_target_pct):
-                    pos['pe_exit_p'] = round(pos['pe_entry'] * (1.0 + win_target_pct), 2)
-                    pos['pe_exit_t'] = t
-                    pos['pe_exited'] = True
-                    pos['pe_reason'] = f"PE Target (+{int(win_target_pct*100)}%)"
-                elif pe_low <= pos['pe_entry'] * (1.0 - lose_stop_pct):
+                if pe_low <= pos['pe_entry'] * (1.0 - lose_stop_pct):
                     pos['pe_exit_p'] = round(pos['pe_entry'] * (1.0 - lose_stop_pct), 2)
                     pos['pe_exit_t'] = t
                     pos['pe_exited'] = True
                     pos['pe_reason'] = f"PE SL (-{int(lose_stop_pct*100)}%)"
+                elif pe_high >= pos['pe_entry'] * (1.0 + win_target_pct):
+                    pos['pe_exit_p'] = round(pos['pe_entry'] * (1.0 + win_target_pct), 2)
+                    pos['pe_exit_t'] = t
+                    pos['pe_exited'] = True
+                    pos['pe_reason'] = f"PE Target (+{int(win_target_pct*100)}%)"
 
             # Combined Position Check
             val_ce = pos['ce_exit_p'] if pos['ce_exited'] else ce_cur

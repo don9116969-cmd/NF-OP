@@ -28,8 +28,6 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
             "data/trade_journal.md",
             "data/active_positions.json",
             "data/sent_alerts.json",
-            "data/live_paper_trades.csv",
-            "data/paper_trading_ledger.csv",
             "data/audited_days.json",
             "data/nifty_1min_real.csv",
             "data/banknifty_1min_real.csv"
@@ -56,6 +54,8 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
 
         git_env = os.environ.copy()
         git_env["GIT_TERMINAL_PROMPT"] = "0"
+        git_env["GCM_INTERACTIVE"] = "never"
+        git_env["GIT_ASKPASS"] = "echo"
 
         # Check for GitHub Actions environment with GITHUB_TOKEN or local remote
         remote_target = "origin"
@@ -82,8 +82,12 @@ def git_sync_push(commit_msg: str, max_retries: int = 2) -> bool:
                     env=git_env,
                     timeout=timeout_sec
                 )
+                push_cmd = ["git"]
+                if not is_ci:
+                    push_cmd += ["-c", "credential.helper="]
+                push_cmd += ["push", remote_target, "main"]
                 push_res = subprocess.run(
-                    ["git", "push", remote_target, "main"],
+                    push_cmd,
                     capture_output=True,
                     text=True,
                     check=False,

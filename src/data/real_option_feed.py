@@ -334,8 +334,24 @@ def get_candle_feed(api, target_date, strike, opt_type, underlying, day_df):
             return df_opt, contract["symbol"], "Real Option Tick"
 
     from src.features.greeks import black_scholes_price
-    # Tuesday weekly for NIFTY, Wednesday weekly for BankNIFTY
-    days_ahead = (1 - target_date.weekday()) % 7 if underlying == "NIFTY" else (2 - target_date.weekday()) % 7
+    # Accurate DTE: Nifty (weekly Thursday) and BankNifty (monthly last Thursday)
+    if underlying.upper() == "NIFTY":
+        days_ahead = (3 - target_date.weekday()) % 7
+    else:
+        m = target_date.month
+        y = target_date.year
+        next_m = datetime.date(y + 1, 1, 1) if m == 12 else datetime.date(y, m + 1, 1)
+        last_day = next_m - datetime.timedelta(days=1)
+        offset = (last_day.weekday() - 3) % 7
+        last_thu = last_day - datetime.timedelta(days=offset)
+        if target_date > last_thu:
+            nm = m + 1 if m < 12 else 1
+            ny = y if m < 12 else y + 1
+            nn_m = datetime.date(ny + 1, 1, 1) if nm == 12 else datetime.date(ny, nm + 1, 1)
+            last_day = nn_m - datetime.timedelta(days=1)
+            offset = (last_day.weekday() - 3) % 7
+            last_thu = last_day - datetime.timedelta(days=offset)
+        days_ahead = (last_thu - target_date).days
     dte = max(0.001, float(days_ahead) / 365.25)
     df_synth = pd.DataFrame(index=day_df["timestamp"])
     prices = [black_scholes_price(float(s), float(strike), dte, 0.07, 0.15, opt_type.upper()) for s in day_df["close"]]

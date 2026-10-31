@@ -123,11 +123,12 @@ def select_affordable_strikes(
 def check_compression_expansion(
     combined_history: np.ndarray,
     std_thresh: float = config.DAS_STD_THRESH,
-    vel_thresh: float = config.DAS_VEL_THRESH
+    vel_thresh: float = config.DAS_VEL_THRESH,
+    lookback_bars: int = 5
 ) -> tuple:
     """
     Checks if combined premium series exhibits standard deviation coiling
-    below std_thresh and instantaneous kinetic velocity expansion >= vel_thresh.
+    below std_thresh and kinetic velocity expansion >= vel_thresh over lookback_bars (default 5 mins).
     
     Returns:
         (triggered: bool, current_std: float, current_vel: float)
@@ -136,7 +137,8 @@ def check_compression_expansion(
         return False, 0.0, 0.0
 
     comb_std = float(np.std(combined_history))
-    comb_vel = float(combined_history[-1] - combined_history[-2])
+    lookback = min(lookback_bars, len(combined_history) - 1)
+    comb_vel = float(combined_history[-1] - combined_history[-1 - lookback])
 
     triggered = (comb_std < std_thresh) and (comb_vel >= vel_thresh)
     return triggered, round(comb_std, 2), round(comb_vel, 2)
