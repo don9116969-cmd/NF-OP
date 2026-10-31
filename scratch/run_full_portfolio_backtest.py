@@ -113,7 +113,7 @@ def simulate_s1(day_df, target_date):
     u_trig = box_high + 8.0
     l_trig = box_low - 8.0
 
-    post_mask = (times > t_0930) & (times <= t_1500)
+    post_mask = (times > t_0930) & (times <= datetime.time(13, 0))
     post_indices = np.where(post_mask)[0]
     if len(post_indices) == 0:
         return None, "NO_POST_BARS"
@@ -158,7 +158,7 @@ def simulate_s1(day_df, target_date):
         return None, "BUDGET_EXCEEDED"
 
     tgt_p = entry_p * 1.60
-    sl_p = entry_p * 0.84
+    sl_p = entry_p * 0.86
 
     exit_p = entry_p
     exit_ts = sub_ts[-1]
@@ -231,10 +231,10 @@ def simulate_s2(day_df, target_date, use_dynamic: bool = True):
     if box_pct > 1.20:
         return None, "WIDE_BOX_FILTERED"
 
-    u_trig = box_high + 25.0
-    l_trig = box_low - 25.0
+    u_trig = box_high + 40.0
+    l_trig = box_low - 40.0
 
-    post_mask = (times > t_0930) & (times <= t_1500)
+    post_mask = (times > t_0930) & (times <= datetime.time(13, 0))
     post_indices = np.where(post_mask)[0]
     if len(post_indices) == 0:
         return None, "NO_POST_BARS"
@@ -391,7 +391,7 @@ def simulate_s3(day_df, target_date):
         vel_v = rolling_vel[i]
 
         # Compression (< 30) and Velocity (>= 35)
-        if std_v < 30.0 and vel_v >= 35.0:
+        if std_v < 25.0 and vel_v >= 40.0:
             spot = float(closes[i])
             atm = int(round(spot / 50.0) * 50)
 
@@ -422,17 +422,17 @@ def simulate_s3(day_df, target_date):
 
             entry_ts = timestamps[i]
             ce_tgt = round(ce_p * 1.60, 2)
-            ce_sl = round(ce_p * 0.88, 2)
+            ce_sl = round(ce_p * 0.90, 2)
             pe_tgt = round(pe_p * 1.60, 2)
-            pe_sl = round(pe_p * 0.88, 2)
+            pe_sl = round(pe_p * 0.90, 2)
 
             ce_exited, pe_exited = False, False
             ce_exit_p, pe_exit_p = ce_p, pe_p
             ce_reason, pe_reason = "", ""
-            exit_ts = timestamps[min(i + 50, n - 1)]
+            exit_ts = timestamps[min(i + 30, n - 1)]
 
             # Pre-compute forward option prices for sub-window
-            max_j = min(i + 51, n)
+            max_j = min(i + 31, n)
             sub_h = highs[i+1:max_j]
             sub_l = lows[i+1:max_j]
             sub_c = closes[i+1:max_j]
@@ -478,10 +478,10 @@ def simulate_s3(day_df, target_date):
                 if k_idx == len(sub_c) - 1 or sub_times_j[k_idx] >= t_1515:
                     if not ce_exited:
                         ce_exit_p = round(float(ce_c_arr[k_idx]) * (1.0 - SLIPPAGE_PCT), 2)
-                        ce_reason = "Time Cutoff (50m)"
+                        ce_reason = "Time Cutoff (30m)"
                     if not pe_exited:
                         pe_exit_p = round(float(pe_c_arr[k_idx]) * (1.0 - SLIPPAGE_PCT), 2)
-                        pe_reason = "Time Cutoff (50m)"
+                        pe_reason = "Time Cutoff (30m)"
                     exit_ts = sub_ts_j[k_idx]
                     break
 

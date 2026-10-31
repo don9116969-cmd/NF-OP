@@ -434,7 +434,8 @@ class LiveTriPaperTrader:
                 return
             if self.cooldown_until["s1"] and ist_now < self.cooldown_until["s1"]:
                 return
-            if ist_now.time() < dtime(9, 30) or ist_now.time() > dtime(15, 0):
+            s1_cut_h, s1_cut_m = map(int, getattr(config, "S1_ENTRY_CUTOFF", "13:00").split(":"))
+            if ist_now.time() < dtime(9, 30) or ist_now.time() > dtime(s1_cut_h, s1_cut_m):
                 return
             if df_all.empty:
                 return
@@ -460,7 +461,7 @@ class LiveTriPaperTrader:
             u_trig = box_h + config.S1_BUFFER_PTS
             l_trig = box_l - config.S1_BUFFER_PTS
 
-            post_bars = day_bars[(day_bars["timestamp"].dt.time > dtime(9, 30)) & (day_bars["timestamp"].dt.time <= dtime(15, 0))]
+            post_bars = day_bars[(day_bars["timestamp"].dt.time > dtime(9, 30)) & (day_bars["timestamp"].dt.time <= dtime(s1_cut_h, s1_cut_m))]
             if post_bars.empty:
                 return
 
@@ -766,7 +767,8 @@ class LiveTriPaperTrader:
                 return
             if self.cooldown_until["s2"] and ist_now < self.cooldown_until["s2"]:
                 return
-            if ist_now.time() < dtime(9, 30) or ist_now.time() > dtime(15, 0):
+            s2_cut_h, s2_cut_m = map(int, getattr(config, "S2_ENTRY_CUTOFF", "13:00").split(":"))
+            if ist_now.time() < dtime(9, 30) or ist_now.time() > dtime(s2_cut_h, s2_cut_m):
                 return
             if df_bn.empty:
                 return
@@ -793,7 +795,7 @@ class LiveTriPaperTrader:
             u_trig = box_h + config.S2_BUFFER_PTS
             l_trig = box_l - config.S2_BUFFER_PTS
 
-            post_bars = day_df[(day_df["timestamp"].dt.time > dtime(9, 30)) & (day_df["timestamp"].dt.time <= dtime(15, 0))]
+            post_bars = day_df[(day_df["timestamp"].dt.time > dtime(9, 30)) & (day_df["timestamp"].dt.time <= dtime(s2_cut_h, s2_cut_m))]
             if post_bars.empty:
                 return
 
@@ -1329,8 +1331,8 @@ class LiveTriPaperTrader:
             f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
             f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
             f"Bot is actively monitoring the optimized Tri-Strategy portfolio:\n"
-            f"• Strategy 1: Nifty 15M Directional Breakout (Trend-Aligned ATM, SL -16%, TP +60%)\n"
-            f"• Strategy 2: BankNIFTY 15M Directional Breakout (Trend-Aligned 100-pt OTM, SL -25%, TP +80%)\n"
+            f"• Strategy 1: Nifty 15M Breakout (ATM, SL -{int(config.S1_SL_PCT*100)}%, TP +{int(config.S1_TARGET_PCT*100)}%, Cutoff {config.S1_ENTRY_CUTOFF})\n"
+            f"• Strategy 2: BankNifty 15M Breakout (Dynamic Strike, Buffer +{int(config.S2_BUFFER_PTS)}pt, SL -{int(config.S2_SL_PCT*100)}%, TP +{int(config.S2_TARGET_PCT*100)}%, Cutoff {config.S2_ENTRY_CUTOFF})\n"
             f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n\n"
             f"🛡️ *Position Rule:* Max 3 active positions concurrently (₹10,000 capital per trade limit)\n"
             f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!\n\n"

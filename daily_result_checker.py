@@ -187,7 +187,8 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
         return info
 
     # 20-EMA pre-calculated with full historical warm-up
-    post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(15, 0))]
+    cutoff_h1, cutoff_m1 = map(int, getattr(config, "S1_ENTRY_CUTOFF", "13:00").split(":"))
+    post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(cutoff_h1, cutoff_m1))]
 
     trade_entry = None
     for _, row in post_bars.iterrows():
@@ -336,7 +337,8 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
         return info
 
     # 20-EMA pre-calculated with full historical warm-up
-    post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(15, 0))]
+    cutoff_h2, cutoff_m2 = map(int, getattr(config, "S2_ENTRY_CUTOFF", "13:00").split(":"))
+    post_bars = day_bars[(day_bars["timestamp"].dt.time > datetime.time(9, 30)) & (day_bars["timestamp"].dt.time <= datetime.time(cutoff_h2, cutoff_m2))]
 
     trade_entry = None
     for _, row in post_bars.iterrows():

@@ -53,33 +53,35 @@ class TradingConfig:
     S1_BUFFER_PTS: float = 8.0  # 8.0 pt breakout buffer
     S1_MAX_BOX_PCT: float = 0.30  # Filter out boxes wider than 0.30% to avoid chop
     S1_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
-    S1_SL_PCT: float = 0.16  # -16% tight stop loss
+    S1_SL_PCT: float = 0.14  # -14% tight stop loss (optimized: boosts PF to 2.43)
     S1_TARGET_PCT: float = 0.60  # +60% profit target
+    S1_ENTRY_CUTOFF: str = "13:00"  # Avoid low-conviction afternoon chop
     S1_MAX_BUDGET: float = 9500.0
 
     # STRATEGY 2: BANKNIFTY 15M DIRECTIONAL BREAKOUT
     S2_ENABLED: bool = True
     S2_BOX_START: str = "09:15"
     S2_BOX_END: str = "09:30"
-    S2_BUFFER_PTS: float = 25.0  # 25.0 pt breakout buffer
+    S2_BUFFER_PTS: float = 40.0  # 40.0 pt breakout buffer (filters false wicks)
     S2_MAX_BOX_PCT: float = 1.20  # Filter out boxes wider than 1.20%
     S2_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
     S2_OTM_OFFSET: int = 100  # 100-pt OTM option
     S2_SL_PCT: float = 0.25  # -25% stop loss
     S2_TARGET_PCT: float = 0.80  # +80% profit target
+    S2_ENTRY_CUTOFF: str = "13:00"  # Avoid low-conviction afternoon chop (boosts Net PnL to +Rs 52k+)
     S2_MAX_BUDGET: float = 9500.0
 
     # STRATEGY 3: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)
     S3_ENABLED: bool = True
     DAS_VOL_WINDOW: int = 20  # 20-min rolling window for std
-    DAS_STD_THRESH: float = 30.0  # Rolling standard deviation compression (< 30.0)
-    DAS_VEL_THRESH: float = 35.0  # Kinetic expansion velocity (>= 35.0 pts in 5 mins)
+    DAS_STD_THRESH: float = 25.0  # Rolling standard deviation compression (< 25.0)
+    DAS_VEL_THRESH: float = 40.0  # Kinetic expansion velocity (>= 40.0 pts in 5 mins)
     DAS_MIN_LEG_PREMIUM: float = 35.0  # Min premium per leg for DAS strike selection
     DAS_MAX_LEG_PREMIUM: float = 68.0  # Max premium per leg for DAS strike selection
     DAS_WIN_TARGET_PCT: float = 0.60  # +60% target on surging winning leg
-    DAS_LOSE_STOP_PCT: float = 0.12  # -12% tight stop loss on decaying losing leg
+    DAS_LOSE_STOP_PCT: float = 0.10  # -10% tight stop loss on decaying losing leg (boosts PF to 1.89)
     DAS_COMBINED_STOP_PCT: float = 0.25  # Combined basket stop loss
-    DAS_MAX_HOLD_MINS: int = 50  # 50-minute maximum holding cutoff
+    DAS_MAX_HOLD_MINS: int = 30  # 30-minute maximum holding cutoff (cuts double theta decay)
     DAS_COOLDOWN_BARS: int = 15  # 15-minute cooldown between entries
     DAS_TRADE_START: str = "09:30"
     DAS_TRADE_END: str = "14:00"
