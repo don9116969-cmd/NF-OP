@@ -1,1 +1,19 @@
-{}
+{
+  "s2": {
+    "entry_time": "2026-11-02T10:20:00",
+    "spot_entry": 54786.55,
+    "contract": {
+      "token": "62112",
+      "symbol": "BANKNIFTY23NOV2653500PE"
+    },
+    "opt_type": "PE",
+    "strike": 53500,
+    "symbol": "BANKNIFTY23NOV2653500PE",
+    "entry_p": 299.64,
+    "cost": 8989.2,
+    "target_p": 539.35,
+    "sl_p": 224.73,
+    "data_feed": "Angel One Real Traded LTP (BANKNIFTY23NOV2653500PE)",
+    "strategy_name": "Strategy 2: BankNIFTY 15M Directional Breakout"
+  }
+}
