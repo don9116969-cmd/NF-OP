@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-03 18:03:02 IST*
+*Last Updated: 2026-11-03 20:34:12 IST*
 
 ---
 
@@ -14,10 +14,10 @@
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 17
-- **Win Rate**: 41.2% (7 Wins / 10 Losses)
-- **Net Realized PnL**: **INR +8,755.46**
-- **Current Account Balance**: **INR +18,755.46** (+87.6% Return)
+- **Total Executed Trades**: 19
+- **Win Rate**: 42.1% (8 Wins / 11 Losses)
+- **Net Realized PnL**: **INR +10,706.15**
+- **Current Account Balance**: **INR +20,706.15** (+107.1% Return)
 
 ---
 
@@ -38,6 +38,8 @@
 | 2026-10-19 | Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) | CE+PE | NIFTY19OCT2623150CE+NIFTY19OCT2622950PE | 09:56:00 | 09:58:00 | ₹69.45 | ₹60.82 | ₹4514.25 | **-₹663.54** | SL Hit (-12%) | SL Hit (-12%) | Real Option Tick |
 | 2026-10-23 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 54500 | 09:48:00 | 10:15:00 | ₹280.50 | ₹502.38 | ₹8415.00 | **+₹6580.27** | Target Hit (+80%) | Real Option Tick |
 | 2026-10-27 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | 54700 | 09:43:00 | 09:56:00 | ₹172.11 | ₹128.44 | ₹5163.30 | **-₹1366.47** | SL Hit (-25%) | Real Option Tick |
+| 2026-10-28 | Strategy 4: Nifty 1M Pullback Scalper | PE | 22400 | 09:33:00 | 09:42:00 | ₹145.47 | ₹128.10 | ₹9455.55 | **-₹1195.07** | SL Hit (-11%) | Real Option Tick |
+| 2026-10-28 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | 56400 | 09:47:00 | 15:20:00 | ₹310.79 | ₹418.07 | ₹9323.70 | **+₹3145.76** | EOD (15:15) | BSM Fallback |
 | 2026-10-30 | Strategy 1: Nifty 15M Directional Breakout | CE | 23000 | 09:34:00 | 09:48:00 | ₹133.26 | ₹111.38 | ₹8661.90 | **-₹1486.02** | SL Hit (-16%) | Real Option Tick |
 | 2026-10-30 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 53100 | 10:16:00 | 11:58:00 | ₹310.70 | ₹231.86 | ₹9321.00 | **-₹2428.96** | SL Hit (-25%) | Real Option Tick |
 | 2026-11-02 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | BANKNIFTY23NOV2653500PE | 10:20:00 | 15:15:00 | ₹307.53 | ₹273.62 | ₹9225.90 | **-₹1082.99** | EOD (15:15) | Real Option Tick |
