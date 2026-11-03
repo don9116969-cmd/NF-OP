@@ -273,3 +273,4 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api =
         "data_feed": daily_trades[0]["data_feed"],
         "all_trades": daily_trades
     }
+

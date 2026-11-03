@@ -1547,7 +1547,7 @@ class LiveTriPaperTrader:
             try:
                 df_j = pd.read_csv("data/trade_journal.csv")
                 if not df_j.empty and "date" in df_j.columns and "net_pnl" in df_j.columns:
-                    today_j = df_j[df_j["date"].astype(str) == str(today)]
+                    today_j = df_j[df_j["date"].astype(str).str[:10] == str(today)[:10]]
                     if not today_j.empty:
                         has_live_trades_today = True
                         trades_today = len(today_j)
@@ -1944,8 +1944,8 @@ class LiveTriPaperTrader:
                 self.run_eod_accounting()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Multi-Index Tri-Strategy Live Paper Trading Bot")
-    parser.add_argument("--strategy", type=str, default="all", choices=["all", "s1", "s2", "s3"], help="Strategy to trade (default: all)")
+    parser = argparse.ArgumentParser(description="Multi-Index Quad-Strategy Live Paper Trading Bot")
+    parser.add_argument("--strategy", type=str, default="all", choices=["all", "s1", "s2", "s3", "s4"], help="Strategy to trade (default: all)")
     parser.add_argument("--replay", action="store_true", help="Run offline replay on latest recorded day instead of live loop")
     args = parser.parse_args()
 

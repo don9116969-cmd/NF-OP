@@ -64,15 +64,35 @@ def normalize_date_str(d) -> str:
     return d_str[:10]
 
 def normalize_strategy_code(strategy: str) -> str:
-    """Normalizes any strategy name variant to a short canonical code (S1..S3)."""
+    """Normalizes any strategy name variant to a short canonical code (S1..S4)."""
     s = str(strategy).lower()
-    if "strategy 1" in s or "s1" in s or ("nifty" in s and "directional" in s):
-        return "S1"
-    if "strategy 2" in s or "s2" in s or "banknifty" in s:
+    if "strategy 4" in s or "s4" in s or "scalp" in s or "pullback" in s or "1m" in s:
+        return "S4"
+    if "strategy 2" in s or "s2" in s or "bank" in s:
         return "S2"
     if "strategy 3" in s or "s3" in s or "das" in s or "strangle" in s:
         return "S3"
+    if "strategy 1" in s or "s1" in s or ("nifty" in s and "directional" in s):
+        return "S1"
     return re.sub(r'[^A-Z0-9]', '', str(strategy).upper())[:4]
+
+def extract_time_hhmm(val) -> str:
+    """Extracts canonical HH:MM time from string/datetime to ensure deterministic deduplication."""
+    if not val:
+        return ""
+    if hasattr(val, "strftime"):
+        return val.strftime("%H:%M")
+    val_str = str(val).strip()
+    m_time = re.search(r'[T\s](\d{2}:\d{2})', val_str)
+    if m_time:
+        return m_time.group(1)
+    m_start = re.search(r'^(\d{2}:\d{2})', val_str)
+    if m_start:
+        return m_start.group(1)
+    m_any = re.search(r'(\d{2}:\d{2})', val_str)
+    if m_any:
+        return m_any.group(1)
+    return val_str[:5]
 
 def normalize_contract_key(ce_str: str = "", pe_str: str = "", strike: str = "", opt_type: str = "") -> str:
     """Creates a clean alphanumeric identifier for strikes/contracts."""
@@ -305,7 +325,8 @@ def send_trade_entry_alert(
         )
         contract_k = normalize_contract_key(strike=sym_val, opt_type=leg_type)
         if not alert_key:
-            alert_key = f"ENTRY:{norm_date}:{s_code}:{contract_k}:{time_str[:5]}"
+            t_part = extract_time_hhmm(time_str)
+            alert_key = f"ENTRY:{norm_date}:{s_code}:{contract_k}:{t_part}"
     else:
         # Dual-leg Strangle (Strategy 1, Strategy 4, or Strategy 5 BankNifty)
         ce_tgt = ce_p * (1.0 + win_target_pct)
@@ -335,7 +356,8 @@ def send_trade_entry_alert(
         )
         contract_k = normalize_contract_key(ce_str=ce_str, pe_str=pe_str)
         if not alert_key:
-            alert_key = f"ENTRY:{norm_date}:{s_code}:{contract_k}:{time_str[:5]}"
+            t_part = extract_time_hhmm(time_str)
+            alert_key = f"ENTRY:{norm_date}:{s_code}:{contract_k}:{t_part}"
 
     return send_telegram_alert(msg, alert_key=alert_key, force=force)
 
@@ -390,13 +412,13 @@ def send_trade_exit_alert(
             else:
                 contract_k = re.sub(r'[^A-Za-z0-9]', '', details[:30]).upper()
 
-        e_ref = str(entry_time)[:5] if entry_time else ""
+        e_ref = extract_time_hhmm(entry_time) if entry_time else ""
         if not e_ref and details:
             match_e = re.search(r'Entry:.*?(\d{2}:\d{2})', details)
             if match_e:
                 e_ref = match_e.group(1)
 
-        t_part = e_ref if e_ref else str(time_str)[:5]
+        t_part = e_ref if e_ref else extract_time_hhmm(time_str)
         alert_key = f"EXIT:{norm_date}:{s_code}:{contract_k}:{t_part}"
 
     return send_telegram_alert(msg, alert_key=alert_key, force=force)
