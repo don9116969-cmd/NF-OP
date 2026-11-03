@@ -181,9 +181,12 @@ class LiveTriPaperTrader:
         return 55000.0
 
     def is_market_open_now(self) -> bool:
-        """Checks if current time is within live NSE trading hours (Mon-Fri 09:15 - 15:05 IST)."""
+        """Checks if current time is within live NSE trading hours (Mon-Fri 09:15 - 15:05 IST, non-holiday)."""
         now = get_ist_now()
         if now.weekday() in [5, 6]:  # Saturday or Sunday
+            return False
+        from src.utils.market_calendar import is_nse_holiday
+        if is_nse_holiday(now.date()):
             return False
         return dtime(9, 15) <= now.time() < dtime(15, 5)
 
@@ -1921,6 +1924,23 @@ class LiveTriPaperTrader:
             print("[SUCCESS] Interactive Telegram bot listener daemon started.")
         except Exception as e:
             print(f"[WARN] Could not start interactive Telegram bot daemon: {e}")
+
+        from src.utils.market_calendar import get_nse_holiday_name, get_next_trading_day
+        holiday_name = get_nse_holiday_name(now.date())
+        if holiday_name:
+            print(f"[NSE HOLIDAY] Today ({now.strftime('%d-%b-%Y')}) is an official NSE Trading Holiday: {holiday_name}. Markets are closed.")
+            next_day = get_next_trading_day(now.date())
+            send_telegram_alert(
+                f"🏛️ *NSE TRADING HOLIDAY NOTICE*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"📅 *Date:* {now.strftime('%d-%b-%Y')}\n"
+                f"🎉 *Occasion:* {holiday_name}\n"
+                f"🛡️ *Bot Status:* Sleeping. No trades will be taken today.\n"
+                f"⏰ *Next Session:* Resumes {next_day.strftime('%A, %d-%b-%Y')} at 09:15 AM IST.\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━",
+                alert_key=f"HOLIDAY:{now.strftime('%Y-%m-%d')}"
+            )
+            return
 
         if self.is_market_open_now():
             print("[MARKET STATUS] Live NSE market is OPEN right now.")

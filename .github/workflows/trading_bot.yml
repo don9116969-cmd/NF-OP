@@ -25,13 +25,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Check Market Hours (Scheduled Runs)
+      - name: Check Market Hours & Holidays (Scheduled Runs)
         if: github.event_name == 'schedule'
         run: |
           python -c "
           import datetime, sys
+          from src.utils.market_calendar import is_nse_holiday, get_nse_holiday_name
           now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
           print('Current IST time:', now_ist.strftime('%Y-%m-%d %H:%M:%S'))
+          if is_nse_holiday(now_ist.date()):
+              print(f'Today is an official NSE Trading Holiday: {get_nse_holiday_name(now_ist.date())}. Skipping scheduled run.')
+              sys.exit(0)
           if now_ist.weekday() < 5 and now_ist.time() >= datetime.time(15, 10):
               print('Market closed and squareoff finished for today. Skipping redundant run.')
               sys.exit(0)
