@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-03 20:34:12 IST*
+*Last Updated: 2026-11-03 21:12:50 IST*
 
 ---
 
@@ -14,10 +14,10 @@
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 19
-- **Win Rate**: 42.1% (8 Wins / 11 Losses)
-- **Net Realized PnL**: **INR +10,706.15**
-- **Current Account Balance**: **INR +20,706.15** (+107.1% Return)
+- **Total Executed Trades**: 20
+- **Win Rate**: 40.0% (8 Wins / 12 Losses)
+- **Net Realized PnL**: **INR +10,111.78**
+- **Current Account Balance**: **INR +20,111.78** (+101.1% Return)
 
 ---
 
@@ -43,5 +43,6 @@
 | 2026-10-30 | Strategy 1: Nifty 15M Directional Breakout | CE | 23000 | 09:34:00 | 09:48:00 | ₹133.26 | ₹111.38 | ₹8661.90 | **-₹1486.02** | SL Hit (-16%) | Real Option Tick |
 | 2026-10-30 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 53100 | 10:16:00 | 11:58:00 | ₹310.70 | ₹231.86 | ₹9321.00 | **-₹2428.96** | SL Hit (-25%) | Real Option Tick |
 | 2026-11-02 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | BANKNIFTY23NOV2653500PE | 10:20:00 | 15:15:00 | ₹307.53 | ₹273.62 | ₹9225.90 | **-₹1082.99** | EOD (15:15) | Real Option Tick |
+| 2026-11-03 | Strategy 4: Nifty 1M Pullback Scalper | CE | 23600 | 09:41:00 | 09:43:00 | ₹69.34 | ₹61.06 | ₹4507.10 | **-₹594.37** | SL Hit (-11%) | Real Option Tick |
 | 2026-11-03 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2656800CE | 10:21:00 | 14:58:00 | ₹300.24 | ₹224.05 | ₹9007.20 | **-₹2348.90** | SL Hit (-25%) | Real Option Tick |
 
