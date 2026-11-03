@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-03 17:56:43 IST*
+*Last Updated: 2026-11-03 18:03:02 IST*
 
 ---
 
@@ -16,8 +16,8 @@
 - **Starting Portfolio Capital**: INR 10,000.00
 - **Total Executed Trades**: 17
 - **Win Rate**: 41.2% (7 Wins / 10 Losses)
-- **Net Realized PnL**: **INR +12,107.35**
-- **Current Account Balance**: **INR +22,107.35** (+121.1% Return)
+- **Net Realized PnL**: **INR +8,755.46**
+- **Current Account Balance**: **INR +18,755.46** (+87.6% Return)
 
 ---
 
@@ -40,6 +40,6 @@
 | 2026-10-27 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | 54700 | 09:43:00 | 09:56:00 | ₹172.11 | ₹128.44 | ₹5163.30 | **-₹1366.47** | SL Hit (-25%) | Real Option Tick |
 | 2026-10-30 | Strategy 1: Nifty 15M Directional Breakout | CE | 23000 | 09:34:00 | 09:48:00 | ₹133.26 | ₹111.38 | ₹8661.90 | **-₹1486.02** | SL Hit (-16%) | Real Option Tick |
 | 2026-10-30 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | 53100 | 10:16:00 | 11:58:00 | ₹310.70 | ₹231.86 | ₹9321.00 | **-₹2428.96** | SL Hit (-25%) | Real Option Tick |
-| 2026-11-02 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | BANKNIFTY23NOV2653500PE | 10:20:00 | 15:05:00 | ₹299.64 | ₹299.64 | ₹8989.20 | **-₹40.00** | EOD Squareoff (15:05) | Angel One Real Traded LTP (BANKNIFTY23NOV2653500PE) |
-| 2026-11-03 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2656800CE | 10:21:00 | 15:05:00 | ₹301.95 | ₹301.95 | ₹9058.50 | **-₹40.00** | EOD Squareoff (15:05) | Angel One Real Traded LTP (BANKNIFTY23NOV2656800CE) |
+| 2026-11-02 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | BANKNIFTY23NOV2653500PE | 10:20:00 | 15:15:00 | ₹307.53 | ₹273.62 | ₹9225.90 | **-₹1082.99** | EOD (15:15) | Real Option Tick |
+| 2026-11-03 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2656800CE | 10:21:00 | 14:58:00 | ₹300.24 | ₹224.05 | ₹9007.20 | **-₹2348.90** | SL Hit (-25%) | Real Option Tick |
 
