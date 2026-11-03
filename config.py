@@ -1,9 +1,10 @@
 """
 Configuration module for Nifty & BankNifty Option Buying Portfolio Engine.
-Tri-Strategy Core Production Architecture:
-1. Strategy 1: Nifty 15M Directional Breakout (Trend Aligned ATM, SL -16%, TP +60%)
+Quad-Strategy Core Production Architecture:
+1. Strategy 1: Nifty 15M Directional Breakout (Trend Aligned ATM, SL -14%, TP +60%)
 2. Strategy 2: BankNIFTY 15M Directional Breakout (Trend Aligned 100-pt OTM, SL -25%, TP +80%)
-3. Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) (Std < 30, Vel >= 35, Win +60%, Lose -12%)
+3. Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) (Std < 25, Vel >= 40, Win +60%, Lose -10%)
+4. Strategy 4: Nifty 1M Pullback Option Scalper (Behavioral Mirror, Target +10%, SL -11.5%, 1-Loss Kill Switch)
 """
 from dataclasses import dataclass, field
 from typing import List
@@ -20,7 +21,7 @@ class TradingConfig:
     # Capital & Risk Controls (₹10,000 Budget)
     INITIAL_CAPITAL: float = 10000.0  # Benchmark base per trade / account
     MAX_CAPITAL_PER_TRADE: float = 9500.0  # Safe cap per trade to preserve buffer
-    MAX_CONCURRENT_POSITIONS: int = 3  # All 3 strategies execute independently as signals fire
+    MAX_CONCURRENT_POSITIONS: int = 3  # Maximum concurrent active positions
     DYNAMIC_STRIKE_ENABLED: bool = True  # Dynamically pick cheaper OTM strike if premium exceeds budget
     DYNAMIC_MIN_PREMIUM: float = 25.0  # Ensure candidate strike has sufficient delta & liquidity
     
@@ -53,7 +54,7 @@ class TradingConfig:
     S1_BUFFER_PTS: float = 8.0  # 8.0 pt breakout buffer
     S1_MAX_BOX_PCT: float = 0.30  # Filter out boxes wider than 0.30% to avoid chop
     S1_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
-    S1_SL_PCT: float = 0.14  # -14% tight stop loss (optimized: boosts PF to 2.43)
+    S1_SL_PCT: float = 0.14  # -14% tight stop loss
     S1_TARGET_PCT: float = 0.60  # +60% profit target
     S1_ENTRY_CUTOFF: str = "13:00"  # Avoid low-conviction afternoon chop
     S1_MAX_BUDGET: float = 9500.0
@@ -62,13 +63,13 @@ class TradingConfig:
     S2_ENABLED: bool = True
     S2_BOX_START: str = "09:15"
     S2_BOX_END: str = "09:30"
-    S2_BUFFER_PTS: float = 40.0  # 40.0 pt breakout buffer (filters false wicks)
+    S2_BUFFER_PTS: float = 40.0  # 40.0 pt breakout buffer
     S2_MAX_BOX_PCT: float = 1.20  # Filter out boxes wider than 1.20%
     S2_USE_EMA_TREND: bool = True  # Confirm Spot > 20-EMA for CE, Spot < 20-EMA for PE
     S2_OTM_OFFSET: int = 100  # 100-pt OTM option
     S2_SL_PCT: float = 0.25  # -25% stop loss
     S2_TARGET_PCT: float = 0.80  # +80% profit target
-    S2_ENTRY_CUTOFF: str = "13:00"  # Avoid low-conviction afternoon chop (boosts Net PnL to +Rs 52k+)
+    S2_ENTRY_CUTOFF: str = "13:00"  # Avoid low-conviction afternoon chop
     S2_MAX_BUDGET: float = 9500.0
 
     # STRATEGY 3: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)
@@ -79,13 +80,28 @@ class TradingConfig:
     DAS_MIN_LEG_PREMIUM: float = 35.0  # Min premium per leg for DAS strike selection
     DAS_MAX_LEG_PREMIUM: float = 68.0  # Max premium per leg for DAS strike selection
     DAS_WIN_TARGET_PCT: float = 0.60  # +60% target on surging winning leg
-    DAS_LOSE_STOP_PCT: float = 0.10  # -10% tight stop loss on decaying losing leg (boosts PF to 1.89)
+    DAS_LOSE_STOP_PCT: float = 0.10  # -10% tight stop loss on decaying losing leg
     DAS_COMBINED_STOP_PCT: float = 0.25  # Combined basket stop loss
-    DAS_MAX_HOLD_MINS: int = 30  # 30-minute maximum holding cutoff (cuts double theta decay)
+    DAS_MAX_HOLD_MINS: int = 30  # 30-minute maximum holding cutoff
     DAS_COOLDOWN_BARS: int = 15  # 15-minute cooldown between entries
     DAS_TRADE_START: str = "09:30"
     DAS_TRADE_END: str = "14:00"
     DAS_MAX_BUDGET: float = 9500.0
+
+    # STRATEGY 4: NIFTY 1M PULLBACK OPTION SCALPER (BEHAVIORAL MIRROR)
+    S4_ENABLED: bool = True
+    S4_FAST_EMA: int = 9
+    S4_SLOW_EMA: int = 21
+    S4_TREND_EMA: int = 50
+    S4_TARGET_PCT: float = 0.10  # +10% target on ATM option premium
+    S4_SL_PCT: float = 0.115     # -11.5% stop loss on ATM option premium
+    S4_MAX_WINS: int = 4         # Max 4 wins per day
+    S4_MAX_LOSSES: int = 1       # Single-loss kill switch: 1 loss terminates trading for the day
+    S4_START_TIME: str = "09:20" # Avoid opening 09:15 wicks
+    S4_ENTRY_CUTOFF: str = "14:30" # Avoid late-day decay
+    S4_COOLDOWN_MINS: int = 10   # 10-minute cooldown between trades
+    S4_SKIP_TUESDAY: bool = False # False = All days active, True = Skip Tuesday expiry
+    S4_MAX_BUDGET: float = 9500.0
 
     # Risk Controls
     MAX_DAILY_LOSS: float = 2500.0  # Max account daily loss limit
@@ -94,7 +110,8 @@ class TradingConfig:
     ACTIVE_STRATEGIES: List[str] = field(default_factory=lambda: [
         "Strategy 1: Nifty 15M Directional Breakout",
         "Strategy 2: BankNIFTY 15M Directional Breakout",
-        "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)"
+        "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
+        "Strategy 4: Nifty 1M Pullback Scalper"
     ])
 
 config = TradingConfig()

@@ -100,16 +100,22 @@ class LiveTriPaperTrader:
             "s1": None,
             "s2": None,
             "s3": None,
+            "s4": None,
         }
         self.cooldown_until = {
             "s1": None,
             "s2": None,
             "s3": None,
+            "s4": None,
         }
         self.daily_trade_count = {
             "s1": 0,
             "s2": 0,
             "s3": 0,
+            "s4": 0,
+        }
+        self.daily_loss_count = {
+            "s4": 0,
         }
 
         # Output log
@@ -307,6 +313,10 @@ class LiveTriPaperTrader:
                         if "Strategy 1" in s_name: self.daily_trade_count["s1"] += 1
                         if "Strategy 2" in s_name: self.daily_trade_count["s2"] += 1
                         if "Strategy 3" in s_name: self.daily_trade_count["s3"] += 1
+                        if "Strategy 4" in s_name:
+                            self.daily_trade_count["s4"] += 1
+                            if float(row.get("net_pnl", 0.0)) <= 0:
+                                self.daily_loss_count["s4"] += 1
             except Exception:
                 pass
         self.load_active_positions(today_date)
@@ -1333,7 +1343,7 @@ class LiveTriPaperTrader:
             f"Bot is actively monitoring the optimized Tri-Strategy portfolio:\n"
             f"• Strategy 1: Nifty 15M Breakout (ATM, SL -{int(config.S1_SL_PCT*100)}%, TP +{int(config.S1_TARGET_PCT*100)}%, Cutoff {config.S1_ENTRY_CUTOFF})\n"
             f"• Strategy 2: BankNifty 15M Breakout (Dynamic Strike, Buffer +{int(config.S2_BUFFER_PTS)}pt, SL -{int(config.S2_SL_PCT*100)}%, TP +{int(config.S2_TARGET_PCT*100)}%, Cutoff {config.S2_ENTRY_CUTOFF})\n"
-            f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n\n"
+            f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n• Strategy 4: Nifty 1M Pullback Scalper (ATM, SL -11.5%, TP +10%, Single-Loss Stop)\n\n"
             f"🛡️ *Position Rule:* Max 3 active positions concurrently (₹10,000 capital per trade limit)\n"
             f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!\n\n"
             f"💡 *Live Bot Commands:* Send /status, /today, or /pnl anytime for live updates.",
@@ -1403,6 +1413,12 @@ class LiveTriPaperTrader:
                 except Exception as e:
                     print(f"[WARN] Strategy 3 live error: {e}")
 
+            if config.S4_ENABLED and self.target_strategy in ["all", "s4", "scalper"] and not df_all.empty:
+                try:
+                    self.process_live_strategy_4(df_all, today_date, ist_now, spot)
+                except Exception as e:
+                    print(f"[WARN] Strategy 4 live error: {e}")
+
             time.sleep(60)
 
         # Market Close Procedure at 15:05 IST
@@ -1427,7 +1443,7 @@ class LiveTriPaperTrader:
         bn_spot = self.get_banknifty_spot_price()
 
         # Force square off any remaining active positions at 15:05 IST with real market resolution
-        for s_key in ["s1", "s2", "s3"]:
+        for s_key in ["s1", "s2", "s3", "s4"]:
             pos = self.active_positions.get(s_key)
             if pos is not None:
                 print(f"[EOD SQUAREOFF] Closing open position for {s_key} at market cutoff.")
@@ -1660,6 +1676,231 @@ class LiveTriPaperTrader:
         print(f"Strategy 1 (Nifty 15M Directional Breakout)       : {s1.get('status')} | Trade: {s1.get('trade_occurred')}")
         print(f"Strategy 2 (BankNIFTY 15M Directional Breakout)   : {s2.get('status')} | Trade: {s2.get('trade_occurred')}")
         print(f"Strategy 3 (Nifty Decoupled Asymmetric Strangle)  : {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
+
+
+    def process_live_strategy_4(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
+        """
+        Real-time live position tracking and entry engine for Strategy 4:
+        Nifty 1M Pullback Option Scalper (Behavioral Mirror of FirstOne.xlsx).
+        - Morning Bias at 09:30 AM (VWAP + EMA 9/21 alignment)
+        - Entry on EMA 21 Pullback bounce with confirmation
+        - Target: +10.0%, SL: -11.5%
+        - Single-Loss Kill Switch: exactly 1 loss stops S4 for the day
+        - Max 4 wins per day
+        - 10-minute cooldown
+        """
+        pos = self.active_positions.get("s4")
+
+        if pos is not None:
+            c_opt = pos.get("contract")
+            cur_p = pos["entry_p"]
+            high_p = pos.get("high_p", cur_p)
+            low_p = pos.get("low_p", cur_p)
+
+            # Check instant live LTP from Angel One SmartAPI
+            live_p_found = False
+            if self.smart_api and c_opt and c_opt.get("token"):
+                try:
+                    ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
+                    if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                        cur_p = round(float(ltp_res["data"]["ltp"]), 2)
+                        high_p = max(high_p, cur_p)
+                        low_p = min(low_p, cur_p)
+                        pos["high_p"] = high_p
+                        pos["low_p"] = low_p
+                        live_p_found = True
+                except Exception:
+                    pass
+
+            exit_triggered = False
+            exit_p = cur_p
+            exit_reason = ""
+
+            # Check candle sequence first (strict conservative risk-first order)
+            if self.smart_api and c_opt:
+                df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
+                if not df_opt.empty:
+                    for _, c_row in df_opt.iterrows():
+                        if float(c_row["low"]) <= pos["sl_p"]:
+                            exit_triggered = True
+                            exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = f"SL Hit (-{int(config.S4_SL_PCT * 100)}%)"
+                            break
+                        elif float(c_row["high"]) >= pos["target_p"]:
+                            exit_triggered = True
+                            exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_reason = f"Target Hit (+{int(config.S4_TARGET_PCT * 100)}%)"
+                            break
+                    if not exit_triggered:
+                        cur_p = float(df_opt.iloc[-1]["close"])
+
+            # If no candle triggered, check latest real-time tick (LTP) or BSM fallback
+            if not exit_triggered:
+                if not live_p_found:
+                    t_exp_years = max(1e-4, compute_calendar_dte(ist_now) / 365.0)
+                    cur_p = black_scholes_price(spot, pos["strike"], t_exp_years, config.RISK_FREE_RATE, 0.14, pos["opt_type"])
+
+                if cur_p <= pos["sl_p"]:
+                    exit_triggered = True
+                    exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = f"SL Hit (-{int(config.S4_SL_PCT * 100)}%)"
+                elif cur_p >= pos["target_p"]:
+                    exit_triggered = True
+                    exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = f"Target Hit (+{int(config.S4_TARGET_PCT * 100)}%)"
+                elif ist_now.time() >= dtime(15, 5):
+                    exit_triggered = True
+                    exit_p = round(cur_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                    exit_reason = "EOD Squareoff (15:05)"
+
+            if exit_triggered:
+                gross = (exit_p - pos["entry_p"]) * self.lot_size
+                turn = (pos["entry_p"] + exit_p) * self.lot_size
+                brok = 40.0
+                stt = (exit_p * self.lot_size) * config.STT_PCT_ON_SELL
+                exch = turn * config.EXCHANGE_TURNOVER_PCT
+                gst = (brok + exch) * config.GST_PCT
+                charges = round(brok + stt + exch + gst, 2)
+                net = round(gross - charges, 2)
+
+                tr_log = {
+                    "date": str(today_date),
+                    "strategy": "Strategy 4: Nifty 1M Pullback Scalper",
+                    "leg": pos["opt_type"],
+                    "strike": pos["symbol"],
+                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
+                    "exit_time": ist_now.strftime("%H:%M:%S"),
+                    "entry_p": pos["entry_p"],
+                    "exit_p": exit_p,
+                    "cost": pos["cost"],
+                    "capital_used": pos["cost"],
+                    "gross_pnl": round(gross, 2),
+                    "charges": charges,
+                    "net_pnl": net,
+                    "exit_reason": exit_reason,
+                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
+                }
+
+                if net <= 0:
+                    self.daily_loss_count["s4"] += 1
+
+                try:
+                    send_trade_exit_alert(
+                        strategy="Strategy 4: Nifty 1M Pullback Scalper",
+                        exit_reason=exit_reason,
+                        gross_pnl=round(gross, 2),
+                        charges=charges,
+                        net_pnl=net,
+                        details=f"{pos['symbol']} | Entry: ₹{pos['entry_p']:.2f} -> Exit: ₹{exit_p:.2f}",
+                        time_str=ist_now.strftime("%H:%M:%S"),
+                        date_str=str(today_date),
+                        entry_time=str(tr_log["entry_time"]),
+                        strike=str(pos["symbol"])
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to send S4 exit alert: {e}")
+
+                self.on_trade_exit("s4", "Strategy 4: Nifty 1M Pullback Scalper", tr_log)
+                self.cooldown_until["s4"] = ist_now + timedelta(minutes=config.S4_COOLDOWN_MINS)
+                return
+
+        else:
+            if not config.S4_ENABLED:
+                return
+            if config.S4_SKIP_TUESDAY and today_date.weekday() == 1:
+                return
+            if self.daily_loss_count.get("s4", 0) >= config.S4_MAX_LOSSES:
+                return
+            if self.daily_trade_count.get("s4", 0) >= config.S4_MAX_WINS:
+                return
+            if self.cooldown_until.get("s4") and ist_now < self.cooldown_until["s4"]:
+                return
+            active_count = sum(1 for p in self.active_positions.values() if p is not None)
+            if active_count >= config.MAX_CONCURRENT_POSITIONS:
+                return
+
+            s4_start_h, s4_start_m = map(int, config.S4_START_TIME.split(":"))
+            s4_cut_h, s4_cut_m = map(int, config.S4_ENTRY_CUTOFF.split(":"))
+
+            if ist_now.time() < dtime(s4_start_h, s4_start_m) or ist_now.time() > dtime(s4_cut_h, s4_cut_m):
+                return
+            if df_all.empty:
+                return
+
+            from src.strategies.nifty_1m_scalper import compute_indicators, determine_morning_bias, check_pullback_trigger
+            day_bars = df_all[df_all["timestamp"].dt.date == today_date].copy().sort_values("timestamp").reset_index(drop=True)
+            if len(day_bars) < 15:
+                return
+
+            df_ind = compute_indicators(day_bars)
+            bias = determine_morning_bias(df_ind)
+            if bias == 0:
+                return
+
+            curr_row = df_ind.iloc[-1]
+            prev_row = df_ind.iloc[-2] if len(df_ind) >= 2 else curr_row
+
+            if not check_pullback_trigger(curr_row, prev_row, bias):
+                return
+
+            opt_type = "CE" if bias == 1 else "PE"
+            entry_spot = float(curr_row["close"])
+            candle_ts = pd.to_datetime(curr_row["timestamp"]).to_pydatetime()
+
+            strike, df_opt, sym, feed_label, chosen_c_opt, _ = select_dynamic_affordable_strike(
+                self.smart_api, today_date, entry_spot, opt_type, "NIFTY", day_bars, entry_ts=candle_ts, max_budget=config.S4_MAX_BUDGET
+            )
+
+            if df_opt.empty:
+                return
+
+            entry_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+            cost = round(entry_p * self.lot_size, 2)
+            if cost > config.S4_MAX_BUDGET:
+                return
+
+            total_deployed = sum(p.get("cost", 0.0) for p in self.active_positions.values() if p is not None)
+            if (total_deployed + cost) > config.INITIAL_CAPITAL:
+                return
+
+            target_p = round(entry_p * (1.0 + config.S4_TARGET_PCT), 2)
+            sl_p = round(entry_p * (1.0 - config.S4_SL_PCT), 2)
+
+            pos_data = {
+                "entry_time": ist_now,
+                "spot_entry": entry_spot,
+                "strike": strike,
+                "opt_type": opt_type,
+                "symbol": sym,
+                "entry_p": entry_p,
+                "cost": cost,
+                "target_p": target_p,
+                "sl_p": sl_p,
+                "contract": chosen_c_opt,
+                "high_p": entry_p,
+                "low_p": entry_p,
+                "data_feed": feed_label
+            }
+
+            try:
+                send_trade_entry_alert(
+                    strategy="Strategy 4: Nifty 1M Pullback Scalper",
+                    spot=entry_spot,
+                    strike=strike,
+                    opt_type=opt_type,
+                    symbol=sym,
+                    entry_p=entry_p,
+                    target_p=target_p,
+                    sl_p=sl_p,
+                    cost=cost,
+                    time_str=ist_now.strftime("%H:%M:%S"),
+                    date_str=str(today_date),
+                    feed_label=feed_label
+                )
+            except Exception as e:
+                print(f"[WARN] Failed to send S4 entry alert: {e}")
+
+            self.on_trade_entry("s4", "Strategy 4: Nifty 1M Pullback Scalper", pos_data)
 
     def run(self):
         """Master execution entry point."""

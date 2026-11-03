@@ -25,6 +25,7 @@ from SmartApi import SmartConnect
 
 from src.features.greeks import black_scholes_price
 from src.decoupled_strangle.das_engine import evaluate_das_for_day
+from src.strategies.nifty_1m_scalper import evaluate_strategy_4
 from src.data.real_option_feed import (
     get_active_option_contract,
     fetch_real_option_candles,
@@ -455,7 +456,7 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
         res["strategy"] = "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)"
     return res
 
-def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3: dict):
+def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3: dict, s4: dict):
     print("\n" + "=" * 95)
     print(f"      TRI-STRATEGY QUANT PORTFOLIO DAILY RESULT CHECKER: {target_date.strftime('%A, %d-%b-%Y')}")
     print("=" * 95)
@@ -487,6 +488,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     print_strategy_box("STRATEGY 1: NIFTY 15M DIRECTIONAL BREAKOUT", s1)
     print_strategy_box("STRATEGY 2: BANKNIFTY 15M DIRECTIONAL BREAKOUT", s2)
     print_strategy_box("STRATEGY 3: NIFTY DECOUPLED ASYMMETRIC STRANGLE (DAS)", s3)
+    print_strategy_box("STRATEGY 4: NIFTY 1M PULLBACK OPTION SCALPER", s4)
 
     # Dynamic computation of portfolio table directly from trade_journal.csv
     portfolio_table = []
@@ -508,6 +510,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
         ("Strategy 1", "Strategy 1: Nifty 15M Directional Breakout"),
         ("Strategy 2", "Strategy 2: BankNIFTY 15M Directional Breakout"),
         ("Strategy 3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)"),
+        ("Strategy 4", "Strategy 4: Nifty 1M Pullback Scalper"),
     ]
 
     for key_pattern, label in strategies_list:
@@ -655,12 +658,14 @@ def run():
     s1_res = get_strategy_evaluation("Strategy 1", "Strategy 1: Nifty 15M Directional Breakout", evaluate_strategy_1, df_all) if config.S1_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy disabled"}
     s2_res = get_strategy_evaluation("Strategy 2", "Strategy 2: BankNIFTY 15M Directional Breakout", evaluate_strategy_2, df_bn) if config.S2_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy disabled"}
     s3_res = get_strategy_evaluation("Strategy 3", "Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", evaluate_strategy_3, df_all) if config.S3_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy disabled"}
+    s4_res = get_strategy_evaluation("Strategy 4", "Strategy 4: Nifty 1M Pullback Scalper", evaluate_strategy_4, df_all) if config.S4_ENABLED else {"status": "DISABLED", "trade_occurred": False, "reason": "Strategy disabled"}
 
     # Record any unrecorded simulation trades for strategies that haven't traded yet today
     active_evals = []
     if config.S1_ENABLED: active_evals.append(("Strategy 1: Nifty 15M Directional Breakout", s1_res))
     if config.S2_ENABLED: active_evals.append(("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res))
     if config.S3_ENABLED: active_evals.append(("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res))
+    if config.S4_ENABLED: active_evals.append(("Strategy 4: Nifty 1M Pullback Scalper", s4_res))
 
     for s_name, s_res in active_evals:
         has_strat_trade = any(s_name.lower() in str(t.get("strategy", "")).lower() for t in today_live_trades)
@@ -671,7 +676,7 @@ def run():
             else:
                 log_trade_to_journal(target_date, s_name, s_res)
 
-    print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res)
+    print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res)
 
     # Mark day as audited
     mark_day_as_audited(str(target_date))
