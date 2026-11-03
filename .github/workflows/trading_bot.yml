@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: nifty-trading-bot
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -24,6 +24,18 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Check Market Hours (Scheduled Runs)
+        if: github.event_name == 'schedule'
+        run: |
+          python -c "
+          import datetime, sys
+          now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+          print('Current IST time:', now_ist.strftime('%Y-%m-%d %H:%M:%S'))
+          if now_ist.weekday() < 5 and now_ist.time() >= datetime.time(15, 10):
+              print('Market closed and squareoff finished for today. Skipping redundant run.')
+              sys.exit(0)
+          " 
 
       - name: Set up Python
         uses: actions/setup-python@v5

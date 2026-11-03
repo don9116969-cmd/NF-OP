@@ -175,11 +175,11 @@ class LiveTriPaperTrader:
         return 55000.0
 
     def is_market_open_now(self) -> bool:
-        """Checks if current time is within live NSE market hours (Mon-Fri 09:15 - 15:25 IST)."""
+        """Checks if current time is within live NSE trading hours (Mon-Fri 09:15 - 15:05 IST)."""
         now = get_ist_now()
         if now.weekday() in [5, 6]:  # Saturday or Sunday
             return False
-        return dtime(9, 15) <= now.time() <= dtime(15, 25)
+        return dtime(9, 15) <= now.time() < dtime(15, 5)
 
     def wait_for_market_open(self):
         """If started before 09:15 AM IST on a weekday, waits until 09:15:00 IST."""
@@ -1426,43 +1426,83 @@ class LiveTriPaperTrader:
         spot = self.get_nifty_spot_price()
         bn_spot = self.get_banknifty_spot_price()
 
-        # Force square off any remaining active positions at 15:05 IST
+        # Force square off any remaining active positions at 15:05 IST with real market resolution
         for s_key in ["s1", "s2", "s3"]:
             pos = self.active_positions.get(s_key)
             if pos is not None:
                 print(f"[EOD SQUAREOFF] Closing open position for {s_key} at market cutoff.")
                 s_name = pos.get("strategy_name", f"Strategy {s_key.upper()}")
-                cur_p = pos.get("entry_p", 100.0)
                 lot = self.bn_lot_size if "banknifty" in s_name.lower() else self.lot_size
-                gross = 0.0
-                charges = 40.0
-                net = -charges
+                c_opt = pos.get("contract")
+                entry_p = float(pos.get("entry_p", 100.0))
+                exit_p = entry_p
+                exit_reason = "EOD Squareoff (15:05)"
+                exit_time_str = "15:05:00"
+
+                # Check if an intra-day candle breached SL or Target before 15:05
+                if self.smart_api and c_opt:
+                    from src.data.real_option_feed import fetch_real_option_candles
+                    df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], get_ist_now(), force_api=True)
+                    if not df_opt.empty:
+                        for o_ts, c_row in df_opt.iterrows():
+                            if float(c_row["low"]) <= pos.get("sl_p", 0.0):
+                                exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                                exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100 if 'banknifty' in s_name.lower() else config.S1_SL_PCT * 100)}%)"
+                                exit_time_str = o_ts.strftime("%H:%M:%S")
+                                break
+                            elif float(c_row["high"]) >= pos.get("target_p", 999999.0):
+                                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
+                                exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100 if 'banknifty' in s_name.lower() else config.S1_TARGET_PCT * 100)}%)"
+                                exit_time_str = o_ts.strftime("%H:%M:%S")
+                                break
+                        if exit_reason == "EOD Squareoff (15:05)":
+                            exit_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+                            exit_time_str = df_opt.index[-1].strftime("%H:%M:%S")
+
+                # Fallback to LTP or BSM if df_opt was empty
+                if exit_p == entry_p and exit_reason == "EOD Squareoff (15:05)" and self.smart_api and c_opt and c_opt.get("token"):
+                    try:
+                        ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
+                        if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
+                            exit_p = round(float(ltp_res["data"]["ltp"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+                    except Exception:
+                        pass
+
+                gross = round((exit_p - entry_p) * lot, 2)
+                turn = (entry_p + exit_p) * lot
+                brok = 40.0
+                stt = (exit_p * lot) * config.STT_PCT_ON_SELL
+                exch = turn * config.EXCHANGE_TURNOVER_PCT
+                gst = (brok + exch) * config.GST_PCT
+                charges = round(brok + stt + exch + gst, 2)
+                net = round(gross - charges, 2)
+
                 tr_log = {
                     "date": str(today),
                     "strategy": s_name,
                     "leg": pos.get("opt_type", "CE"),
                     "strike": pos.get("symbol", ""),
                     "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
-                    "exit_time": "15:05:00",
-                    "entry_p": cur_p,
-                    "exit_p": cur_p,
-                    "cost": pos.get("cost", 0.0),
-                    "capital_used": pos.get("cost", 0.0),
-                    "gross_pnl": 0.0,
+                    "exit_time": exit_time_str,
+                    "entry_p": entry_p,
+                    "exit_p": exit_p,
+                    "cost": pos.get("cost", round(entry_p * lot, 2)),
+                    "capital_used": pos.get("cost", round(entry_p * lot, 2)),
+                    "gross_pnl": gross,
                     "charges": charges,
                     "net_pnl": net,
-                    "exit_reason": "EOD Squareoff (15:05)",
+                    "exit_reason": exit_reason,
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
                 try:
                     send_trade_exit_alert(
                         strategy=s_name,
-                        exit_reason="EOD Squareoff (15:05)",
-                        gross_pnl=0.0,
+                        exit_reason=exit_reason,
+                        gross_pnl=gross,
                         charges=charges,
                         net_pnl=net,
-                        details=f"{pos.get('symbol', '')} | EOD Market Squareoff @ ₹{cur_p:.2f}",
-                        time_str="15:05:00",
+                        details=f"{pos.get('symbol', '')} | Entry: ₹{entry_p:.2f} -> Exit: ₹{exit_p:.2f}",
+                        time_str=exit_time_str,
                         date_str=str(today),
                         entry_time=str(tr_log["entry_time"]),
                         strike=str(pos.get("symbol", ""))
@@ -1470,6 +1510,19 @@ class LiveTriPaperTrader:
                 except Exception as e:
                     print(f"[WARN] Failed to send EOD exit alert: {e}")
                 self.on_trade_exit(s_key, s_name, tr_log)
+
+        # Sync latest remote journal if running in duplicate or split runner setup
+        try:
+            from src.utils.git_sync import git_sync_pull
+            git_sync_pull()
+        except Exception:
+            pass
+
+        # If summary alert was already sent for today, avoid duplicate post-market simulation/alerts
+        summary_key = f"SUMMARY:{today}"
+        if is_alert_already_sent(summary_key):
+            print(f"[EOD] Session audit and summary for {today} was already delivered. Skipping duplicate audit.")
+            return
 
         daily_net = 0.0
         trades_today = 0
@@ -1512,7 +1565,7 @@ class LiveTriPaperTrader:
                         log_trade_to_journal(today, s_name, sub_tr)
 
                         sub_opt = sub_tr.get("opt_type", sub_tr.get("leg", ""))
-                        sub_stk = str(sub_tr.get("strike", ""))
+                        sub_stk = str(sub_tr.get("symbol", sub_tr.get("strike", "")))
                         sub_ep = float(sub_tr.get("entry_p", 0.0))
                         sub_c = float(sub_tr.get("cost", sub_tr.get("capital_used", 0.0)))
                         sub_t = str(sub_tr.get("entry_time", ""))

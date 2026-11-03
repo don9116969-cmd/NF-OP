@@ -231,7 +231,7 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
     """
     Fetches real 1-minute OHLCV candles for the option contract.
     First checks disk cache (data/real_options_cache).
-    If cache misses or API is required, fetches from Angel One SmartAPI and updates cache.
+    If cache misses, is stale, or API is required, fetches from Angel One SmartAPI and updates cache.
     """
     if not contract:
         return pd.DataFrame()
@@ -247,40 +247,43 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
     if hasattr(to_date, "tzinfo") and to_date.tzinfo is not None:
         to_date = to_date.replace(tzinfo=None)
 
+    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+    now_ist = now_ist.replace(tzinfo=None)
+    effective_to = min(to_date, now_ist)
+
     # 1. Check local disk cache first
-    if not force_api and sym:
-        df_cached = load_cached_contract_candles(sym)
-        if not df_cached.empty:
-            sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
-            if len(sub) >= 5:
-                return sub
-            # If the session date matches any data in df_cached, return what we have
-            day_sub = df_cached[df_cached.index.date == from_date.date()]
-            if not day_sub.empty:
-                return day_sub
+    df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
+    if not force_api and not df_cached.empty:
+        sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= effective_to)]
+        is_today = (effective_to.date() == now_ist.date())
+        # For today, cache is considered fresh only if it extends to within 2 minutes of effective_to
+        cache_is_fresh = (df_cached.index.max() >= (effective_to - datetime.timedelta(minutes=2)))
+
+        if len(sub) >= 5 and (cache_is_fresh or not is_today or api is None):
+            return sub
 
     # If token is non-numeric (e.g. symbol name from offline indexing), cannot query SmartAPI
     if not str(contract.get("token", "")).isdigit():
-        df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
         if not df_cached.empty:
-            sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+            sub = df_cached[(df_cached.index >= from_date) & (df_cached.index <= effective_to)]
             if not sub.empty:
                 return sub
         return pd.DataFrame()
 
     if not api:
         # Return whatever is in cache if API is offline
-        df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
         if not df_cached.empty:
-            return df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+            return df_cached[(df_cached.index >= from_date) & (df_cached.index <= effective_to)]
         return pd.DataFrame()
 
     # 2. Fetch from Angel One SmartAPI
     import time as time_lib
-    from_str = from_date.strftime("%Y-%m-%d %H:%M")
-    now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
-    now_ist = now_ist.replace(tzinfo=None)
-    effective_to = min(to_date, now_ist)
+    if not df_cached.empty and df_cached.index.max() >= from_date:
+        fetch_from = max(from_date, df_cached.index.max() - datetime.timedelta(minutes=2))
+    else:
+        fetch_from = from_date
+
+    from_str = fetch_from.strftime("%Y-%m-%d %H:%M")
     to_str = effective_to.strftime("%Y-%m-%d %H:%M")
 
     for attempt in range(4):
@@ -288,21 +291,26 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
             time_lib.sleep(0.4)
             res = api.getCandleData({
                 "exchange": contract.get("exch_seg", "NFO"),
-                "symboltoken": contract["token"],
+                "symboltoken": str(contract["token"]),
                 "interval": "ONE_MINUTE",
                 "fromdate": from_str,
                 "todate": to_str
             })
 
             if res and res.get("status") and res.get("data"):
-                df = pd.DataFrame(res["data"], columns=["timestamp", "open", "high", "low", "close", "volume"])
-                df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
-                df.set_index("timestamp", inplace=True)
-                df.sort_index(inplace=True)
+                df_new = pd.DataFrame(res["data"], columns=["timestamp", "open", "high", "low", "close", "volume"])
+                df_new["timestamp"] = pd.to_datetime(df_new["timestamp"]).dt.tz_localize(None)
+                df_new.set_index("timestamp", inplace=True)
+                df_new.sort_index(inplace=True)
 
-                # Persist to disk cache
-                save_contract_candles_to_cache(sym, df)
-                return df[(df.index >= from_date) & (df.index <= to_date)]
+                # Persist & merge to disk cache
+                save_contract_candles_to_cache(sym, df_new)
+
+                # Reload combined cache to return the complete continuous window
+                df_full = load_cached_contract_candles(sym)
+                if not df_full.empty:
+                    return df_full[(df_full.index >= from_date) & (df_full.index <= effective_to)]
+                return df_new[(df_new.index >= from_date) & (df_new.index <= effective_to)]
             elif res and "exceeding access rate" in str(res):
                 time_lib.sleep(1.5 * (attempt + 1))
             else:
@@ -315,9 +323,8 @@ def fetch_real_option_candles(api: SmartConnect, contract: dict, from_date: date
                 break
 
     # If API returned empty but we have cached data, return cached
-    df_cached = load_cached_contract_candles(sym) if sym else pd.DataFrame()
     if not df_cached.empty:
-        return df_cached[(df_cached.index >= from_date) & (df_cached.index <= to_date)]
+        return df_cached[(df_cached.index >= from_date) & (df_cached.index <= effective_to)]
 
     return pd.DataFrame()
 
