@@ -2,7 +2,7 @@
 Automated Trade Journal Manager & Historical Backfill Engine.
 Manages:
 1. data/audited_days.json - Tracks all audited historical trading dates to prevent duplicate evaluations.
-2. data/active_positions.json - Tracks live in-flight positions across all 3 strategies.
+2. data/active_positions.json - Tracks live in-flight positions across all 4 strategies.
 3. data/trade_journal.csv - Single source of truth for all completed trades.
 4. data/trade_journal.md - Live formatted markdown journal showing active open positions, performance stats, and trade ledger.
 5. auto_catchup_missing_trading_days - Backfills and audits any missed trading days in chronological order.

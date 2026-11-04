@@ -1,13 +1,14 @@
 """
-Tri-Strategy Daily Result Checker & Live Portfolio Engine.
+Quad-Strategy Daily Result Checker & Live Portfolio Engine.
 Portfolio Components:
 1. Strategy 1: Nifty 15M Directional Breakout (Trend Aligned ATM, SL -16%, TP +60%)
 2. Strategy 2: BankNIFTY 15M Directional Breakout (Trend Aligned 100-pt OTM, SL -25%, TP +80%)
 3. Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS) (Delta-Neutral Volatility Compression & Kinetic Expansion)
+4. Strategy 4: Nifty 1M Pullback Option Scalper (Behavioral Mirror, Target +10%, SL -11.5%, 1-Loss Kill Switch)
 
 Features:
 - Auto-syncs latest 1-min candles from Angel One SmartAPI to data/nifty_1min_real.csv & data/banknifty_1min_real.csv
-- Checks all 3 strategies for today or any past date
+- Checks all 4 strategies for today or any past date
 - Displays complete trade breakdown, exit triggers, and net PnL
 - Tracks cumulative INR 10,000 portfolio ledger & journal
 """
@@ -458,7 +459,7 @@ def evaluate_strategy_3(df_full: pd.DataFrame, target_date: datetime.date, api: 
 
 def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3: dict, s4: dict):
     print("\n" + "=" * 95)
-    print(f"      TRI-STRATEGY QUANT PORTFOLIO DAILY RESULT CHECKER: {target_date.strftime('%A, %d-%b-%Y')}")
+    print(f"      QUAD-STRATEGY QUANT PORTFOLIO DAILY RESULT CHECKER: {target_date.strftime('%A, %d-%b-%Y')}")
     print("=" * 95)
 
     def print_strategy_box(title, s):
@@ -548,7 +549,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
     comb_sign = "+" if tot_net_all >= 0 else ""
 
     portfolio_table.append([
-        "COMBINED TRI-STRATEGY PORTFOLIO",
+        "COMBINED QUAD-STRATEGY PORTFOLIO",
         f"{tot_trades_all} Trades",
         f"{comb_wr:.1f}% Win Rate",
         f"{comb_pf:.2f} PF",
@@ -556,7 +557,7 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
         f"{comb_sign}INR {tot_net_all:,.2f}"
     ])
 
-    print("\n" + " " * 20 + "--- CUMULATIVE INR 10,000 TRI-STRATEGY PORTFOLIO SUMMARY ---")
+    print("\n" + " " * 20 + "--- CUMULATIVE INR 10,000 QUAD-STRATEGY PORTFOLIO SUMMARY ---")
     print(tabulate(portfolio_table, headers=["Strategy", "Trades", "Win Rate", "Profit Factor", "Risk (Max DD)", "Net Return"], tablefmt="grid"))
     curr_bal = 10000.0 + tot_net_all
     ret_pct = (tot_net_all / 10000.0) * 100.0
@@ -569,7 +570,7 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: dict):
     _log_trade(target_date, strategy_name, trade_res)
 
 def run():
-    parser = argparse.ArgumentParser(description="Tri-Strategy Daily Result Checker")
+    parser = argparse.ArgumentParser(description="Quad-Strategy Daily Result Checker")
     parser.add_argument("--date", type=str, default=None, help="Date to check (YYYY-MM-DD).")
     parser.add_argument("--telegram", action="store_true", default=True, help="Sync and push complete daily result summary to Telegram (default: True).")
     parser.add_argument("--no-telegram", action="store_true", help="Disable Telegram push.")

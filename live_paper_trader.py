@@ -1,9 +1,10 @@
 """
-Live Market Paper Trading Bot for Nifty & BankNifty Options (Tri-Strategy Core System).
-Executes and monitors all 3 quantitative production strategies concurrently:
+Live Market Paper Trading Bot for Nifty & BankNifty Options (Quad-Strategy Core System).
+Executes and monitors all 4 quantitative production strategies concurrently:
 1. Strategy 1: Nifty 15M Directional Breakout (Trend-Aligned ATM, SL -16%, TP +60%)
 2. Strategy 2: BankNIFTY 15M Directional Breakout (Trend-Aligned 100-pt OTM, SL -25%, TP +80%)
 3. Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Volatility Compression & Kinetic Expansion)
+4. Strategy 4: Nifty 1M Pullback Option Scalper (Behavioral Mirror, Target +10%, SL -11.5%, 1-Loss Kill Switch)
 
 Connects to Angel One SmartAPI to track Nifty and BankNifty Spot and option candles in real-time.
 Pushes instant alerts to Telegram for every entry, target, stop, and EOD daily report.
@@ -81,11 +82,11 @@ def get_banknifty_dte(ist_now: datetime, target_date) -> float:
 
 class LiveTriPaperTrader:
     """
-    Unified Tri-Strategy Paper Trading Engine.
-    Executes and monitors Strategy 1, Strategy 2, and Strategy 3 during live market hours.
+    Unified Quad-Strategy Paper Trading Engine.
+    Executes and monitors Strategy 1, Strategy 2, Strategy 3, and Strategy 4 during live market hours.
     """
     def __init__(self, target_strategy: str = "all"):
-        self.target_strategy = target_strategy.lower() # 'all', 's1', 's2', 's3'
+        self.target_strategy = target_strategy.lower() # 'all', 's1', 's2', 's3', 's4'
         self.lot_size = config.LOT_SIZE
         self.bn_lot_size = config.BANKNIFTY_LOT_SIZE
         self.capital = config.INITIAL_CAPITAL
@@ -1349,7 +1350,7 @@ class LiveTriPaperTrader:
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
             f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
-            f"Bot is actively monitoring the optimized Tri-Strategy portfolio:\n"
+            f"Bot is actively monitoring the optimized Quad-Strategy portfolio:\n"
             f"• Strategy 1: Nifty 15M Breakout (ATM, SL -{int(config.S1_SL_PCT*100)}%, TP +{int(config.S1_TARGET_PCT*100)}%, Cutoff {config.S1_ENTRY_CUTOFF})\n"
             f"• Strategy 2: BankNifty 15M Breakout (Dynamic Strike, Buffer +{int(config.S2_BUFFER_PTS)}pt, SL -{int(config.S2_SL_PCT*100)}%, TP +{int(config.S2_TARGET_PCT*100)}%, Cutoff {config.S2_ENTRY_CUTOFF})\n"
             f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n• Strategy 4: Nifty 1M Pullback Scalper (ATM, SL -11.5%, TP +10%, Single-Loss Stop)\n\n"
@@ -1403,7 +1404,7 @@ class LiveTriPaperTrader:
             else:
                 bn_spot = self.get_banknifty_spot_price()
 
-            # Execute real-time tracking across active Tri-Strategy core
+            # Execute real-time tracking across active Quad-Strategy core
             if config.S1_ENABLED and self.target_strategy in ["all", "s1", "directional"] and not df_all.empty:
                 try:
                     self.process_live_strategy_1(df_all, today_date, ist_now, spot)
@@ -1660,7 +1661,7 @@ class LiveTriPaperTrader:
             print(f"[EOD] Daily summary for {today} was already sent. Skipping duplicate.")
 
     def run_replay_demonstration(self):
-        """Simulates all 3 strategies on the latest market session for offline testing."""
+        """Simulates all 4 strategies on the latest market session for offline testing."""
         print("=" * 85)
         print("   QUAD-STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
         print("=" * 85)
@@ -1999,3 +2000,7 @@ if __name__ == "__main__":
     if args.replay:
         trader.replay_mode = True
     trader.run()
+
+
+# Backwards-compatible class alias
+LiveQuadPaperTrader = LiveTriPaperTrader
