@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: nifty-trading-bot
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write

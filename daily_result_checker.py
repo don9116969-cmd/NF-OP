@@ -670,11 +670,26 @@ def run():
     for s_name, s_res in active_evals:
         has_strat_trade = any(s_name.lower() in str(t.get("strategy", "")).lower() for t in today_live_trades)
         if not has_strat_trade and s_res.get("trade_occurred", False):
-            if "all_trades" in s_res and len(s_res["all_trades"]) > 1:
-                for sub_tr in s_res["all_trades"]:
-                    log_trade_to_journal(target_date, s_name, sub_tr)
-            else:
-                log_trade_to_journal(target_date, s_name, s_res)
+            trades_to_log = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
+            for sub_tr in trades_to_log:
+                log_trade_to_journal(target_date, s_name, sub_tr)
+                # Send immediate Telegram notification for reconciled trades so user is never left uninformed!
+                try:
+                    from src.notifications.notifier import send_trade_exit_alert
+                    send_trade_exit_alert(
+                        strategy=s_name,
+                        exit_reason=sub_tr.get("exit_reason", "Audit Reconciled"),
+                        gross_pnl=float(sub_tr.get("gross_pnl", 0.0)),
+                        charges=float(sub_tr.get("charges", 0.0)),
+                        net_pnl=float(sub_tr.get("net_pnl", 0.0)),
+                        details=f"{sub_tr.get('symbol', sub_tr.get('strike', ''))} | Entry: Rs {float(sub_tr.get('entry_p', 0)):.2f} ({sub_tr.get('entry_time', '')}) -> Exit: Rs {float(sub_tr.get('exit_p', 0)):.2f} ({sub_tr.get('exit_time', '')})",
+                        time_str=str(sub_tr.get("exit_time", "")),
+                        date_str=str(target_date),
+                        entry_time=str(sub_tr.get("entry_time", "")),
+                        strike=str(sub_tr.get("strike", ""))
+                    )
+                except Exception as e:
+                    print(f"[WARN] Failed to send reconciled trade alert: {e}")
 
     print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res)
 

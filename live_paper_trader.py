@@ -1831,17 +1831,20 @@ class LiveTriPaperTrader:
                 return
 
             from src.strategies.nifty_1m_scalper import compute_indicators, determine_morning_bias, check_pullback_trigger
-            day_bars = df_all[df_all["timestamp"].dt.date == today_date].copy().sort_values("timestamp").reset_index(drop=True)
-            if len(day_bars) < 15:
+
+            # Warm up indicators across continuous recent candles (last 1500 1-min bars)
+            warmup_bars = df_all.tail(1500).copy()
+            df_ind = compute_indicators(warmup_bars)
+            day_bars = df_ind[df_ind["timestamp"].dt.date == today_date].copy().sort_values("timestamp").reset_index(drop=True)
+            if len(day_bars) < 5:
                 return
 
-            df_ind = compute_indicators(day_bars)
-            bias = determine_morning_bias(df_ind)
+            curr_row = day_bars.iloc[-1]
+            prev_row = day_bars.iloc[-2] if len(day_bars) >= 2 else curr_row
+
+            bias = determine_morning_bias(day_bars)
             if bias == 0:
                 return
-
-            curr_row = df_ind.iloc[-1]
-            prev_row = df_ind.iloc[-2] if len(df_ind) >= 2 else curr_row
 
             if not check_pullback_trigger(curr_row, prev_row, bias):
                 return
@@ -1850,15 +1853,17 @@ class LiveTriPaperTrader:
             entry_spot = float(curr_row["close"])
             candle_ts = pd.to_datetime(curr_row["timestamp"]).to_pydatetime()
 
-            strike, df_opt, sym, feed_label, chosen_c_opt, _ = select_dynamic_affordable_strike(
+            strike, df_opt, sym, feed_label, opt_entry_p, opt_cost = select_dynamic_affordable_strike(
                 self.smart_api, today_date, entry_spot, opt_type, "NIFTY", day_bars, entry_ts=candle_ts, max_budget=config.S4_MAX_BUDGET
             )
 
             if df_opt.empty:
                 return
 
-            entry_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
-            cost = round(entry_p * self.lot_size, 2)
+            chosen_c_opt = get_active_option_contract(today_date, strike, opt_type, underlying="NIFTY") if self.smart_api else None
+            entry_p = opt_entry_p if opt_entry_p > 0 else round(float(df_opt.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+            cost = opt_cost if opt_cost > 0 else round(entry_p * self.lot_size, 2)
+
             if cost > config.S4_MAX_BUDGET:
                 return
 
@@ -1869,12 +1874,14 @@ class LiveTriPaperTrader:
             target_p = round(entry_p * (1.0 + config.S4_TARGET_PCT), 2)
             sl_p = round(entry_p * (1.0 - config.S4_SL_PCT), 2)
 
+            sym_str = chosen_c_opt["symbol"] if chosen_c_opt else (sym if sym else f"NIFTY{strike}{opt_type}")
+
             pos_data = {
-                "entry_time": ist_now,
+                "entry_time": candle_ts,
                 "spot_entry": entry_spot,
                 "strike": strike,
                 "opt_type": opt_type,
-                "symbol": sym,
+                "symbol": sym_str,
                 "entry_p": entry_p,
                 "cost": cost,
                 "target_p": target_p,
@@ -1885,20 +1892,26 @@ class LiveTriPaperTrader:
                 "data_feed": feed_label
             }
 
+            print(f"[S4 LIVE ENTRY] Pullback bounce triggered at {candle_ts.strftime('%H:%M:%S')}! BUY {sym_str} @ Rs {entry_p:.2f}")
+
             try:
                 send_trade_entry_alert(
                     strategy="Strategy 4: Nifty 1M Pullback Scalper",
                     spot=entry_spot,
-                    strike=strike,
                     opt_type=opt_type,
-                    symbol=sym,
+                    strike=str(sym_str),
                     entry_p=entry_p,
-                    target_p=target_p,
-                    sl_p=sl_p,
-                    cost=cost,
-                    time_str=ist_now.strftime("%H:%M:%S"),
-                    date_str=str(today_date),
-                    feed_label=feed_label
+                    ce_str=sym_str if opt_type == "CE" else "",
+                    pe_str=sym_str if opt_type == "PE" else "",
+                    ce_p=entry_p if opt_type == "CE" else 0.0,
+                    pe_p=entry_p if opt_type == "PE" else 0.0,
+                    tot_cost=cost,
+                    win_target_pct=config.S4_TARGET_PCT,
+                    lose_stop_pct=config.S4_SL_PCT,
+                    max_hold_mins=25,
+                    time_str=candle_ts.strftime("%H:%M:%S"),
+                    qty=self.lot_size,
+                    date_str=str(today_date)
                 )
             except Exception as e:
                 print(f"[WARN] Failed to send S4 entry alert: {e}")
