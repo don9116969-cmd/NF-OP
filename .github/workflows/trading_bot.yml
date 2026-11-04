@@ -25,6 +25,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
       - name: Check Market Hours & Holidays (Scheduled Runs)
         if: github.event_name == 'schedule'
         run: |
@@ -40,12 +46,6 @@ jobs:
               print('Market closed and squareoff finished for today. Skipping redundant run.')
               sys.exit(0)
           " 
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
 
       - name: Install Dependencies
         run: |

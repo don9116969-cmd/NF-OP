@@ -345,20 +345,24 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
     caught_up = []
     for d in missed_dates:
         print(f"=== [AUTO-CATCHUP] Auditing Missed Day: {d.strftime('%A, %d-%b-%Y')} ===")
-        s1_res = evaluate_strategy_1(df_all, d, api=api)
-        s2_res = evaluate_strategy_2(df_bn, d, api=api) if not df_bn.empty else {"status": "NO_DATA"}
-        s3_res = evaluate_strategy_3(df_all, d, api=api)
+        from src.strategies.nifty_1m_scalper import evaluate_strategy_4
+        s1_res = evaluate_strategy_1(df_all, d, api=api) if config.S1_ENABLED else {"trade_occurred": False}
+        s2_res = evaluate_strategy_2(df_bn, d, api=api) if (not df_bn.empty and config.S2_ENABLED) else {"trade_occurred": False}
+        s3_res = evaluate_strategy_3(df_all, d, api=api) if config.S3_ENABLED else {"trade_occurred": False}
+        s4_res = evaluate_strategy_4(df_all, d, api=api) if config.S4_ENABLED else {"trade_occurred": False}
 
         day_trades_count = 0
         day_net_pnl = 0.0
         day_trades = []
 
-        # Log any trades that occurred
-        for s_name, s_res in [
-            ("Strategy 1: Nifty 15M Directional Breakout", s1_res),
-            ("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res),
-            ("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res)
-        ]:
+        # Log any trades that occurred across Quad-Strategy core
+        eval_list = []
+        if config.S1_ENABLED: eval_list.append(("Strategy 1: Nifty 15M Directional Breakout", s1_res))
+        if config.S2_ENABLED: eval_list.append(("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res))
+        if config.S3_ENABLED: eval_list.append(("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res))
+        if config.S4_ENABLED: eval_list.append(("Strategy 4: Nifty 1M Pullback Scalper", s4_res))
+
+        for s_name, s_res in eval_list:
             if s_res.get("trade_occurred", False):
                 trades_to_log = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
                 for sub_tr in trades_to_log:

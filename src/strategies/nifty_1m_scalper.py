@@ -150,13 +150,21 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api =
         curr_row = eligible_bars.iloc[idx]
         prev_row = eligible_bars.iloc[idx - 1]
 
-        if not check_pullback_trigger(curr_row, prev_row, bias):
+        # Zero-lookahead bias determination matching live execution:
+        # Before 09:30 AM, use bars available up to the current candle time.
+        # After 09:30 AM, the morning bias is permanently locked using the 09:30 AM candle.
+        if curr_row["timestamp"].time() <= datetime.time(9, 30):
+            candle_bias = determine_morning_bias(day_bars[day_bars["timestamp"] <= curr_row["timestamp"]])
+        else:
+            candle_bias = bias
+
+        if candle_bias == 0 or not check_pullback_trigger(curr_row, prev_row, candle_bias):
             continue
 
         # Trigger fired!
         entry_ts = curr_row["timestamp"]
         entry_spot = float(curr_row["close"])
-        opt_type = "CE" if bias == 1 else "PE"
+        opt_type = "CE" if candle_bias == 1 else "PE"
         initial_strike = int(round(entry_spot / 50.0) * 50)
 
         # Dynamic strike selection for real ATM/OTM option contract

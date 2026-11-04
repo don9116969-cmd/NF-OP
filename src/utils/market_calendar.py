@@ -41,6 +41,7 @@ NSE_HOLIDAYS: Dict[str, str] = {
     "2026-08-26": "Milad-un-Nabi",
     "2026-10-02": "Mahatma Gandhi Jayanti",
     "2026-10-20": "Dussehra",
+    "2026-11-09": "Diwali Laxmi Pujan / Govardhan Puja",
     "2026-11-10": "Diwali-Balipratipada",
     "2026-11-24": "Gurunanak Jayanti",
     "2026-12-25": "Christmas",

@@ -295,16 +295,22 @@ class LiveTriPaperTrader:
             "s1": None,
             "s2": None,
             "s3": None,
+            "s4": None,
         }
         self.cooldown_until = {
             "s1": None,
             "s2": None,
             "s3": None,
+            "s4": None,
         }
         self.daily_trade_count = {
             "s1": 0,
             "s2": 0,
             "s3": 0,
+            "s4": 0,
+        }
+        self.daily_loss_count = {
+            "s4": 0,
         }
         if os.path.exists("data/trade_journal.csv"):
             try:
@@ -1330,8 +1336,8 @@ class LiveTriPaperTrader:
     def run_live_loop(self):
         """Continuously monitors live market during trading hours across all 3 active strategies in real-time."""
         print("\n" + "=" * 85)
-        print("   MULTI-INDEX LIVE MARKET TRADING ENGINE ACTIVE (TRI-STRATEGY CORE SYSTEM)")
-        print("   Active Strategies: S1 (Nifty Directional), S2 (BankNifty Directional), S3 (Nifty DAS)")
+        print("   MULTI-INDEX LIVE MARKET TRADING ENGINE ACTIVE (QUAD-STRATEGY CORE SYSTEM)")
+        print("   Active Strategies: S1 (Nifty Directional), S2 (BankNifty Directional), S3 (Nifty DAS), S4 (Nifty Scalper)")
         print("=" * 85)
 
         ist_now = get_ist_now()
@@ -1339,7 +1345,7 @@ class LiveTriPaperTrader:
         self.init_today_state(today_date)
 
         send_telegram_alert(
-            f"🚀 *Option Trading Bot Woke Up (Tri-Strategy Core System Active)*\n"
+            f"🚀 *Option Trading Bot Woke Up (Quad-Strategy Core System Active)*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"⏰ *Session Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
             f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n\n"
@@ -1568,6 +1574,10 @@ class LiveTriPaperTrader:
                 if config.S3_ENABLED:
                     s3_res = evaluate_strategy_3(df_all, today, api=self.smart_api)
                     active_evals.append(("Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)", s3_res))
+                if config.S4_ENABLED:
+                    from src.strategies.nifty_1m_scalper import evaluate_strategy_4
+                    s4_res = evaluate_strategy_4(df_all, today, api=self.smart_api)
+                    active_evals.append(("Strategy 4: Nifty 1M Pullback Scalper", s4_res))
 
             if not df_bn.empty:
                 df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
@@ -1601,8 +1611,8 @@ class LiveTriPaperTrader:
                             ce_p=sub_ep if "CE" in sub_opt else 0.0,
                             pe_p=sub_ep if "PE" in sub_opt else 0.0,
                             tot_cost=sub_c,
-                            win_target_pct=config.S1_TARGET_PCT if "Strategy 1" in s_name else (config.S2_TARGET_PCT if "Strategy 2" in s_name else 0.60),
-                            lose_stop_pct=config.S1_SL_PCT if "Strategy 1" in s_name else (config.S2_SL_PCT if "Strategy 2" in s_name else 0.12),
+                            win_target_pct=config.S1_TARGET_PCT if "Strategy 1" in s_name else (config.S2_TARGET_PCT if "Strategy 2" in s_name else (config.S4_TARGET_PCT if "Strategy 4" in s_name else 0.60)),
+                            lose_stop_pct=config.S1_SL_PCT if "Strategy 1" in s_name else (config.S2_SL_PCT if "Strategy 2" in s_name else (config.S4_SL_PCT if "Strategy 4" in s_name else 0.12)),
                             max_hold_mins=360,
                             time_str=sub_t,
                             qty=self.bn_lot_size if "BankNIFTY" in s_name else self.lot_size,
@@ -1652,7 +1662,7 @@ class LiveTriPaperTrader:
     def run_replay_demonstration(self):
         """Simulates all 3 strategies on the latest market session for offline testing."""
         print("=" * 85)
-        print("   TRI-STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
+        print("   QUAD-STRATEGY REPLAY DEMONSTRATION & TELEGRAM TEST")
         print("=" * 85)
         df_n = pd.read_csv("data/nifty_1min_real.csv") if os.path.exists("data/nifty_1min_real.csv") else pd.DataFrame()
         df_b = pd.read_csv("data/banknifty_1min_real.csv") if os.path.exists("data/banknifty_1min_real.csv") else pd.DataFrame()
@@ -1671,14 +1681,17 @@ class LiveTriPaperTrader:
             df_b["timestamp"] = pd.to_datetime(df_b["timestamp"]).dt.tz_localize(None)
 
         print(f"Testing latest recorded market session: {last_date}")
+        from src.strategies.nifty_1m_scalper import evaluate_strategy_4
         s1 = evaluate_strategy_1(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
         s2 = evaluate_strategy_2(df_b, last_date, api=self.smart_api) if not df_b.empty else {}
         s3 = evaluate_strategy_3(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
+        s4 = evaluate_strategy_4(df_n, last_date, api=self.smart_api) if not df_n.empty else {}
 
         print(f"\n[EVALUATION RESULTS FOR {last_date}]")
         print(f"Strategy 1 (Nifty 15M Directional Breakout)       : {s1.get('status')} | Trade: {s1.get('trade_occurred')}")
         print(f"Strategy 2 (BankNIFTY 15M Directional Breakout)   : {s2.get('status')} | Trade: {s2.get('trade_occurred')}")
         print(f"Strategy 3 (Nifty Decoupled Asymmetric Strangle)  : {s3.get('status')} | Trade: {s3.get('trade_occurred')}")
+        print(f"Strategy 4 (Nifty 1M Pullback Scalper)            : {s4.get('status')} | Trade: {s4.get('trade_occurred')}")
 
 
     def process_live_strategy_4(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):

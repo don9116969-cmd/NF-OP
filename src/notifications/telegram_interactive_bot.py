@@ -97,10 +97,11 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
             f"📈 *Today's Session So Far:*\n"
             f"{today_perf_str}"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Bot is actively scanning 1-minute market candles across Tri-Strategy Core System:\n"
+            f"Bot is actively scanning 1-minute market candles across Quad-Strategy Core System:\n"
             f"• Strategy 1: Nifty 15M Directional Breakout (ATM, SL -16%, TP +60%)\n"
             f"• Strategy 2: BankNIFTY 15M Directional Breakout (OTM, SL -25%, TP +80%)\n"
-            f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS Compression & Expansion)\n\n"
+            f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS Compression & Expansion)\n"
+            f"• Strategy 4: Nifty 1M Pullback Scalper (ATM, SL -11.5%, TP +10%, Single-Loss Stop)\n\n"
             f"🔔 *Instant alert will fire the exact second a trade enters!*"
         )
         return msg, inline_kb
