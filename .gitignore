@@ -24,8 +24,14 @@ data/backup_real_aug_oct/
 data/angel_scrip_master.json
 *.log
 logs/
+scratch/
+
+# Generated Research & Tool Artifacts
+tools/*.csv
+tools/*.png
 
 # IDE & Editor folders
 .vscode/
 .idea/
 .DS_Store
+*.tmp

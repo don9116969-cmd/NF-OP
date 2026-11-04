@@ -135,6 +135,18 @@ python daily_result_checker.py --date 2026-11-04
 ```
 *Evaluates all 4 strategies, reconciles any unrecorded trades, updates `trade_journal.md`, and prints the portfolio ledger table.*
 
+### 4. Run Interactive Telegram Controller Bot
+```powershell
+python telegram_interactive_bot.py
+```
+*Listens for user commands (`/status`, `/today`, `/pnl`, `/summary`, `/journal`) and sends instant responses.*
+
+### 5. Run Historical Portfolio Backtest
+```powershell
+python tools/backtest_portfolio.py --start 2026-08-01 --end 2026-11-04
+```
+*Backtests all 4 strategies across the continuous datasets and displays institutional performance metrics.*
+
 ---
 
 ## 📂 Project Directory Structure
@@ -144,31 +156,47 @@ NF-OP/
 ├── .github/workflows/
 │   └── trading_bot.yml           # Automated GitHub Actions cloud execution workflow
 ├── data/
-│   ├── nifty_1min_real.csv       # Continuous 1-minute real Nifty spot candles
-│   ├── banknifty_1min_real.csv   # Continuous 1-minute real BankNifty spot candles
-│   ├── trade_journal.csv         # Canonical chronological trade ledger
+│   ├── nifty_1min_real.csv       # Continuous 1-minute real Nifty spot candles (auto-synced)
+│   ├── banknifty_1min_real.csv   # Continuous 1-minute real BankNifty spot candles (auto-synced)
+│   ├── trade_journal.csv         # Canonical chronological trade ledger (all 4 strategies)
 │   ├── trade_journal.md          # Formatted live Markdown performance journal
 │   ├── active_positions.json     # Real-time state persistence for crash resilience
-│   └── sent_alerts.json          # Deterministic deduplication record for Telegram
+│   ├── sent_alerts.json          # Deterministic deduplication record for Telegram
+│   ├── audited_days.json         # Reconciled daily audit records
+│   ├── live_paper_trades.csv     # Paper execution transaction history log
+│   └── README.md                 # Complete documentation of data feeds & records
 ├── src/
+│   ├── banknifty/
+│   │   └── banknifty_das.py      # Strategy 2: BankNIFTY 15M Directional Breakout
 │   ├── data/
+│   │   ├── angel_connector.py    # Angel One SmartAPI connector & session manager
 │   │   └── real_option_feed.py   # Angel One SmartAPI live candle and LTP fetcher
+│   ├── decoupled_strangle/
+│   │   ├── das_engine.py         # Strategy 3: Decoupled Asymmetric Strangle engine
+│   │   └── das_signals.py        # Volatility compression & expansion signal detector
 │   ├── features/
-│   │   └── greeks.py             # Black-Scholes pricing & calendar DTE calculator
+│   │   ├── greeks.py             # Black-Scholes pricing & calendar DTE calculator
+│   │   └── indicators.py         # ATR, EMA, Supertrend, and technical indicators
 │   ├── notifications/
 │   │   ├── notifier.py           # Telegram notification formatters and deduplication
 │   │   └── telegram_interactive_bot.py # Interactive /status, /today, /pnl listener
 │   ├── strategies/
-│   │   └── nifty_1m_scalper.py   # Strategy 4 Pullback Scalper implementation
+│   │   └── nifty_1m_scalper.py   # Strategy 4: Nifty 1M Pullback Scalper implementation
 │   └── utils/
+│       ├── git_sync.py           # Git synchronization and commit utility
 │       ├── journal_manager.py    # Automated trade ledger and Markdown journal writer
-│       ├── market_calendar.py    # NSE official holiday schedule & verification
-│       └── git_sync.py           # Git synchronization and commit utility
-├── config.py                     # Centralized configuration dataclass
-├── live_paper_trader.py          # Master live market execution engine
+│       └── market_calendar.py    # NSE official holiday schedule & verification
+├── tools/
+│   ├── backtest_portfolio.py     # Unified Quad-Strategy Portfolio Backtester
+│   ├── plot_equity.py            # Equity Curves & Drawdown Visualization Generator
+│   └── README.md                 # Guide to running backtests and generating charts
+├── config.py                     # Centralized configuration dataclass & risk rules
 ├── daily_result_checker.py       # EOD reconciliation, audit, and dashboard utility
+├── live_paper_trader.py          # Master live market execution engine
+├── telegram_interactive_bot.py   # Standalone interactive Telegram bot launcher
 ├── requirements.txt              # Production Python package dependencies
-└── README.md                     # Complete system documentation
+├── .gitignore                    # Production git exclusion rules
+└── README.md                     # Complete institutional system documentation
 ```
 
 ---
@@ -187,3 +215,4 @@ TELEGRAM_CHAT_ID=your_telegram_chat_id
 ---
 
 *Institutional Rigor. Zero Lookahead Bias. Systematic Execution.*
+
