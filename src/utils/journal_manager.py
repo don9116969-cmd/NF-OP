@@ -14,6 +14,7 @@ import json
 import datetime
 import pandas as pd
 from typing import Dict, Any, List, Optional
+from config import config
 from src.utils.git_sync import git_sync_push
 
 if hasattr(sys.stdout, "reconfigure"):
