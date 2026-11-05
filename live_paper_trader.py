@@ -63,7 +63,12 @@ from src.utils.journal_manager import (
     mark_day_as_audited
 )
 from src.utils.git_sync import git_sync_push
-from src.data.real_option_feed import get_active_option_contract, fetch_real_option_candles, get_candle_feed
+from src.data.real_option_feed import (
+    get_active_option_contract,
+    fetch_real_option_candles,
+    get_candle_feed,
+    select_dynamic_affordable_strike
+)
 from src.features.greeks import black_scholes_price, compute_calendar_dte
 
 load_dotenv()

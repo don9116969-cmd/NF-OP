@@ -219,7 +219,7 @@ def refresh_markdown_journal():
             else:
                 tgt = f"₹{float(tgt):.2f}"
 
-            sl = pos.get("stop_p", "")
+            sl = pos.get("stop_p", pos.get("sl_p", ""))
             if not sl:
                 ce_sl = pos.get("ce_sl", 0)
                 pe_sl = pos.get("pe_sl", 0)

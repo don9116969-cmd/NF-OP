@@ -242,6 +242,7 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
     exit_p = entry_p
     exit_ts = sub_opt.index[-1]
     exit_reason = "EOD (15:15)"
+    hit_exit = False
 
     for o_ts, o_row in sub_opt.iloc[1:].iterrows():
         # Evaluate Stop Loss before Target for strict conservative modeling (no lookahead bias)
@@ -249,17 +250,32 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
             exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = f"SL Hit (-{int(config.S1_SL_PCT*100)}%)"
+            hit_exit = True
             break
         elif float(o_row["high"]) >= tgt_p:
             exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT*100)}%)"
+            hit_exit = True
             break
         elif o_ts.time() >= datetime.time(15, 15):
             exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = "EOD (15:15)"
+            hit_exit = True
             break
+
+    is_open = False
+    if not hit_exit:
+        if sub_opt.index[-1].time() >= datetime.time(15, 15):
+            exit_p = round(float(sub_opt.iloc[-1]["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = sub_opt.index[-1]
+            exit_reason = "EOD (15:15)"
+        else:
+            is_open = True
+            exit_reason = "IN PROGRESS"
+            exit_p = round(float(sub_opt.iloc[-1]["close"]), 2)
+            exit_ts = sub_opt.index[-1]
 
     gross = (exit_p - entry_p) * config.LOT_SIZE
     turn = (entry_p + exit_p) * config.LOT_SIZE
@@ -394,6 +410,7 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
     exit_p = entry_p
     exit_ts = sub_opt.index[-1]
     exit_reason = "EOD (15:15)"
+    hit_exit = False
 
     for o_ts, o_row in sub_opt.iloc[1:].iterrows():
         # Evaluate Stop Loss before Target for strict conservative modeling (no lookahead bias)
@@ -401,17 +418,32 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
             exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = f"SL Hit (-{int(config.S2_SL_PCT*100)}%)"
+            hit_exit = True
             break
         elif float(o_row["high"]) >= tgt_p:
             exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT*100)}%)"
+            hit_exit = True
             break
         elif o_ts.time() >= datetime.time(15, 15):
             exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = "EOD (15:15)"
+            hit_exit = True
             break
+
+    is_open = False
+    if not hit_exit:
+        if sub_opt.index[-1].time() >= datetime.time(15, 15):
+            exit_p = round(float(sub_opt.iloc[-1]["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+            exit_ts = sub_opt.index[-1]
+            exit_reason = "EOD (15:15)"
+        else:
+            is_open = True
+            exit_reason = "IN PROGRESS"
+            exit_p = round(float(sub_opt.iloc[-1]["close"]), 2)
+            exit_ts = sub_opt.index[-1]
 
     gross = (exit_p - entry_p) * config.BANKNIFTY_LOT_SIZE
     turn = (entry_p + exit_p) * config.BANKNIFTY_LOT_SIZE
@@ -464,7 +496,15 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
 
     def print_strategy_box(title, s):
         print(f"[{title}]")
-        if s.get("trade_occurred", False):
+        if s.get("status") == "TRADE_IN_PROGRESS" or s.get("is_open", False):
+            print(f"-> STATUS: TRADE IN PROGRESS (LIVE OPEN POSITION)")
+            sym_lbl = s.get("symbol") or f"{s.get('strike')} ({s.get('opt_type', s.get('leg', ''))})"
+            print(f"   BUY {sym_lbl} @ INR {float(s.get('entry_p', 0)):.2f} (Capital: INR {float(s.get('cost', 0)):.2f})")
+            print(f"   Entry: {s.get('entry_time')} | Target: INR {float(s.get('target_p', 0)):.2f} | Stop Loss: INR {float(s.get('sl_p', 0)):.2f}")
+            print(f"   Position is currently active and managed live by cloud runner.")
+            if "data_feed" in s:
+                print(f"   Option Data Feed: {s.get('data_feed')}")
+        elif s.get("trade_occurred", False):
             p_col = "+" if s.get("net_pnl", 0) > 0 else ""
             n_trades = s.get("num_trades_day", 1)
             t_str = f" ({n_trades} Trades Executed Today)" if n_trades > 1 else ""
@@ -624,7 +664,42 @@ def run():
             today_live_trades = []
 
     def get_strategy_evaluation(strat_key, strat_full_name, eval_func, df_candles):
-        # Check if actual live trades occurred today for this strategy
+        # 1. Check if this strategy has an ACTIVE live open position in active_positions.json
+        from src.utils.journal_manager import load_active_positions
+        active_pos = load_active_positions()
+        short_k = strat_key.lower().replace("strategy ", "s").strip()
+        if short_k in active_pos and active_pos[short_k]:
+            pos = active_pos[short_k]
+            e_t = str(pos.get("entry_time", ""))
+            if "T" in e_t:
+                e_t = e_t.split("T")[-1].split(".")[0]
+            tgt_val = pos.get("target_p", 0.0)
+            sl_val = pos.get("stop_p", pos.get("sl_p", 0.0))
+            return {
+                "trade_occurred": True,
+                "status": "TRADE_IN_PROGRESS",
+                "is_open": True,
+                "strategy": strat_full_name,
+                "num_trades_day": 1,
+                "entry_time": e_t,
+                "exit_time": "OPEN (In-Flight)",
+                "strike": pos.get("strike", ""),
+                "opt_type": pos.get("opt_type", "CE"),
+                "symbol": pos.get("symbol", f"{pos.get('strike')}{pos.get('opt_type')}"),
+                "entry_p": pos.get("entry_p", 0.0),
+                "exit_p": pos.get("entry_p", 0.0),
+                "target_p": tgt_val,
+                "sl_p": sl_val,
+                "cost": pos.get("cost", 0.0),
+                "gross_pnl": 0.0,
+                "charges": 0.0,
+                "net_pnl": 0.0,
+                "exit_reason": "IN PROGRESS (Live Market)",
+                "data_feed": pos.get("data_feed", "Angel One Real Traded LTP"),
+                "reason": f"Active position open in live market | Target: {tgt_val} | SL: {sl_val}"
+            }
+
+        # 2. Check if actual live trades occurred today for this strategy
         strat_trades = [t for t in today_live_trades if strat_full_name.lower() in str(t.get("strategy", "")).lower() or strat_key.lower() == str(t.get("strategy", "")).lower()]
         if strat_trades:
             net_tot = round(sum(float(t.get("net_pnl", 0.0)) for t in strat_trades), 2)
@@ -669,6 +744,9 @@ def run():
     if config.S4_ENABLED: active_evals.append(("Strategy 4: Nifty 1M Pullback Scalper", s4_res))
 
     for s_name, s_res in active_evals:
+        # Never reconcile or log in-progress / open live positions
+        if s_res.get("is_open", False) or s_res.get("status") == "TRADE_IN_PROGRESS":
+            continue
         has_strat_trade = any(s_name.lower() in str(t.get("strategy", "")).lower() for t in today_live_trades)
         if not has_strat_trade and s_res.get("trade_occurred", False):
             trades_to_log = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
@@ -694,8 +772,15 @@ def run():
 
     print_portfolio_dashboard(target_date, s1_res, s2_res, s3_res, s4_res)
 
-    # Mark day as audited
-    mark_day_as_audited(str(target_date))
+    # Mark day as audited ONLY if market session is finished (past date OR today >= 15:15 IST)
+    now_ist = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)).replace(tzinfo=None)
+    is_today = (target_date == now_ist.date())
+    is_market_closed = (now_ist.time() >= datetime.time(15, 15))
+
+    if not is_today or is_market_closed:
+        mark_day_as_audited(str(target_date))
+    else:
+        print(f"[INTRADAY] Market session for {target_date} is still active. Daily audit will finalize post-15:15 EOD.")
     refresh_markdown_journal()
 
     # Automatically push journal update to GitHub

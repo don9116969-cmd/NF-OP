@@ -192,6 +192,7 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api =
         exit_ts = sub_opt.index[-1]
         exit_reason = "EOD (15:15)"
         bars_held = 0
+        hit_exit = False
 
         # Evaluate sub-candles
         for o_ts, o_row in sub_opt.iloc[1:].iterrows():
@@ -201,17 +202,32 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api =
                 exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
                 exit_ts = o_ts
                 exit_reason = f"SL Hit (-{int(config.S4_SL_PCT * 100)}%)"
+                hit_exit = True
                 break
             elif float(o_row["high"]) >= tgt_p:
                 exit_p = round(tgt_p * (1.0 - config.SLIPPAGE_PCT), 2)
                 exit_ts = o_ts
                 exit_reason = f"Target Hit (+{int(config.S4_TARGET_PCT * 100)}%)"
+                hit_exit = True
                 break
             elif o_ts.time() >= datetime.time(15, 15):
                 exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
                 exit_ts = o_ts
                 exit_reason = "EOD (15:15)"
+                hit_exit = True
                 break
+
+        is_open = False
+        if not hit_exit:
+            if sub_opt.index[-1].time() >= datetime.time(15, 15):
+                exit_p = round(float(sub_opt.iloc[-1]["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
+                exit_ts = sub_opt.index[-1]
+                exit_reason = "EOD (15:15)"
+            else:
+                is_open = True
+                exit_reason = "IN PROGRESS"
+                exit_p = round(float(sub_opt.iloc[-1]["close"]), 2)
+                exit_ts = sub_opt.index[-1]
 
         gross = (exit_p - entry_p) * lot_size
         turn = (entry_p + exit_p) * lot_size
@@ -243,6 +259,8 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api =
             "charges": charges,
             "net_pnl": net,
             "exit_reason": exit_reason,
+            "is_open": is_open,
+            "status": "TRADE_IN_PROGRESS" if is_open else "TRADE_EXECUTED",
             "data_feed": feed_label
         }
         daily_trades.append(trade_info)
