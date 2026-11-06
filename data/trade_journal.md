@@ -1,6 +1,6 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-05 12:28:48 IST*
+*Last Updated: 2026-11-06 09:26:03 IST*
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
 |:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 2: BankNIFTY 15M Directional Breakout** | `CE` | 58200 | 11:25:00 | ₹298.99 | ₹538.18 | ₹224.24 | ₹8969.70 | `🟢 ACTIVE / IN-PROGRESS` |
+| **Strategy 4: Nifty 1M Pullback Scalper** | `PE` | 24350 | 09:25:00 | ₹140.25 | ₹154.28 | ₹124.12 | ₹9116.25 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 

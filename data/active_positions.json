@@ -1,19 +1,21 @@
 {
-  "s2": {
-    "entry_time": "2026-11-05T11:25:00",
-    "spot_entry": 57145.2,
+  "s4": {
+    "entry_time": "2026-11-06T09:25:00",
+    "spot_entry": 24485.7,
+    "strike": 24350,
+    "opt_type": "PE",
+    "symbol": "NIFTY09NOV2624350PE",
+    "entry_p": 140.25,
+    "cost": 9116.25,
+    "target_p": 154.28,
+    "sl_p": 124.12,
     "contract": {
-      "token": "62250",
-      "symbol": "BANKNIFTY23NOV2658200CE"
+      "token": "39998",
+      "symbol": "NIFTY09NOV2624350PE"
     },
-    "opt_type": "CE",
-    "strike": 58200,
-    "symbol": "BANKNIFTY23NOV2658200CE",
-    "entry_p": 298.99,
-    "cost": 8969.7,
-    "target_p": 538.18,
-    "sl_p": 224.24,
-    "data_feed": "Angel One Real Traded LTP (BANKNIFTY23NOV2658200CE)",
-    "strategy_name": "Strategy 2: BankNIFTY 15M Directional Breakout"
+    "high_p": 140.25,
+    "low_p": 140.25,
+    "data_feed": "Real Option Tick",
+    "strategy_name": "Strategy 4: Nifty 1M Pullback Scalper"
   }
 }
