@@ -22,3 +22,4 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-11-04,Strategy 4: Nifty 1M Pullback Scalper,CE,24000,09:24:00,09:27:00,136.93,149.87,8900.45,841.1,67.94,773.16,Target Hit (+10%),Real Option Tick
 2026-11-04,Strategy 4: Nifty 1M Pullback Scalper,CE,24050,09:40:00,09:57:00,131.0,115.36,8515.0,-1016.6,64.15,-1080.75,SL Hit (-11%),Real Option Tick
 2026-11-05,Strategy 4: Nifty 1M Pullback Scalper,PE,24350,10:08:00,10:18:00,144.77,127.48,9410.05,-1123.85,65.93,-1189.78,SL Hit (-11%),Real Option Tick
+2026-11-06,Strategy 4: Nifty 1M Pullback Scalper,PE,NIFTY09NOV2624350PE,09:25:00,09:27:07,140.25,123.5,9116.25,-1088.75,65.34,-1154.09,SL Hit (-11%),Real Option Tick
