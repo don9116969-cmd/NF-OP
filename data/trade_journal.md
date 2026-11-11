@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-11 13:08:16 IST*
+*Last Updated: 2026-11-11 13:12:04 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 4: Nifty 1M Pullback Scalper** | `PE` | 25100 | 13:07:00 | ₹143.77 | ₹158.15 | ₹127.24 | ₹9345.05 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 27
-- **Win Rate**: 44.4% (12 Wins / 15 Losses)
-- **Net Realized PnL**: **INR +22,531.28**
-- **Current Account Balance**: **INR +32,531.28** (+225.3% Return)
+- **Total Executed Trades**: 28
+- **Win Rate**: 46.4% (13 Wins / 15 Losses)
+- **Net Realized PnL**: **INR +23,345.65**
+- **Current Account Balance**: **INR +33,345.65** (+233.5% Return)
 
 ---
 
@@ -53,4 +52,5 @@
 | 2026-11-06 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2659100CE | 09:50:00 | 13:47:48 | ₹302.71 | ₹542.16 | ₹9081.30 | **+₹7105.08** | Target Hit (+80%) | Angel One Real Traded LTP (BANKNIFTY23NOV2659100CE) |
 | 2026-11-11 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2662000CE | 09:37:00 | 11:32:44 | ₹304.36 | ₹545.11 | ₹9130.80 | **+₹7143.91** | Target Hit (+80%) | Angel One Real Traded LTP (BANKNIFTY23NOV2662000CE) |
 | 2026-11-11 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY17NOV2625200PE | 12:10:00 | 12:13:47 | ₹145.12 | ₹158.83 | ₹9432.80 | **+₹821.97** | Target Hit (+10%) | Real Option Tick |
+| 2026-11-11 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY17NOV2625100PE | 13:07:00 | 13:11:48 | ₹143.77 | ₹157.36 | ₹9345.05 | **+₹814.37** | Target Hit (+10%) | Real Option Tick |
 
