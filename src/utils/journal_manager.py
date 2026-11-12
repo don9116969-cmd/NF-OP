@@ -9,6 +9,7 @@ Manages:
 """
 
 import os
+import re
 import sys
 import json
 import datetime
@@ -102,6 +103,30 @@ def save_active_positions(positions: Dict[str, Any]):
     with open(ACTIVE_POSITIONS_JSON, "w", encoding="utf-8") as f:
         json.dump(clean_pos, f, indent=2, default=str)
 
+def _normalize_hms(val: Any) -> str:
+    """Extracts canonical HH:MM:SS string from timestamps or time strings."""
+    if hasattr(val, "strftime"):
+        return val.strftime("%H:%M:%S")
+    s = str(val or "").strip()
+    m = re.search(r"(\d{2}:\d{2}:\d{2})", s)
+    if m:
+        return m.group(1)
+    m_hm = re.search(r"(\d{2}:\d{2})", s)
+    if m_hm:
+        return f"{m_hm.group(1)}:00"
+    return s
+
+
+def _parse_hms_seconds(val: Any) -> Optional[int]:
+    """Converts HH:MM:SS timestamp string into seconds since midnight, or None."""
+    hms = _normalize_hms(val)
+    try:
+        dt = datetime.datetime.strptime(hms[:8], "%H:%M:%S")
+        return dt.hour * 3600 + dt.minute * 60 + dt.second
+    except Exception:
+        return None
+
+
 def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, Any]):
     """
     Appends a closed trade to trade_journal.csv without duplicates,
@@ -115,7 +140,8 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
         except Exception:
             df_j = pd.DataFrame()
 
-    entry_t = str(trade_res.get("entry_time", ""))
+    entry_t = _normalize_hms(trade_res.get("entry_time", ""))
+    exit_t = _normalize_hms(trade_res.get("exit_time", ""))
     leg_str = str(trade_res.get("leg", trade_res.get("opt_type", "CE+PE")))
     strike_str = str(trade_res.get("strike", ""))
 
@@ -131,18 +157,22 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
             if any(s in strategy_name for s in single_strats):
                 # Already logged today!
                 return
-            # Multi-trade strategies (Strategy 4 & 5): check 15m time window or exact match
-            if (sub["entry_time"].astype(str) == entry_t).any():
-                return
-            try:
-                from datetime import datetime as _dt
-                t_new = _dt.strptime(str(entry_t)[:8], "%H:%M:%S")
-                for exist_t in sub["entry_time"].astype(str):
-                    t_old = _dt.strptime(exist_t[:8], "%H:%M:%S")
-                    if abs((t_new - t_old).total_seconds()) < 900: # 15 minutes
+            # Multi-trade strategies (Strategy 4 & 5): deduplicate exact match, <=2m entry clock drift,
+            # or overlapping [entry, exit] windows (a single strategy cannot hold concurrent overlapping positions).
+            new_e_sec = _parse_hms_seconds(entry_t)
+            new_x_sec = _parse_hms_seconds(exit_t)
+            for _, exist_row in sub.iterrows():
+                exist_e_str = _normalize_hms(exist_row.get("entry_time", ""))
+                if entry_t and exist_e_str == entry_t:
+                    return
+                old_e_sec = _parse_hms_seconds(exist_e_str)
+                old_x_sec = _parse_hms_seconds(exist_row.get("exit_time", ""))
+                if new_e_sec is not None and old_e_sec is not None:
+                    if abs(new_e_sec - old_e_sec) <= 120:
                         return
-            except Exception:
-                pass
+                    if new_x_sec is not None and old_x_sec is not None:
+                        if new_e_sec < old_x_sec and new_x_sec > old_e_sec:
+                            return
 
     row = {
         "date": str(target_date),
@@ -150,7 +180,7 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
         "leg": leg_str,
         "strike": strike_str,
         "entry_time": entry_t,
-        "exit_time": str(trade_res.get("exit_time", "")),
+        "exit_time": exit_t,
         "entry_p": round(float(trade_res.get("entry_p", 0.0)), 2),
         "exit_p": round(float(trade_res.get("exit_p", 0.0)), 2),
         "capital_used": round(float(trade_res.get("cost", trade_res.get("capital_used", 0.0))), 2),

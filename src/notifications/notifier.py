@@ -382,7 +382,8 @@ def send_trade_exit_alert(
     s_code = normalize_strategy_code(strategy)
 
     p_emoji = "🎯" if net_pnl > 0 else "🛑"
-    p_sign = "+" if net_pnl > 0 else ""
+    g_str = f"+₹{gross_pnl:,.2f}" if gross_pnl >= 0 else f"-₹{abs(gross_pnl):,.2f}"
+    n_str = f"+₹{net_pnl:,.2f}" if net_pnl >= 0 else f"-₹{abs(net_pnl):,.2f}"
 
     msg = (
         f"{p_emoji} *TRADE EXIT NOTIFICATION*\n"
@@ -396,9 +397,9 @@ def send_trade_exit_alert(
 
     msg += (
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💵 *Gross PnL:* ₹{gross_pnl:+,.2f}\n"
+        f"💵 *Gross PnL:* {g_str}\n"
         f"📉 *Charges & STT:* ₹{charges:.2f}\n"
-        f"💎 *NET REALIZED PnL:* *{p_sign}₹{net_pnl:+,.2f}*\n"
+        f"💎 *NET REALIZED PnL:* *{n_str}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
     )
 
@@ -434,17 +435,17 @@ def send_daily_summary_alert(
 ) -> bool:
     """Formats and sends an EOD portfolio report with deduplication protection."""
     norm_date = normalize_date_str(date_str)
-    p_sign = "+" if daily_pnl > 0 else ""
-    c_sign = "+" if total_pnl > 0 else ""
+    d_str = f"+₹{daily_pnl:,.2f}" if daily_pnl >= 0 else f"-₹{abs(daily_pnl):,.2f}"
+    c_str = f"+₹{total_pnl:,.2f}" if total_pnl >= 0 else f"-₹{abs(total_pnl):,.2f}"
 
     msg = (
         f"📈 *DAILY PORTFOLIO SUMMARY*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"📅 *Date:* {date_str}\n"
         f"🔢 *Trades Taken Today:* {trades_count}\n"
-        f"💵 *Today's Net PnL:* *{p_sign}₹{daily_pnl:,.2f}*\n"
+        f"💵 *Today's Net PnL:* *{d_str}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💎 *Total Cumulative PnL:* *{c_sign}₹{total_pnl:,.2f}*\n"
+        f"💎 *Total Cumulative PnL:* *{c_str}*\n"
         f"💼 *Current Account Balance:* *₹{current_balance:,.2f}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🤖 *Nifty Option Bot Status:* Sleeping until next market session.\n"

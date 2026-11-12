@@ -80,10 +80,10 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
             except Exception:
                 pass
 
-        p_sign = "+" if today_net_pnl > 0 else ""
+        today_pnl_str = f"+₹{today_net_pnl:,.2f}" if today_net_pnl >= 0 else f"-₹{abs(today_net_pnl):,.2f}"
         today_perf_str = (
             f"• Executed Trades: {today_trades_count}\n"
-            f"• Realized Net PnL: *{p_sign}₹{today_net_pnl:+,.2f}*\n"
+            f"• Realized Net PnL: *{today_pnl_str}*\n"
         ) if today_trades_count > 0 else "• Closed Trades Today: 0 (No completed exits yet)\n"
 
         msg = (
@@ -259,15 +259,16 @@ def format_today_trades_card() -> tuple[str, dict]:
     charges = float(today_trades["charges"].sum()) if "charges" in today_trades.columns else 0.0
     wins = len(today_trades[today_trades["net_pnl"] > 0])
     losses = len(today_trades[today_trades["net_pnl"] <= 0])
-    p_sign = "+" if net_pnl > 0 else ""
+    g_str = f"+₹{gross_pnl:,.2f}" if gross_pnl >= 0 else f"-₹{abs(gross_pnl):,.2f}"
+    n_str = f"+₹{net_pnl:,.2f}" if net_pnl >= 0 else f"-₹{abs(net_pnl):,.2f}"
 
     msg = (
         f"📜 *TODAY'S TRADE SUMMARY: {ist_now.strftime('%A, %d-%b-%Y')}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔢 *Total Executed Trades:* {count} ({wins} Wins / {losses} Losses)\n"
-        f"💵 *Gross PnL:* ₹{gross_pnl:+,.2f}\n"
+        f"💵 *Gross PnL:* {g_str}\n"
         f"📉 *Charges & Brokerage:* ₹{charges:,.2f}\n"
-        f"💎 *TODAY'S NET PnL:* *{p_sign}₹{net_pnl:+,.2f}*\n"
+        f"💎 *TODAY'S NET PnL:* *{n_str}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"*Executed Trades Breakdown:*\n"
     )
@@ -353,7 +354,7 @@ def format_journal_paginated_card(page: int = 1, page_size: int = 6) -> tuple[st
     wins = len(df[df["net_pnl"] > 0]) if "net_pnl" in df.columns else 0
     losses = len(df[df["net_pnl"] <= 0]) if "net_pnl" in df.columns else 0
     wr = (wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
-    pnl_sign = "+" if tot_pnl >= 0 else ""
+    cum_pnl_str = f"+₹{tot_pnl:,.2f}" if tot_pnl >= 0 else f"-₹{abs(tot_pnl):,.2f}"
 
     # Reverse order so newest trades appear first
     df_rev = df.iloc[::-1].reset_index(drop=True)
@@ -365,7 +366,7 @@ def format_journal_paginated_card(page: int = 1, page_size: int = 6) -> tuple[st
         f"📖 *MULTI-INDEX TRADE JOURNAL (Page {page} of {tot_pages})*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔢 *Total Trades:* {tot_trades} | Win Rate: *{wr:.1f}%* ({wins}W / {losses}L)\n"
-        f"💎 *Cumulative Net PnL:* *{pnl_sign}₹{tot_pnl:+,.2f}* (Starting: ₹10,000)\n"
+        f"💎 *Cumulative Net PnL:* *{cum_pnl_str}* (Starting: ₹10,000)\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"*Trade Logs (Showing #{tot_trades - start_idx} to #{tot_trades - end_idx + 1}):*\n\n"
     )
@@ -441,7 +442,7 @@ def send_all_trade_logs(chat_id: str):
     wins = len(df[df["net_pnl"] > 0]) if "net_pnl" in df.columns else 0
     losses = len(df[df["net_pnl"] <= 0]) if "net_pnl" in df.columns else 0
     wr = (wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
-    pnl_sign = "+" if tot_pnl >= 0 else ""
+    cum_pnl_str = f"+₹{tot_pnl:,.2f}" if tot_pnl >= 0 else f"-₹{abs(tot_pnl):,.2f}"
     current_bal = round(10000.0 + tot_pnl, 2)
     ret_pct = ((current_bal - 10000.0) / 10000.0) * 100.0
     ret_sign = "+" if ret_pct >= 0 else ""
@@ -451,8 +452,8 @@ def send_all_trade_logs(chat_id: str):
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔢 *Total Trades Taken:* {tot_trades}\n"
         f"🎯 *Win Rate:* *{wr:.1f}%* ({wins} Wins / {losses} Losses)\n"
-        f"💎 *Cumulative Net PnL:* *{pnl_sign}₹{tot_pnl:+,.2f}*\n"
-        f"💰 *Current Capital Balance:* *₹{current_bal:+,.2f}* ({ret_sign}{ret_pct:.1f}%)\n"
+        f"💎 *Cumulative Net PnL:* *{cum_pnl_str}*\n"
+        f"💰 *Current Capital Balance:* *₹{current_bal:,.2f}* ({ret_sign}{ret_pct:.1f}%)\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"⬇️ *Sending all {tot_trades} executed trades chronologically below:*"
     )
@@ -548,15 +549,16 @@ def format_day_trades_card(query_date_str: str) -> tuple[str, dict]:
     charges = float(day_trades["charges"].sum()) if "charges" in day_trades.columns else 0.0
     wins = len(day_trades[day_trades["net_pnl"] > 0])
     losses = len(day_trades[day_trades["net_pnl"] <= 0])
-    p_sign = "+" if net_pnl > 0 else ""
+    g_str = f"+₹{gross_pnl:,.2f}" if gross_pnl >= 0 else f"-₹{abs(gross_pnl):,.2f}"
+    n_str = f"+₹{net_pnl:,.2f}" if net_pnl >= 0 else f"-₹{abs(net_pnl):,.2f}"
 
     msg = (
         f"📜 *TRADE LOGS FOR {target_date}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔢 *Executed Trades:* {count} ({wins} Wins / {losses} Losses)\n"
-        f"💵 *Gross PnL:* ₹{gross_pnl:+,.2f}\n"
+        f"💵 *Gross PnL:* {g_str}\n"
         f"📉 *Charges & Brokerage:* ₹{charges:,.2f}\n"
-        f"💎 *DAY NET PnL:* *{p_sign}₹{net_pnl:+,.2f}*\n"
+        f"💎 *DAY NET PnL:* *{n_str}*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"*Executed Trades:*\n\n"
     )
