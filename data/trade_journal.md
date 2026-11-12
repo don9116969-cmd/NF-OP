@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-12 10:00:17 IST*
+*Last Updated: 2026-11-12 12:08:43 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 2: BankNIFTY 15M Directional Breakout** | `CE` | 62700 | 09:33:00 | ₹307.68 | ₹553.82 | ₹230.76 | ₹9230.40 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 30
-- **Win Rate**: 50.0% (15 Wins / 15 Losses)
-- **Net Realized PnL**: **INR +24,968.68**
-- **Current Account Balance**: **INR +34,968.68** (+249.7% Return)
+- **Total Executed Trades**: 31
+- **Win Rate**: 48.4% (15 Wins / 16 Losses)
+- **Net Realized PnL**: **INR +22,562.98**
+- **Current Account Balance**: **INR +32,562.98** (+225.6% Return)
 
 ---
 
@@ -56,4 +55,5 @@
 | 2026-11-11 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY17NOV2625100PE | 13:07:00 | 13:11:48 | ₹143.77 | ₹157.36 | ₹9345.05 | **+₹814.37** | Target Hit (+10%) | Real Option Tick |
 | 2026-11-11 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY17NOV2625100PE | 13:24:00 | 13:33:00 | ₹145.62 | ₹159.38 | ₹9465.30 | **+₹825.14** | Target Hit (+10%) | Real Option Tick |
 | 2026-11-12 | Strategy 4: Nifty 1M Pullback Scalper | CE | NIFTY17NOV2625500CE | 09:25:00 | 09:58:16 | ₹141.05 | ₹154.38 | ₹9168.25 | **+₹797.89** | Target Hit (+10%) | Real Option Tick |
+| 2026-11-12 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2662700CE | 09:33:00 | 12:08:30 | ₹307.68 | ₹229.61 | ₹9230.40 | **-₹2405.70** | SL Hit (-25%) | Angel One Real Traded LTP (BANKNIFTY23NOV2662700CE) |
 
