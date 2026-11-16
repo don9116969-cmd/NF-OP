@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-16 09:51:28 IST*
+*Last Updated: 2026-11-16 10:44:52 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 2: BankNIFTY 15M Directional Breakout** | `CE` | 62200 | 09:50:00 | ₹293.21 | ₹527.78 | ₹219.91 | ₹8796.30 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 35
-- **Win Rate**: 48.6% (17 Wins / 18 Losses)
-- **Net Realized PnL**: **INR +20,650.47**
-- **Current Account Balance**: **INR +30,650.47** (+206.5% Return)
+- **Total Executed Trades**: 36
+- **Win Rate**: 47.2% (17 Wins / 19 Losses)
+- **Net Realized PnL**: **INR +18,355.64**
+- **Current Account Balance**: **INR +28,355.64** (+183.6% Return)
 
 ---
 
@@ -61,4 +60,5 @@
 | 2026-11-13 | Strategy 4: Nifty 1M Pullback Scalper | CE | NIFTY17NOV2625250CE | 09:38:00 | 09:48:45 | ₹135.42 | ₹148.22 | ₹8802.30 | **+₹764.29** | Target Hit (+10%) | Real Option Tick |
 | 2026-11-13 | Strategy 4: Nifty 1M Pullback Scalper | CE | NIFTY17NOV2625300CE | 10:05:00 | 10:21:49 | ₹126.83 | ₹111.68 | ₹8243.95 | **-₹1048.36** | SL Hit (-11%) | Real Option Tick |
 | 2026-11-13 | Strategy 2: BankNIFTY 15M Directional Breakout | PE | BANKNIFTY23NOV2659800PE | 12:18:00 | 12:38:58 | ₹310.90 | ₹232.00 | ₹9327.00 | **-₹2430.77** | SL Hit (-25%) | Angel One Real Traded LTP (BANKNIFTY23NOV2659800PE) |
+| 2026-11-16 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2662200CE | 09:50:00 | 10:44:42 | ₹293.21 | ₹218.81 | ₹8796.30 | **-₹2294.83** | SL Hit (-25%) | Angel One Real Traded LTP (BANKNIFTY23NOV2662200CE) |
 
