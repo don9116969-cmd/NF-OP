@@ -1,1 +1,21 @@
-{}
+{
+  "s4": {
+    "entry_time": "2026-11-16T11:15:00",
+    "spot_entry": 25219.65,
+    "strike": 25150,
+    "opt_type": "PE",
+    "symbol": "NIFTY17NOV2625150PE",
+    "entry_p": 64.12,
+    "cost": 4167.8,
+    "target_p": 70.53,
+    "sl_p": 56.75,
+    "contract": {
+      "token": "45393",
+      "symbol": "NIFTY17NOV2625150PE"
+    },
+    "high_p": 64.12,
+    "low_p": 64.12,
+    "data_feed": "Real Option Tick",
+    "strategy_name": "Strategy 4: Nifty 1M Pullback Scalper"
+  }
+}
