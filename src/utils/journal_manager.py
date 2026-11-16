@@ -364,10 +364,20 @@ def auto_catchup_missing_trading_days(api, df_all: pd.DataFrame, df_bn: pd.DataF
         except Exception:
             pass
 
-    missed_dates = [d for d in available_dates if str(d) not in audited_days]
+    from src.utils.market_calendar import is_trading_day
+
+    # Filter out non-trading sessions (weekends and official NSE holidays)
+    trading_dates = []
+    for d in available_dates:
+        if not is_trading_day(d):
+            mark_day_as_audited(str(d))
+            continue
+        trading_dates.append(d)
+
+    missed_dates = [d for d in trading_dates if str(d) not in audited_days]
 
     if not missed_dates:
-        print(f"[AUTO-CATCHUP] All {len(available_dates)} historical trading days are already audited in journal. Up to date!")
+        print(f"[AUTO-CATCHUP] All {len(trading_dates)} historical trading days are already audited in journal. Up to date!")
         return []
 
     print(f"\n[AUTO-CATCHUP] [NOTICE] Found {len(missed_dates)} un-audited historical trading day(s): {[str(d) for d in missed_dates]}")

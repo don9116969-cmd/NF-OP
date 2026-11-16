@@ -1664,6 +1664,7 @@ class LiveTriPaperTrader:
             mark_alert_as_sent(summary_key)
         else:
             print(f"[EOD] Daily summary for {today} was already sent. Skipping duplicate.")
+        mark_day_as_audited(str(today))
 
     def run_replay_demonstration(self):
         """Simulates all 4 strategies on the latest market session for offline testing."""
@@ -1962,6 +1963,7 @@ class LiveTriPaperTrader:
         if holiday_name:
             print(f"[NSE HOLIDAY] Today ({now.strftime('%d-%b-%Y')}) is an official NSE Trading Holiday: {holiday_name}. Markets are closed.")
             next_day = get_next_trading_day(now.date())
+            mark_day_as_audited(str(now.date()))
             send_telegram_alert(
                 f"🏛️ *NSE TRADING HOLIDAY NOTICE*\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"

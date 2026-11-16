@@ -653,6 +653,13 @@ def run():
         prior_date = target_date - datetime.timedelta(days=1)
         auto_catchup_missing_trading_days(api, df_all, df_bn, up_to_date=prior_date)
 
+    from src.utils.market_calendar import is_trading_day, get_nse_holiday_name
+    if not is_trading_day(target_date):
+        h_name = get_nse_holiday_name(target_date) or "Weekend"
+        print(f"\n[NSE HOLIDAY / NON-TRADING] {target_date.strftime('%A, %d-%b-%Y')} is not an active NSE market session ({h_name}). No trades evaluated.")
+        mark_day_as_audited(str(target_date))
+        return
+
     # Check if live trades were already recorded today in trade_journal.csv
     today_live_trades = []
     if os.path.exists(TRADE_JOURNAL_CSV):
