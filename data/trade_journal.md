@@ -1,13 +1,14 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-16 11:32:44 IST*
+*Last Updated: 2026-11-17 09:21:01 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 4: Nifty 1M Pullback Scalper** | `CE` | 25350 | 09:20:00 | ₹63.62 | ₹69.98 | ₹56.30 | ₹4135.30 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 
