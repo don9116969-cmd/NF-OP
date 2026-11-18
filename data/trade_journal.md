@@ -1,13 +1,14 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-18 09:42:05 IST*
+*Last Updated: 2026-11-18 09:43:27 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-> ℹ️ **No active open positions currently in-flight.**  
-> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
+| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
+|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Strategy 2: BankNIFTY 15M Directional Breakout** | `PE` | 61400 | 09:40:00 | ₹299.49 | ₹539.08 | ₹224.62 | ₹8984.70 | `🟢 ACTIVE / IN-PROGRESS` |
 
 ---
 
