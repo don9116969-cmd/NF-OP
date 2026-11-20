@@ -69,6 +69,8 @@ class TradingConfig:
     S2_OTM_OFFSET: int = 100  # 100-pt OTM option
     S2_SL_PCT: float = 0.25  # -25% stop loss
     S2_TARGET_PCT: float = 0.80  # +80% profit target
+    S2_TRAIL_TRIGGER_PCT: float = 0.50  # Profit trigger (+50%) to lock return floor
+    S2_TRAIL_FLOOR_PCT: float = 0.10  # Guaranteed return floor (+10%) once trigger reached
     S2_ENTRY_CUTOFF: str = "13:00"  # Avoid low-conviction afternoon chop
     S2_MAX_BUDGET: float = 9500.0
 

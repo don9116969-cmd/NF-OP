@@ -407,17 +407,28 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
 
     tgt_p = entry_p * (1.0 + config.S2_TARGET_PCT)
     sl_p = entry_p * (1.0 - config.S2_SL_PCT)
+    trig_pct = getattr(config, "S2_TRAIL_TRIGGER_PCT", 0.50)
+    floor_pct = getattr(config, "S2_TRAIL_FLOOR_PCT", 0.10)
+    trig_p = round(entry_p * (1.0 + trig_pct), 2)
+    floor_p = round(entry_p * (1.0 + floor_pct), 2)
+    trailed = False
+
     exit_p = entry_p
     exit_ts = sub_opt.index[-1]
     exit_reason = "EOD (15:15)"
     hit_exit = False
 
     for o_ts, o_row in sub_opt.iloc[1:].iterrows():
+        # Dynamic Return Floor Lock: if high touched +50% trigger, lock stop at +10% floor
+        if not trailed and float(o_row["high"]) >= trig_p:
+            trailed = True
+            sl_p = max(sl_p, floor_p)
+
         # Evaluate Stop Loss before Target for strict conservative modeling (no lookahead bias)
         if float(o_row["low"]) <= sl_p:
             exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
-            exit_reason = f"SL Hit (-{int(config.S2_SL_PCT*100)}%)"
+            exit_reason = f"Profit Floor Hit (+{int(floor_pct*100)}%)" if trailed else f"SL Hit (-{int(config.S2_SL_PCT*100)}%)"
             hit_exit = True
             break
         elif float(o_row["high"]) >= tgt_p:

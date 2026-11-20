@@ -643,6 +643,7 @@ class LiveTriPaperTrader:
                 "cost": cost,
                 "target_p": target_p,
                 "sl_p": sl_p,
+                "trailed": False,
                 "data_feed": feed_label
             }
             try:
@@ -697,16 +698,26 @@ class LiveTriPaperTrader:
             exit_p = cur_p
             exit_reason = ""
 
+            trig_pct = getattr(config, "S2_TRAIL_TRIGGER_PCT", 0.50)
+            floor_pct = getattr(config, "S2_TRAIL_FLOOR_PCT", 0.10)
+            trig_p = round(pos["entry_p"] * (1.0 + trig_pct), 2)
+            floor_p = round(pos["entry_p"] * (1.0 + floor_pct), 2)
+
             # Check candle sequence first (chronological order without lookahead bias)
             if self.smart_api and c_opt:
                 df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
                     for _, c_row in df_opt.iterrows():
+                        # Dynamic Return Floor Lock: if high touched +50% trigger, lock stop at +10% floor
+                        if not pos.get("trailed", False) and float(c_row["high"]) >= trig_p:
+                            pos["trailed"] = True
+                            pos["sl_p"] = max(pos["sl_p"], floor_p)
+
                         # Strict risk-first: check Stop Loss before Target on each candle
                         if float(c_row["low"]) <= pos["sl_p"]:
                             exit_triggered = True
                             exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                            exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+                            exit_reason = f"Profit Floor Hit (+{int(floor_pct * 100)}%)" if pos.get("trailed", False) else f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
                             break
                         elif float(c_row["high"]) >= pos["target_p"]:
                             exit_triggered = True
@@ -723,10 +734,15 @@ class LiveTriPaperTrader:
                     from src.banknifty.banknifty_das import bs_price
                     cur_p = bs_price(bn_spot, pos["strike"], dte, pos["opt_type"], sigma=0.18)
 
+                # Dynamic Return Floor Lock on live tick
+                if not pos.get("trailed", False) and cur_p >= trig_p:
+                    pos["trailed"] = True
+                    pos["sl_p"] = max(pos["sl_p"], floor_p)
+
                 if cur_p <= pos["sl_p"]:
                     exit_triggered = True
                     exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                    exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+                    exit_reason = f"Profit Floor Hit (+{int(floor_pct * 100)}%)" if pos.get("trailed", False) else f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
                 elif cur_p >= pos["target_p"]:
                     exit_triggered = True
                     exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -911,6 +927,10 @@ class LiveTriPaperTrader:
 
             target_p = round(entry_p * (1.0 + config.S2_TARGET_PCT), 2)
             sl_p = round(entry_p * (1.0 - config.S2_SL_PCT), 2)
+            trig_pct = getattr(config, "S2_TRAIL_TRIGGER_PCT", 0.50)
+            floor_pct = getattr(config, "S2_TRAIL_FLOOR_PCT", 0.10)
+            trig_p = round(entry_p * (1.0 + trig_pct), 2)
+            floor_p = round(entry_p * (1.0 + floor_pct), 2)
 
             # Late wake-up / restart resolution check
             if candle_ts < ist_now and self.smart_api and c_opt:
@@ -920,12 +940,19 @@ class LiveTriPaperTrader:
                     res_exit_p = entry_p
                     res_exit_t = ist_now
                     res_reason = ""
+                    res_trailed = False
+                    cur_sl_p = sl_p
                     for c_ts, c_row in df_history.iterrows():
-                        if float(c_row["low"]) <= sl_p:
+                        # Dynamic Return Floor Lock: if high touched +50% trigger, lock stop at +10% floor
+                        if not res_trailed and float(c_row["high"]) >= trig_p:
+                            res_trailed = True
+                            cur_sl_p = max(cur_sl_p, floor_p)
+
+                        if float(c_row["low"]) <= cur_sl_p:
                             resolved = True
-                            res_exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
+                            res_exit_p = round(cur_sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
                             res_exit_t = c_ts
-                            res_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
+                            res_reason = f"Profit Floor Hit (+{int(floor_pct * 100)}%)" if res_trailed else f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
                             break
                         elif float(c_row["high"]) >= target_p:
                             resolved = True
@@ -978,6 +1005,7 @@ class LiveTriPaperTrader:
                 "cost": cost,
                 "target_p": target_p,
                 "sl_p": sl_p,
+                "trailed": False,
                 "data_feed": feed_label
             }
             try:
