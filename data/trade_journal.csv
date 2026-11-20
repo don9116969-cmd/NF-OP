@@ -47,3 +47,4 @@ date,strategy,leg,strike,entry_time,exit_time,entry_p,exit_p,capital_used,gross_
 2026-11-18,Strategy 4: Nifty 1M Pullback Scalper,PE,NIFTY23NOV2625150PE,10:49:00,11:19:59,132.51,116.68,8613.15,-1028.95,64.34,-1093.29,SL Hit (-11%),Real Option Tick
 2026-11-19,Strategy 4: Nifty 1M Pullback Scalper,PE,NIFTY23NOV2625150PE,09:20:00,09:24:31,143.11,156.63,9302.15,878.8,68.88,809.92,Target Hit (+10%),Real Option Tick
 2026-11-19,Strategy 2: BankNIFTY 15M Directional Breakout,CE,BANKNIFTY23NOV2662500CE,09:46:00,13:39:18,315.77,565.55,9473.1,7493.4,79.77,7413.63,Target Hit (+80%),Angel One Real Traded LTP (BANKNIFTY23NOV2662500CE)
+2026-11-20,Strategy 4: Nifty 1M Pullback Scalper,PE,NIFTY23NOV2625400PE,09:26:00,09:32:37,141.4,124.51,9191.0,-1097.85,65.49,-1163.34,SL Hit (-11%),Real Option Tick
