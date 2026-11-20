@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-20 09:43:26 IST*
+*Last Updated: 2026-11-20 11:55:59 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 2: BankNIFTY 15M Directional Breakout** | `CE` | 63300 | 09:43:00 | ₹277.08 | ₹498.74 | ₹207.81 | ₹8312.40 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 10,000.00
-- **Total Executed Trades**: 49
-- **Win Rate**: 51.0% (25 Wins / 24 Losses)
-- **Net Realized PnL**: **INR +30,867.30**
-- **Current Account Balance**: **INR +40,867.30** (+308.7% Return)
+- **Total Executed Trades**: 50
+- **Win Rate**: 52.0% (26 Wins / 24 Losses)
+- **Net Realized PnL**: **INR +37,366.62**
+- **Current Account Balance**: **INR +47,366.62** (+373.7% Return)
 
 ---
 
@@ -75,4 +74,5 @@
 | 2026-11-19 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY23NOV2625150PE | 09:20:00 | 09:24:31 | ₹143.11 | ₹156.63 | ₹9302.15 | **+₹809.92** | Target Hit (+10%) | Real Option Tick |
 | 2026-11-19 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2662500CE | 09:46:00 | 13:39:18 | ₹315.77 | ₹565.55 | ₹9473.10 | **+₹7413.63** | Target Hit (+80%) | Angel One Real Traded LTP (BANKNIFTY23NOV2662500CE) |
 | 2026-11-20 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY23NOV2625400PE | 09:26:00 | 09:32:37 | ₹141.40 | ₹124.51 | ₹9191.00 | **-₹1163.34** | SL Hit (-11%) | Real Option Tick |
+| 2026-11-20 | Strategy 2: BankNIFTY 15M Directional Breakout | CE | BANKNIFTY23NOV2663300CE | 09:43:00 | 11:55:39 | ₹277.08 | ₹496.25 | ₹8312.40 | **+₹6499.32** | Target Hit (+80%) | Angel One Real Traded LTP (BANKNIFTY23NOV2663300CE) |
 
