@@ -9,8 +9,9 @@ import datetime
 import calendar
 import urllib.request
 import pandas as pd
-from SmartApi import SmartConnect
+from src.data.smartapi_client import SmartConnect
 from config import config
+from src.utils.market_calendar import adjusted_expiry, weekly_expiry
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIP_MASTER_PATH = os.path.join(BASE_DIR, "data", "angel_scrip_master.json")
@@ -150,16 +151,10 @@ def get_active_option_contract(target_date: datetime.date, strike: int, opt_type
     opt_type_upper = opt_type.upper()
 
     # Find nearest expiry on or after target_date
-    valid = [e for e in exp_list if e[1] >= target_date]
-    if valid:
-        nearest_exp_str, nearest_exp_dt = valid[0]
-    else:
-        # Fallback to latest available expiry before target_date for historical playback
-        past = [e for e in exp_list if e[1] <= target_date]
-        if past:
-            nearest_exp_str, nearest_exp_dt = past[-1]
-        else:
-            return None
+    valid = [e for e in exp_list if 0 <= (e[1] - target_date).days <= 35]
+    if not valid:
+        return None
+    nearest_exp_str = valid[0][0]
 
     lookup = _LOOKUP_CACHE.get(underlying, {})
     return lookup.get((nearest_exp_str, opt_type_upper, strike))
@@ -366,7 +361,7 @@ def get_banknifty_monthly_expiry(target_date: datetime.date) -> datetime.date:
     last_day = calendar.monthrange(target_date.year, target_date.month)[1]
     d = datetime.date(target_date.year, target_date.month, last_day)
     offset = (d.weekday() - 1) % 7
-    exp_this_month = d - datetime.timedelta(days=offset)
+    exp_this_month = adjusted_expiry(d - datetime.timedelta(days=offset))
     if target_date <= exp_this_month:
         return exp_this_month
     if target_date.month == 12:
@@ -376,7 +371,7 @@ def get_banknifty_monthly_expiry(target_date: datetime.date) -> datetime.date:
     last_day_next = calendar.monthrange(next_year, next_month)[1]
     d_next = datetime.date(next_year, next_month, last_day_next)
     offset_next = (d_next.weekday() - 1) % 7
-    return d_next - datetime.timedelta(days=offset_next)
+    return adjusted_expiry(d_next - datetime.timedelta(days=offset_next))
 
 
 def get_nearest_expiry_date(target_date: datetime.date, underlying: str = "NIFTY") -> datetime.date:
@@ -391,8 +386,7 @@ def get_nearest_expiry_date(target_date: datetime.date, underlying: str = "NIFTY
     if underlying_u == "BANKNIFTY":
         return get_banknifty_monthly_expiry(target_date)
     else:
-        days_ahead = (1 - target_date.weekday()) % 7
-        return target_date + datetime.timedelta(days=days_ahead)
+        return weekly_expiry(target_date)
 
 def select_dynamic_affordable_strike(
     api: SmartConnect,
@@ -426,7 +420,6 @@ def select_dynamic_affordable_strike(
     atm = int(round(spot / float(step)) * step)
 
     offsets = list(range(init_offset, max_offset + step, step))
-    best_candidate = None
 
     for off in offsets:
         k = (atm + off) if opt_type.upper() == "CE" else (atm - off)
@@ -437,9 +430,7 @@ def select_dynamic_affordable_strike(
                 p = round(float(sub.iloc[0]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                 cost = round(p * lot_size, 2)
                 candidate = (k, df_opt, sym, feed, p, cost)
-                if best_candidate is None or cost < best_candidate[5]:
-                    best_candidate = candidate
                 if cost <= max_budget and p >= min_premium:
                     return candidate
 
-    return best_candidate if best_candidate else (atm, pd.DataFrame(), "", "", 0.0, 0.0)
+    return atm, pd.DataFrame(), "", "", 0.0, 0.0

@@ -3,7 +3,9 @@ Telegram Notification Engine for Nifty Option Trading Bot.
 Sends formatted real-time trade entry, exit, and daily portfolio reports to your phone.
 """
 
+from config import config
 import os
+import re
 import json
 import urllib.request
 import urllib.parse
@@ -17,35 +19,10 @@ def get_telegram_token() -> str:
 
 def get_or_detect_chat_id() -> str:
     """
-    Returns TELEGRAM_CHAT_ID from environment.
-    If empty, queries Telegram getUpdates to automatically detect the user's Chat ID.
+    Returns the explicitly configured Telegram recipient.
     """
-    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-    if chat_id:
-        return chat_id
+    return os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
-    token = get_telegram_token()
-    if not token:
-        return ""
-
-    url = f"https://api.telegram.org/bot{token}/getUpdates"
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
-            if data and data.get("ok") and data.get("result"):
-                # Extract chat id from latest update
-                for update in reversed(data["result"]):
-                    msg = update.get("message") or update.get("channel_post")
-                    if msg and "chat" in msg:
-                        detected_id = str(msg["chat"]["id"])
-                        return detected_id
-    except Exception as e:
-        print(f"[WARN] Failed to auto-detect Telegram Chat ID: {e}")
-
-    return ""
-
-import re
 
 SENT_ALERTS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "sent_alerts.json")
 
@@ -138,11 +115,12 @@ def is_alert_already_sent(alert_key: str) -> bool:
     try:
         with open(SENT_ALERTS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return alert_key in data
+            value = data.get(alert_key)
+            return bool(value) and not (isinstance(value, dict) and value.get("pending"))
     except Exception:
         return False
 
-def mark_alert_as_sent(alert_key: str):
+def _save_alert(alert_key, record):
     """Records an alert key in sent_alerts.json."""
     if not alert_key:
         return
@@ -154,29 +132,51 @@ def mark_alert_as_sent(alert_key: str):
                 data = json.load(f)
         except Exception:
             data = {}
-    data[alert_key] = datetime.now().isoformat()
+    data[alert_key] = record
     # Prune old keys to keep maximum 2000 records
     if len(data) > 2000:
         keys_to_remove = list(data.keys())[:-2000]
         for k in keys_to_remove:
             del data[k]
     try:
-        with open(SENT_ALERTS_FILE, "w", encoding="utf-8") as f:
+        with open(SENT_ALERTS_FILE + ".tmp", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+        os.replace(SENT_ALERTS_FILE + ".tmp", SENT_ALERTS_FILE)
     except Exception as e:
         print(f"[WARN] Failed to write sent_alerts.json: {e}")
+
+def mark_alert_as_sent(alert_key, message_id=None):
+    _save_alert(alert_key, {"sent_at": datetime.now().astimezone().isoformat(), "message_id": message_id})
+
+
+def retry_pending_alerts():
+    try:
+        with open(SENT_ALERTS_FILE, encoding="utf-8") as stream:
+            records = json.load(stream)
+    except (FileNotFoundError, ValueError, OSError):
+        return
+    for key, record in records.items():
+        if isinstance(record, dict) and record.get("pending"):
+            send_telegram_alert(record["message"], record.get("markup"), key, retry=True)
+
 
 def send_telegram_alert(
     message: str,
     reply_markup: dict = None,
     alert_key: str = None,
-    force: bool = False
+    force: bool = False,
+    retry: bool = False
 ) -> bool:
     """Sends a markdown/plain text alert to your Telegram with duplicate protection and interactive buttons."""
     if alert_key and not force:
         if is_alert_already_sent(alert_key):
             print(f"[NOTIFIER] Duplicate alert blocked ({alert_key}). Not sending twice.")
             return True
+
+    if alert_key and not retry:
+        _save_alert(alert_key, {"pending": True, "message": message, "markup": reply_markup})
+    if retry:
+        message = f"Delayed notification ({alert_key})\n{message}"
 
     import requests
     token = get_telegram_token()
@@ -210,17 +210,20 @@ def send_telegram_alert(
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     }
 
+    message_id = None
     delivered = False
     for attempt in range(4):
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
-            if r.status_code == 200:
+            if r.status_code == 200 and r.json().get("ok"):
+                message_id = r.json()["result"]["message_id"]
                 delivered = True
                 break
             elif "can't parse entities" in r.text or "Bad Request" in r.text:
                 payload["parse_mode"] = ""
                 r2 = requests.post(url, json=payload, headers=headers, timeout=15)
-                if r2.status_code == 200:
+                if r2.status_code == 200 and r2.json().get("ok"):
+                    message_id = r2.json()["result"]["message_id"]
                     delivered = True
                     break
             else:
@@ -232,7 +235,9 @@ def send_telegram_alert(
         try:
             req = urllib.request.Request(url, data=data_bytes, headers=headers_req)
             with urllib.request.urlopen(req, timeout=12) as response:
-                if response.status == 200:
+                result = json.load(response)
+                if response.status == 200 and result.get("ok"):
+                    message_id = result["result"]["message_id"]
                     delivered = True
                     break
         except Exception:
@@ -242,7 +247,7 @@ def send_telegram_alert(
 
     if delivered:
         if alert_key:
-            mark_alert_as_sent(alert_key)
+            mark_alert_as_sent(alert_key, message_id)
         print(f"[TELEGRAM] Alert delivered successfully.")
         return True
 
@@ -321,7 +326,7 @@ def send_trade_entry_alert(
             f"   • Stop Loss (-{int(lose_stop_pct*100)}%): *₹{sl_val:.2f}*\n"
             f"   • Time Stop: {max_hold_mins} Mins\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹10,000 budget)\n"
+            f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹{config.MAX_CAPITAL_PER_TRADE:,.0f} budget)\n"
         )
         contract_k = normalize_contract_key(strike=sym_val, opt_type=leg_type)
         if not alert_key:
@@ -350,7 +355,7 @@ def send_trade_entry_alert(
             f"   • Target (+{int(win_target_pct*100)}%): *₹{pe_tgt:.2f}*\n"
             f"   • Stop (-{int(lose_stop_pct*100)}%): *₹{pe_sl:.2f}*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹10,000 budget)\n"
+            f"💰 *Capital Used:* *₹{cost_val:,.2f}* (<= ₹{config.MAX_CAPITAL_PER_TRADE:,.0f} budget)\n"
             f"⏱️ *Max Hold:* {max_hold_mins} Minutes\n"
             f"🛡️ *Exit Mode:* Decoupled Asymmetric Profit & SL\n"
         )

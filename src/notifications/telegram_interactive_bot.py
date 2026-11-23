@@ -7,6 +7,7 @@ Provides 1-tap interactive menu buttons and live commands:
 - 📖 Trade Journal (/journal): Shows the latest closed trades from the permanent trade ledger.
 """
 
+from config import config
 import os
 import time
 import json
@@ -91,7 +92,7 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"⏰ *Status Time:* {ist_now.strftime('%I:%M:%S %p')} IST\n"
             f"📅 *Date:* {ist_now.strftime('%A, %d-%b-%Y')}\n"
-            f"💼 *Capital Deployed:* ₹0.00 / ₹10,000.00 Max\n"
+            f"💼 *Capital Deployed:* ₹0.00 / ₹{config.INITIAL_CAPITAL:,.2f} Max\n"
             f"🛡️ *State:* `Standby & Monitoring Live Candles`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"📈 *Today's Session So Far:*\n"
@@ -168,7 +169,7 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
                 f"🎯 *Contract(s):* `{sym_str}`\n"
                 f"⏰ *Entry Time:* `{entry_t_str}` ({elapsed_str} in-flight)\n"
                 f"📍 *Spot:* Entry `{spot_entry:.2f}` → Live `{cur_spot:.2f}` ({spot_diff:+.2f} pts)\n"
-                f"💰 *Capital Used:* *₹{cost:,.2f}* (1 Lot | Limit: ₹10,000)\n"
+                f"💰 *Capital Used:* *₹{cost:,.2f}* (1 Lot | Limit: ₹{config.MAX_CAPITAL_PER_TRADE:,.0f})\n"
                 f"💵 *Combined Premium:* Entry ₹{entry_tot:.2f} → Cur ₹{cur_tot:.2f}\n"
                 f"{p_emoji} *LIVE UNREALIZED PnL:* *{pnl_str}* ({pct_str})\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -209,7 +210,7 @@ def format_live_status_card(api=None) -> tuple[str, dict]:
                 f"🎯 *Contract:* `{sym_str}`\n"
                 f"⏰ *Entry Time:* `{entry_t_str}` ({elapsed_str} in-flight)\n"
                 f"📍 *Spot:* Entry `{spot_entry:.2f}` → Live `{cur_spot:.2f}` ({spot_diff:+.2f} pts)\n"
-                f"💰 *Capital Used:* *₹{cost:,.2f}* (1 Lot | Limit: ₹10,000)\n"
+                f"💰 *Capital Used:* *₹{cost:,.2f}* (1 Lot | Limit: ₹{config.MAX_CAPITAL_PER_TRADE:,.0f})\n"
                 f"💵 *Premium:* Entry ₹{p_val:.2f} → Cur ₹{cur_p:.2f}\n"
                 f"{p_emoji} *LIVE UNREALIZED PnL:* *{pnl_str}* ({pct_str})\n"
                 f"🎯 *Target Price:* ₹{tgt_p:.2f} | 🛑 *Stop Loss:* ₹{sl_p:.2f}\n"
@@ -308,22 +309,22 @@ def format_portfolio_summary_card() -> tuple[str, dict]:
     wins = len(df[df["net_pnl"] > 0]) if not df.empty and "net_pnl" in df.columns else 0
     losses = len(df[df["net_pnl"] <= 0]) if not df.empty and "net_pnl" in df.columns else 0
     wr = (wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
-    current_bal = round(10000.0 + tot_pnl, 2)
-    ret_pct = ((current_bal - 10000.0) / 10000.0) * 100.0
+    current_bal = round(config.INITIAL_CAPITAL + tot_pnl, 2)
+    ret_pct = ((current_bal - config.INITIAL_CAPITAL) / config.INITIAL_CAPITAL) * 100.0
     pnl_str = f"+₹{tot_pnl:,.2f}" if tot_pnl >= 0 else f"-₹{abs(tot_pnl):,.2f}"
     ret_str = f"+{ret_pct:.1f}%" if ret_pct >= 0 else f"{ret_pct:.1f}%"
 
     msg = (
         f"💼 *PORTFOLIO ACCOUNT BALANCE & PERFORMANCE*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🏦 *Starting Capital:* INR 10,000.00\n"
+        f"🏦 *Starting Capital:* INR {config.INITIAL_CAPITAL:,.2f}\n"
         f"💎 *Cumulative Net PnL:* *{pnl_str}*\n"
         f"💰 *CURRENT ACCOUNT BALANCE:* *₹{current_bal:,.2f}* ({ret_str} Return)\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"📊 *Historical Metrics:*\n"
         f"   • Total Trades Taken: {tot_trades}\n"
         f"   • Win Rate: *{wr:.1f}%* ({wins} Wins / {losses} Losses)\n"
-        f"   • Max Trade Capital Limit: *₹10,000 strictly enforced*\n"
+        f"   • Max Trade Capital Limit: *₹{config.MAX_CAPITAL_PER_TRADE:,.0f} strictly enforced*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🤖 *Live Bot Engine:* Active & Synchronized with GitHub Journal"
     )
@@ -366,7 +367,7 @@ def format_journal_paginated_card(page: int = 1, page_size: int = 6) -> tuple[st
         f"📖 *MULTI-INDEX TRADE JOURNAL (Page {page} of {tot_pages})*\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔢 *Total Trades:* {tot_trades} | Win Rate: *{wr:.1f}%* ({wins}W / {losses}L)\n"
-        f"💎 *Cumulative Net PnL:* *{cum_pnl_str}* (Starting: ₹10,000)\n"
+        f"💎 *Cumulative Net PnL:* *{cum_pnl_str}* (Starting: ₹{config.INITIAL_CAPITAL:,.0f})\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"*Trade Logs (Showing #{tot_trades - start_idx} to #{tot_trades - end_idx + 1}):*\n\n"
     )
@@ -443,8 +444,8 @@ def send_all_trade_logs(chat_id: str):
     losses = len(df[df["net_pnl"] <= 0]) if "net_pnl" in df.columns else 0
     wr = (wins / tot_trades * 100.0) if tot_trades > 0 else 0.0
     cum_pnl_str = f"+₹{tot_pnl:,.2f}" if tot_pnl >= 0 else f"-₹{abs(tot_pnl):,.2f}"
-    current_bal = round(10000.0 + tot_pnl, 2)
-    ret_pct = ((current_bal - 10000.0) / 10000.0) * 100.0
+    current_bal = round(config.INITIAL_CAPITAL + tot_pnl, 2)
+    ret_pct = ((current_bal - config.INITIAL_CAPITAL) / config.INITIAL_CAPITAL) * 100.0
     ret_sign = "+" if ret_pct >= 0 else ""
 
     intro_msg = (
@@ -689,6 +690,9 @@ def handle_incoming_update(update: dict, api=None):
     user_chat_id = get_or_detect_chat_id()
     expected_chat_id = str(user_chat_id).strip() if user_chat_id else ""
 
+    if not expected_chat_id:
+        return
+
     # 1. Handle Inline Button Callbacks
     if "callback_query" in update:
         cb = update["callback_query"]
@@ -699,7 +703,7 @@ def handle_incoming_update(update: dict, api=None):
         chat_id = str(msg.get("chat", {}).get("id") or user_chat_id)
         msg_id = msg.get("message_id")
 
-        if expected_chat_id and sender_id and sender_id != expected_chat_id:
+        if sender_id != expected_chat_id:
             answer_callback_query(cb_id, text="⚠️ Unauthorized access.")
             return
 
@@ -748,7 +752,7 @@ def handle_incoming_update(update: dict, api=None):
         if not text_raw:
             return
 
-        if expected_chat_id and sender_id and sender_id != expected_chat_id:
+        if sender_id != expected_chat_id:
             reply_telegram_message(chat_id, "⚠️ *Access Restricted*\nThis trading bot is restricted to its authorized administrator.")
             return
 

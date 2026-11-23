@@ -1,6 +1,7 @@
 """
 Black-Scholes Options Pricing & Greeks Calculator for Indian Index Options.
 """
+from src.utils.market_calendar import weekly_expiry
 import numpy as np
 from scipy.stats import norm
 import pandas as pd
@@ -15,13 +16,8 @@ def compute_calendar_dte(ts: pd.Timestamp) -> float:
     Thursday (3): 4-DTE (~4.88 days)
     Wednesday (2): 5-DTE (~5.88 days)
     """
-    weekday = ts.weekday()
-    target_tuesday = 1
-    if weekday <= target_tuesday:
-        days_ahead = target_tuesday - weekday
-    else:
-        days_ahead = 7 - (weekday - target_tuesday)
-        
+    days_ahead = (weekly_expiry(ts.date()) - ts.date()).days
+
     mins_to_expiry = max(1.0, (15 * 60 + 30) - (ts.hour * 60 + ts.minute))
     fractional_day = mins_to_expiry / 375.0
     

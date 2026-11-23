@@ -5,6 +5,8 @@ Plots institutional-grade multi-strategy equity curves and underwater drawdown c
 import os
 import sys
 import argparse
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import config
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -15,7 +17,7 @@ import matplotlib.dates as mdates
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-def plot_equity_charts(trades_csv: str, output_image: str = "equity_chart.png", initial_capital: float = 10000.0):
+def plot_equity_charts(trades_csv: str, output_image: str = "equity_chart.png", initial_capital: float = config.INITIAL_CAPITAL):
     if not os.path.exists(trades_csv):
         print(f"[ERROR] Trade log file '{trades_csv}' does not exist.")
         return
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot Portfolio Equity Charts")
     parser.add_argument("--trades", type=str, required=True, help="Path to trades CSV")
     parser.add_argument("--output", type=str, default="equity_chart.png", help="Output PNG file path")
-    parser.add_argument("--capital", type=float, default=10000.0, help="Initial Capital (₹)")
+    parser.add_argument("--capital", type=float, default=config.INITIAL_CAPITAL, help="Initial Capital (₹)")
     args = parser.parse_args()
 
     plot_equity_charts(args.trades, args.output, args.capital)

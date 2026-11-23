@@ -27,13 +27,16 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+from config import config, option_charges
+
 NIFTY_CSV = os.path.join(BASE_DIR, "data", "nifty_1min_real.csv")
 BANKNIFTY_CSV = os.path.join(BASE_DIR, "data", "banknifty_1min_real.csv")
 
 # Core Execution Constants
 LOT_NIFTY = 65
 LOT_BANKNIFTY = 30
-INITIAL_CAPITAL = 10000.0
+INITIAL_CAPITAL = config.INITIAL_CAPITAL
 MAX_CAPITAL_PER_TRADE = 9500.0
 SLIPPAGE_PCT = 0.005
 DYNAMIC_MIN_PREMIUM = 25.0
@@ -48,17 +51,8 @@ def bs_vectorized(S, K, T, r=0.07, sigma=0.15, opt_type="CE"):
         price = K * np.exp(-r * T_arr) * ndtr(-d2) - S * ndtr(-d1)
     return np.maximum(0.5, price)
 
-def calc_charges(buy_p, sell_p, qty):
-    buy_val = buy_p * qty
-    sell_val = sell_p * qty
-    turnover = buy_val + sell_val
-    brokerage = 40.0
-    stt = sell_val * 0.001
-    exch_txn = turnover * 0.0005
-    gst = (brokerage + exch_txn) * 0.18
-    sebi = turnover * 0.000001
-    stamp = buy_val * 0.00003
-    return round(brokerage + stt + exch_txn + gst + sebi + stamp, 2)
+def calc_charges(buy_p, sell_p, qty, trade_date):
+    return option_charges(buy_p * qty, sell_p * qty, trade_date)
 
 def get_banknifty_monthly_expiry(d):
     last_day = calendar.monthrange(d.year, d.month)[1]
@@ -154,7 +148,7 @@ def simulate_s1(day_df, target_date):
             exit_p = round(c * (1.0 - SLIPPAGE_PCT), 2)
 
     gross = round((exit_p - entry_p) * LOT_NIFTY, 2)
-    chgs = calc_charges(entry_p, exit_p, LOT_NIFTY)
+    chgs = calc_charges(entry_p, exit_p, LOT_NIFTY, target_date)
     net = round(gross - chgs, 2)
     return {
         "strategy": "Strategy 1: Nifty 15M Breakout",
@@ -256,7 +250,7 @@ def simulate_s2(day_df, target_date):
             exit_p = round(c * (1.0 - SLIPPAGE_PCT), 2)
 
     gross = round((exit_p - entry_p) * LOT_BANKNIFTY, 2)
-    chgs = calc_charges(entry_p, exit_p, LOT_BANKNIFTY)
+    chgs = calc_charges(entry_p, exit_p, LOT_BANKNIFTY, target_date)
     net = round(gross - chgs, 2)
     return {
         "strategy": "Strategy 2: BankNIFTY 15M Breakout",
@@ -358,11 +352,11 @@ def simulate_s3(day_df, target_date):
                     pe_exit = round(pe_p_arr[max_step-1] * (1.0 - SLIPPAGE_PCT), 2)
 
                 ce_gross = round((ce_exit - ce_entry) * LOT_NIFTY, 2)
-                ce_chgs = calc_charges(ce_entry, ce_exit, LOT_NIFTY)
+                ce_chgs = calc_charges(ce_entry, ce_exit, LOT_NIFTY, target_date)
                 ce_net = round(ce_gross - ce_chgs, 2)
 
                 pe_gross = round((pe_exit - pe_entry) * LOT_NIFTY, 2)
-                pe_chgs = calc_charges(pe_entry, pe_exit, LOT_NIFTY)
+                pe_chgs = calc_charges(pe_entry, pe_exit, LOT_NIFTY, target_date)
                 pe_net = round(pe_gross - pe_chgs, 2)
 
                 tot_gross = round(ce_gross + pe_gross, 2)
@@ -483,7 +477,7 @@ def simulate_s4(day_df, target_date, max_losses=1):
                         losses += 1
 
             gross = round((exit_p - entry_p) * LOT_NIFTY, 2)
-            chgs = calc_charges(entry_p, exit_p, LOT_NIFTY)
+            chgs = calc_charges(entry_p, exit_p, LOT_NIFTY, target_date)
             net = round(gross - chgs, 2)
             trades.append({
                 "strategy": "Strategy 4: Nifty 1M Pullback Scalper",

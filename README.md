@@ -11,7 +11,7 @@ The portfolio operates across **four uncorrelated, mathematically vetted quantit
 ```
                           ┌──────────────────────────────────────────────┐
                           │    QUAD-STRATEGY QUANTITATIVE PORTFOLIO      │
-                          │        (INR 10,000 Capital Cap/Trade)        │
+                          │        (INR 9,500 Capital Cap/Trade)        │
                           └──────────────────────┬───────────────────────┘
                                                  │
             ┌───────────────────┬────────────────┴──────────────────┬───────────────────┐
@@ -69,15 +69,15 @@ The portfolio operates across **four uncorrelated, mathematically vetted quantit
 
 ## 🛡️ Institutional Risk & Execution Standards
 
-* **Conservative Capital Cap**: Strict ₹10,000 maximum capital allocation per trade.
+* **Conservative Capital Cap**: ₹38,000 paper portfolio, with four independent ₹9,500 strategy slots.
 * **NSE Lot Sizes**: Official standard exchange lot sizes:
   * **Nifty 50**: 65 Qty
   * **BankNIFTY**: 30 Qty
 * **Slippage Modeling**: 0.5% conservative slippage applied to both entry and exit prices.
 * **Indian Statutory Charges & Taxes Included**:
   * Brokerage: Flat ₹40 per round-trip trade (₹20 entry + ₹20 exit)
-  * STT (Securities Transaction Tax): 0.1% on option sell turnover
-  * Exchange Turnover Fees: 0.05%
+  * STT (Securities Transaction Tax): 0.15% on option sell turnover from April 2026
+  * Exchange Turnover Fees: 0.0355299%
   * GST: 18% on (Brokerage + Exchange Fees)
   * Stamp Duty: 0.003% on buy turnover
 * **Zero Lookahead Bias**: Live and backtest engines evaluate 1-minute candles strictly chronologically without peeking into future bars. Stop losses are always evaluated prior to profit targets within every candle.

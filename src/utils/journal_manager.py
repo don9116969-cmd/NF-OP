@@ -137,8 +137,8 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
     if os.path.exists(TRADE_JOURNAL_CSV):
         try:
             df_j = pd.read_csv(TRADE_JOURNAL_CSV)
-        except Exception:
-            df_j = pd.DataFrame()
+        except Exception as exc:
+            raise ValueError("Cannot read existing trade journal") from exc
 
     entry_t = _normalize_hms(trade_res.get("entry_time", ""))
     exit_t = _normalize_hms(trade_res.get("exit_time", ""))
@@ -153,7 +153,7 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
         ]
         if not sub.empty:
             # Single-trade per day strategies (Strategies 1, 2, 3, 6, 7, 8)
-            single_strats = ["Strategy 1", "Strategy 2", "Strategy 3", "Strategy 6", "Strategy 7", "Strategy 8"]
+            single_strats = ["Strategy 1", "Strategy 2", "Strategy 6", "Strategy 7", "Strategy 8"]
             if any(s in strategy_name for s in single_strats):
                 # Already logged today!
                 return
@@ -177,6 +177,13 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
     row = {
         "date": str(target_date),
         "strategy": strategy_name,
+        "quoted_net_pnl": trade_res.get("quoted_net_pnl"),
+        "entry_depth": json.dumps(trade_res.get("entry_depth")),
+        "exit_depth": json.dumps(trade_res.get("exit_depth")),
+        "entry_alert_accepted": trade_res.get("entry_alert_accepted"),
+        "exit_alert_accepted": trade_res.get("exit_alert_accepted"),
+        "record_type": trade_res.get("record_type", "reconstruction"),
+        "signal_time": trade_res.get("signal_time", ""),
         "leg": leg_str,
         "strike": strike_str,
         "entry_time": entry_t,
@@ -193,7 +200,8 @@ def log_trade_to_journal(target_date, strategy_name: str, trade_res: Dict[str, A
 
     df_j = pd.concat([df_j, pd.DataFrame([row])], ignore_index=True)
     df_j.sort_values(by=["date", "entry_time"], inplace=True)
-    df_j.to_csv(TRADE_JOURNAL_CSV, index=False)
+    df_j.to_csv(TRADE_JOURNAL_CSV + ".tmp", index=False)
+    os.replace(TRADE_JOURNAL_CSV + ".tmp", TRADE_JOURNAL_CSV)
 
     # Sync ledger
     if os.path.exists(LEDGER_CSV):
@@ -306,16 +314,28 @@ def refresh_markdown_journal():
         losses = len(df_j[df_j["net_pnl"] <= 0]) if not df_j.empty and "net_pnl" in df_j.columns else 0
         wr = (wins / tot * 100) if tot > 0 else 0.0
         tot_pnl = float(df_j["net_pnl"].sum()) if not df_j.empty and "net_pnl" in df_j.columns else 0.0
-        current_bal = 10000.0 + tot_pnl
+        current_bal = config.INITIAL_CAPITAL + tot_pnl
 
-        f.write(f"- **Starting Portfolio Capital**: INR 10,000.00\n")
+        f.write(f"- **Starting Portfolio Capital**: INR {config.INITIAL_CAPITAL:,.2f}\n")
         f.write(f"- **Total Executed Trades**: {tot}\n")
         f.write(f"- **Win Rate**: {wr:.1f}% ({wins} Wins / {losses} Losses)\n")
         f.write(f"- **Net Realized PnL**: **INR {tot_pnl:+,.2f}**\n")
-        f.write(f"- **Current Account Balance**: **INR {current_bal:+,.2f}** ({((current_bal-10000)/10000*100):+.1f}% Return)\n\n")
+        f.write(f"- **Current Account Balance**: **INR {current_bal:+,.2f}** ({((current_bal-config.INITIAL_CAPITAL)/config.INITIAL_CAPITAL*100):+.1f}% Return)\n\n")
 
         f.write("---\n\n")
 
+        if "record_type" in df_j:
+            forward = df_j[df_j["record_type"] == "forward_paper"]
+            f.write("## Forward paper results by strategy\n\n")
+            if forward.empty:
+                f.write("No closed forward trades recorded under the new tracking format.\n\n")
+            else:
+                f.write("| Strategy | Closed trades | Net paper P&L | Trades with paired quotes | Net at sampled quotes |\n|---|---:|---:|---:|---:|\n")
+                for name, trades in forward.groupby("strategy"):
+                    quoted = pd.to_numeric(trades["quoted_net_pnl"], errors="coerce").dropna()
+                    sampled = f"INR {quoted.sum():+,.2f}" if len(quoted) else "Unavailable"
+                    f.write(f"| {name} | {len(trades)} | INR {trades['net_pnl'].sum():+,.2f} | {len(quoted)} | {sampled} |\n")
+                f.write("\n")
         # 3. Complete Trade Ledger
         f.write("## 📜 Complete Historical Trade Ledger\n\n")
         if not df_j.empty:

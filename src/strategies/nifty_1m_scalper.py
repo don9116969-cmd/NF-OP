@@ -25,7 +25,7 @@ import datetime
 import pandas as pd
 import numpy as np
 
-from config import config
+from config import config, option_charges
 from src.features.greeks import black_scholes_price, compute_calendar_dte
 from src.data.real_option_feed import (
     get_active_option_contract,
@@ -230,12 +230,7 @@ def evaluate_strategy_4(df_full: pd.DataFrame, target_date: datetime.date, api =
                 exit_ts = sub_opt.index[-1]
 
         gross = (exit_p - entry_p) * lot_size
-        turn = (entry_p + exit_p) * lot_size
-        brok = 40.0
-        stt = (exit_p * lot_size) * config.STT_PCT_ON_SELL
-        exch = turn * config.EXCHANGE_TURNOVER_PCT
-        gst = (brok + exch) * config.GST_PCT
-        charges = round(brok + stt + exch + gst, 2)
+        charges = option_charges(entry_p * lot_size, exit_p * lot_size, target_date)
         net = round(gross - charges, 2)
 
         if net > 0:

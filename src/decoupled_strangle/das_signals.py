@@ -46,7 +46,7 @@ def select_affordable_strikes(
     iv: float = 0.135,
     min_prem: float = config.DAS_MIN_LEG_PREMIUM,
     max_prem: float = config.DAS_MAX_LEG_PREMIUM,
-    max_budget: float = config.INITIAL_CAPITAL,
+    max_budget: float = config.DAS_MAX_BUDGET,
     budget: float = None
 ):
     if budget is not None:

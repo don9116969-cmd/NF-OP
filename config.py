@@ -18,17 +18,17 @@ class TradingConfig:
     STRIKE_STEP: int = 50  # Nifty strike intervals
     BANKNIFTY_STRIKE_STEP: int = 100  # BankNifty strike intervals
     
-    # Capital & Risk Controls (₹10,000 Budget)
-    INITIAL_CAPITAL: float = 10000.0  # Benchmark base per trade / account
+    # Capital and risk controls
+    INITIAL_CAPITAL: float = 38000.0  # Four independent 9,500 premium budgets
     MAX_CAPITAL_PER_TRADE: float = 9500.0  # Safe cap per trade to preserve buffer
-    MAX_CONCURRENT_POSITIONS: int = 3  # Maximum concurrent active positions
+    MAX_CONCURRENT_POSITIONS: int = 4  # Maximum concurrent active positions
     DYNAMIC_STRIKE_ENABLED: bool = True  # Dynamically pick cheaper OTM strike if premium exceeds budget
     DYNAMIC_MIN_PREMIUM: float = 25.0  # Ensure candidate strike has sufficient delta & liquidity
     
     # Execution & Charges (Indian Stock Market)
     BROKERAGE_PER_ORDER: float = 20.0  # Angel One flat brokerage (INR 20 per order)
-    STT_PCT_ON_SELL: float = 0.001  # STT 0.1% on option sell turnover
-    EXCHANGE_TURNOVER_PCT: float = 0.0005  # ~0.05% NSE exchange charge
+    STT_PCT_ON_SELL: float = 0.0015  # STT 0.15% on option sell turnover
+    EXCHANGE_TURNOVER_PCT: float = 0.000355299  # 0.0355299% NSE exchange charge
     GST_PCT: float = 0.18  # 18% GST on (Brokerage + Exchange turnover)
     SEBI_CHARGES_PCT: float = 0.000001  # INR 10 per crore
     STAMP_DUTY_PCT_BUY: float = 0.00003  # 0.003% on buy value
@@ -117,3 +117,20 @@ class TradingConfig:
     ])
 
 config = TradingConfig()
+
+
+def option_charges(buy_value, sell_value, trade_date, legs=1):
+    """Estimated round-trip charges for purchased options, in rupees."""
+    date_key = str(trade_date)[:10]
+    stt_rate = config.STT_PCT_ON_SELL if date_key >= "2026-04-01" else 0.001
+    if date_key < "2024-10-01":
+        stt_rate = 0.000625
+    turnover = buy_value + sell_value
+    brokerage = 2 * legs * config.BROKERAGE_PER_ORDER
+    exchange_rate = config.EXCHANGE_TURNOVER_PCT if date_key >= "2026-03-01" else 0.0003503
+    ipft_rate = 0.000000001 if date_key >= "2026-03-01" else 0.000005
+    exchange = turnover * (exchange_rate + ipft_rate)
+    sebi = turnover * config.SEBI_CHARGES_PCT
+    gst = (brokerage + exchange + sebi) * config.GST_PCT
+    return round(brokerage + exchange + sebi + gst + sell_value * stt_rate
+                 + buy_value * config.STAMP_DUTY_PCT_BUY, 2)

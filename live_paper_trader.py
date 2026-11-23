@@ -23,13 +23,13 @@ from datetime import datetime, timezone, timedelta, time as dtime
 from dotenv import load_dotenv
 
 try:
-    from SmartApi import SmartConnect
+    from src.data.smartapi_client import SmartConnect
     import pyotp
 except ImportError:
     SmartConnect = None
 
 from src.features.greeks import black_scholes_price, compute_calendar_dte
-from config import config
+from config import config, option_charges
 from src.decoupled_strangle.das_signals import (
     select_affordable_strikes,
     check_compression_expansion,
@@ -40,9 +40,9 @@ from src.notifications.notifier import (
     send_telegram_alert,
     send_trade_entry_alert,
     send_trade_exit_alert,
+    retry_pending_alerts,
     send_daily_summary_alert,
     is_alert_already_sent,
-    mark_alert_as_sent
 )
 from src.notifications.telegram_interactive_bot import start_interactive_bot_daemon
 
@@ -238,13 +238,31 @@ class LiveTriPaperTrader:
                 data_to_save[s_key] = p_copy
         os.makedirs("data", exist_ok=True)
         try:
-            with open("data/active_positions.json", "w", encoding="utf-8") as f:
+            with open("data/active_positions.json.tmp", "w", encoding="utf-8") as f:
                 json.dump(data_to_save, f, indent=2, default=str)
+            os.replace("data/active_positions.json.tmp", "data/active_positions.json")
         except Exception as e:
             print(f"[WARN] Failed to save active positions: {e}")
 
+    def capture_depth(self, pos, side):
+        contracts = [pos.get("contract")] if pos.get("contract") else [pos.get("c_ce"), pos.get("c_pe")]
+        tokens = [str(c["token"]) for c in contracts if c and c.get("token")]
+        snapshot = {"observed_at": get_ist_now().isoformat(), "side": side, "quotes": {}}
+        if tokens and self.smart_api:
+            try:
+                response = self.smart_api.getMarketData("FULL", {"NFO": tokens})
+                for quote in (response.get("data") or {}).get("fetched", []):
+                    book = (quote.get("depth") or {}).get("sell" if side == "ask" else "buy") or []
+                    if book and float(book[0]["price"]) > 0:
+                        snapshot["quotes"][quote["symbolToken"]] = book[0]["price"]
+            except Exception:
+                pass
+        snapshot["observed_at"] = get_ist_now().isoformat()
+        return snapshot
+
     def on_trade_entry(self, s_key: str, s_name: str, pos: dict):
         """Called immediately upon trade entry: updates active positions, journal, and pushes to git."""
+        pos["entry_depth"] = self.capture_depth(pos, "ask")
         pos["strategy_name"] = s_name
         self.active_positions[s_key] = pos
         self.daily_trade_count[s_key] += 1
@@ -262,13 +280,31 @@ class LiveTriPaperTrader:
 
     def on_trade_exit(self, s_key: str, s_name: str, tr_log: dict):
         """Called immediately upon trade exit: clears active position, appends to journal, and pushes to git."""
-        self.active_positions[s_key] = None
-        self.save_active_positions()
+        pos = self.active_positions.get(s_key) or {}
+        tr_log["signal_time"] = pos.get("signal_time", pos.get("entry_time", ""))
+        tr_log["entry_alert_accepted"] = pos.get("entry_alert_accepted")
+        tr_log["entry_depth"] = pos.get("entry_depth")
+        tr_log["exit_depth"] = self.capture_depth(pos, "bid")
+        # Compare a single-leg alert pair only when both API sends succeeded and
+        # the same instrument has visible quotes on both sides. Depth is a
+        # sampled price and does not establish a broker fill.
+        contract = pos.get("contract") or {}
+        token = str(contract.get("token", ""))
+        ask = (pos.get("entry_depth") or {}).get("quotes", {}).get(token)
+        bid = tr_log["exit_depth"]["quotes"].get(token)
+        if ask and bid and pos.get("entry_alert_accepted") and tr_log.get("exit_alert_accepted"):
+            qty = self.bn_lot_size if s_key == "s2" else self.lot_size
+            buy_value, sell_value = float(ask) * qty, float(bid) * qty
+            tr_log["quoted_net_pnl"] = round(sell_value - buy_value
+                                             - option_charges(buy_value, sell_value, tr_log["date"]), 2)
+        tr_log["record_type"] = "forward_paper"
         try:
             log_trade_to_journal(tr_log["date"], s_name, tr_log)
+            self.active_positions[s_key] = None
+            self.save_active_positions()
             refresh_markdown_journal()
         except Exception as e:
-            print(f"[WARN] Failed to log trade to journal: {e}")
+            raise RuntimeError("Could not persist the closed paper trade") from e
         net_val = float(tr_log.get("net_pnl", 0.0))
         print(f"[LIVE JOURNAL] [EXIT] Trade exit logged in trade_journal.md for {s_name} [PnL: INR {net_val:+.2f}]")
         try:
@@ -325,6 +361,15 @@ class LiveTriPaperTrader:
                     today_j = df_j[df_j["date"].astype(str) == str(today_date)]
                     for _, row in today_j.iterrows():
                         s_name = str(row["strategy"])
+                        strategy_key = next((key for key in self.cooldown_until
+                                             if s_name.startswith(f"Strategy {key[1:]}:")), None)
+                        if strategy_key:
+                            exited = pd.to_datetime(f"{today_date} {row.get('exit_time', '')}", errors="coerce")
+                            if not pd.isna(exited):
+                                minutes = {"s1": 30, "s2": 30, "s3": config.DAS_COOLDOWN_BARS,
+                                           "s4": config.S4_COOLDOWN_MINS}[strategy_key]
+                                until = exited.to_pydatetime() + timedelta(minutes=minutes)
+                                self.cooldown_until[strategy_key] = max(until, self.cooldown_until[strategy_key] or until)
                         if "Strategy 1" in s_name: self.daily_trade_count["s1"] += 1
                         if "Strategy 2" in s_name: self.daily_trade_count["s2"] += 1
                         if "Strategy 3" in s_name: self.daily_trade_count["s3"] += 1
@@ -335,6 +380,9 @@ class LiveTriPaperTrader:
             except Exception:
                 pass
         self.load_active_positions(today_date)
+        for key, position in self.active_positions.items():
+            if position:
+                self.daily_trade_count[key] += 1
 
     def process_live_strategy_1(self, df_all: pd.DataFrame, today_date, ist_now, spot: float):
         """Real-time live position tracking and entry engine for Strategy 1: Nifty 15M Directional Breakout."""
@@ -369,6 +417,7 @@ class LiveTriPaperTrader:
             if self.smart_api and c_opt:
                 df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
+                    df_opt = df_opt[(df_opt.index > pos["entry_time"]) & (df_opt.index < pd.Timestamp(ist_now).floor("min"))]
                     for _, c_row in df_opt.iterrows():
                         # Strict risk-first: check Stop Loss before Target on each candle
                         if float(c_row["low"]) <= pos["sl_p"]:
@@ -381,8 +430,9 @@ class LiveTriPaperTrader:
                             exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
                             exit_reason = f"Target Hit (+{int(config.S1_TARGET_PCT * 100)}%)"
                             break
-                    if not exit_triggered:
+                    if not exit_triggered and not live_p_found and not df_opt.empty:
                         cur_p = float(df_opt.iloc[-1]["close"])
+                        live_p_found = True
 
             # If no candle triggered, check latest real-time tick (LTP) or BSM fallback
             if not exit_triggered:
@@ -405,12 +455,7 @@ class LiveTriPaperTrader:
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.lot_size
-                turn = (pos["entry_p"] + exit_p) * self.lot_size
-                brok = 40.0
-                stt = (exit_p * self.lot_size) * config.STT_PCT_ON_SELL
-                exch = turn * config.EXCHANGE_TURNOVER_PCT
-                gst = (brok + exch) * config.GST_PCT
-                charges = round(brok + stt + exch + gst, 2)
+                charges = option_charges(pos["entry_p"] * self.lot_size, exit_p * self.lot_size, today_date)
                 net = round(gross - charges, 2)
 
                 tr_log = {
@@ -431,7 +476,7 @@ class LiveTriPaperTrader:
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
                 try:
-                    send_trade_exit_alert(
+                    tr_log["exit_alert_accepted"] = send_trade_exit_alert(
                         strategy="Strategy 1: Nifty 15M Directional Breakout",
                         exit_reason=exit_reason,
                         gross_pnl=round(gross, 2),
@@ -509,6 +554,8 @@ class LiveTriPaperTrader:
 
             c = float(breakout_bar["close"])
             candle_ts = pd.to_datetime(breakout_bar["timestamp"]).to_pydatetime()
+            if ist_now - candle_ts > timedelta(minutes=2):
+                return
             atm = int(round(c / 50.0) * 50)
 
             # Dynamic strike scan within MAX_CAPITAL_PER_TRADE budget
@@ -536,9 +583,9 @@ class LiveTriPaperTrader:
 
                 if cand_p is None and self.smart_api and cand_opt:
                     df_o = fetch_real_option_candles(self.smart_api, cand_opt, candle_ts - timedelta(minutes=5), ist_now)
-                    if not df_o.empty:
-                        sub_o = df_o[df_o.index >= candle_ts]
-                        cand_p = round(float((sub_o.iloc[0] if not sub_o.empty else df_o.iloc[-1])["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                    sub_o = df_o[df_o.index >= candle_ts] if not df_o.empty else df_o
+                    if not sub_o.empty:
+                        cand_p = round(float(sub_o.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                         cand_feed = f"Angel One Real Traded ({cand_opt['symbol']})"
 
                 if cand_p is None:
@@ -567,7 +614,7 @@ class LiveTriPaperTrader:
             cost = chosen_cost
             feed_label = chosen_feed
 
-            if cost > config.MAX_CAPITAL_PER_TRADE:
+            if cost > config.MAX_CAPITAL_PER_TRADE or entry_p < config.DYNAMIC_MIN_PREMIUM:
                 return
 
             total_deployed = sum(p.get("cost", 0.0) for p in self.active_positions.values() if p is not None)
@@ -577,63 +624,12 @@ class LiveTriPaperTrader:
             target_p = round(entry_p * (1.0 + config.S1_TARGET_PCT), 2)
             sl_p = round(entry_p * (1.0 - config.S1_SL_PCT), 2)
 
-            # Late wake-up / restart resolution check
-            if candle_ts < ist_now and self.smart_api and c_opt:
-                df_history = fetch_real_option_candles(self.smart_api, c_opt, candle_ts, ist_now)
-                if not df_history.empty:
-                    resolved = False
-                    res_exit_p = entry_p
-                    res_exit_t = ist_now
-                    res_reason = ""
-                    for c_ts, c_row in df_history.iterrows():
-                        if float(c_row["low"]) <= sl_p:
-                            resolved = True
-                            res_exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                            res_exit_t = c_ts
-                            res_reason = f"SL Hit (-{int(config.S1_SL_PCT * 100)}%)"
-                            break
-                        elif float(c_row["high"]) >= target_p:
-                            resolved = True
-                            res_exit_p = round(target_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                            res_exit_t = c_ts
-                            res_reason = f"Target Hit (+{int(config.S1_TARGET_PCT * 100)}%)"
-                            break
-
-                    if resolved:
-                        gross = (res_exit_p - entry_p) * self.lot_size
-                        turn = (entry_p + res_exit_p) * self.lot_size
-                        brok = 40.0
-                        stt = (res_exit_p * self.lot_size) * config.STT_PCT_ON_SELL
-                        exch = turn * config.EXCHANGE_TURNOVER_PCT
-                        gst = (brok + exch) * config.GST_PCT
-                        charges = round(brok + stt + exch + gst, 2)
-                        net = round(gross - charges, 2)
-                        sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
-                        tr_log = {
-                            "date": str(today_date),
-                            "strategy": "Strategy 1: Nifty 15M Directional Breakout",
-                            "symbol": sym_str,
-                            "entry_time": candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
-                            "exit_time": res_exit_t.strftime("%H:%M:%S") if hasattr(res_exit_t, "strftime") else str(res_exit_t),
-                            "strike": strike,
-                            "opt_type": opt_type,
-                            "entry_p": entry_p,
-                            "exit_p": res_exit_p,
-                            "cost": cost,
-                            "gross_pnl": round(gross, 2),
-                            "charges": charges,
-                            "net_pnl": net,
-                            "exit_reason": res_reason,
-                            "data_feed": feed_label
-                        }
-                        self.on_trade_exit("s1", "Strategy 1: Nifty 15M Directional Breakout", tr_log)
-                        self.cooldown_until["s1"] = ist_now + timedelta(minutes=30)
-                        return
-
             sym_str = c_opt["symbol"] if c_opt else f"NIFTY{strike}{opt_type}"
 
+            decision_time = get_ist_now()
             pos_data = {
-                "entry_time": candle_ts,
+                "signal_time": candle_ts.isoformat(),
+                "entry_time": decision_time,
                 "spot_entry": c,
                 "contract": c_opt,
                 "opt_type": opt_type,
@@ -647,7 +643,7 @@ class LiveTriPaperTrader:
                 "data_feed": feed_label
             }
             try:
-                send_trade_entry_alert(
+                pos_data["entry_alert_accepted"] = send_trade_entry_alert(
                     strategy="Strategy 1: Nifty 15M Directional Breakout",
                     spot=c,
                     opt_type=opt_type,
@@ -661,7 +657,7 @@ class LiveTriPaperTrader:
                     win_target_pct=config.S1_TARGET_PCT,
                     lose_stop_pct=config.S1_SL_PCT,
                     max_hold_mins=360,
-                    time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
+                    time_str=decision_time.strftime("%H:%M:%S"),
                     qty=self.lot_size,
                     date_str=str(today_date)
                 )
@@ -707,12 +703,16 @@ class LiveTriPaperTrader:
             if self.smart_api and c_opt:
                 df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
-                    for _, c_row in df_opt.iterrows():
-                        # Dynamic Return Floor Lock: if high touched +50% trigger, lock stop at +10% floor
-                        if not pos.get("trailed", False) and float(c_row["high"]) >= trig_p:
-                            pos["trailed"] = True
-                            pos["sl_p"] = max(pos["sl_p"], floor_p)
-
+                    df_opt = df_opt[(df_opt.index > pos["entry_time"]) & (df_opt.index < pd.Timestamp(ist_now).floor("min"))]
+                    cursor = pos.get("last_option_bar")
+                    if cursor:
+                        df_opt = df_opt[df_opt.index > pd.Timestamp(cursor)]
+                    elif pos.get("trailed"):
+                        # Older persisted positions have no cursor for the armed floor.
+                        pos["last_option_bar"] = pd.Timestamp(ist_now).floor("min").isoformat()
+                        self.save_active_positions()
+                        df_opt = df_opt.iloc[0:0]
+                    for bar_time, c_row in df_opt.iterrows():
                         # Strict risk-first: check Stop Loss before Target on each candle
                         if float(c_row["low"]) <= pos["sl_p"]:
                             exit_triggered = True
@@ -724,8 +724,15 @@ class LiveTriPaperTrader:
                             exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
                             exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
                             break
-                    if not exit_triggered:
+                        pos["last_option_bar"] = bar_time.isoformat()
+                        if not pos.get("trailed") and float(c_row["high"]) >= trig_p:
+                            pos["trailed"] = True
+                            pos["sl_p"] = floor_p
+                    if not df_opt.empty and not exit_triggered:
+                        self.save_active_positions()
+                    if not exit_triggered and not live_p_found and not df_opt.empty:
                         cur_p = float(df_opt.iloc[-1]["close"])
+                        live_p_found = True
 
             # If no candle triggered, check latest real-time tick (LTP) or BSM fallback
             if not exit_triggered:
@@ -738,6 +745,8 @@ class LiveTriPaperTrader:
                 if not pos.get("trailed", False) and cur_p >= trig_p:
                     pos["trailed"] = True
                     pos["sl_p"] = max(pos["sl_p"], floor_p)
+                    pos["last_option_bar"] = pd.Timestamp(ist_now).floor("min").isoformat()
+                    self.save_active_positions()
 
                 if cur_p <= pos["sl_p"]:
                     exit_triggered = True
@@ -754,12 +763,7 @@ class LiveTriPaperTrader:
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.bn_lot_size
-                turn = (pos["entry_p"] + exit_p) * self.bn_lot_size
-                brok = 40.0
-                stt = (exit_p * self.bn_lot_size) * config.STT_PCT_ON_SELL
-                exch = turn * config.EXCHANGE_TURNOVER_PCT
-                gst = (brok + exch) * config.GST_PCT
-                charges = round(brok + stt + exch + gst, 2)
+                charges = option_charges(pos["entry_p"] * self.bn_lot_size, exit_p * self.bn_lot_size, today_date)
                 net = round(gross - charges, 2)
 
                 tr_log = {
@@ -780,7 +784,7 @@ class LiveTriPaperTrader:
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
                 try:
-                    send_trade_exit_alert(
+                    tr_log["exit_alert_accepted"] = send_trade_exit_alert(
                         strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
                         exit_reason=exit_reason,
                         gross_pnl=round(gross, 2),
@@ -859,6 +863,8 @@ class LiveTriPaperTrader:
 
             c = float(breakout_bar["close"])
             candle_ts = pd.to_datetime(breakout_bar["timestamp"]).to_pydatetime()
+            if ist_now - candle_ts > timedelta(minutes=2):
+                return
             atm = int(round(c / 100.0) * 100)
             dte_y = max(1e-4, get_banknifty_dte(candle_ts, today_date))
 
@@ -887,9 +893,9 @@ class LiveTriPaperTrader:
 
                 if cand_p is None and self.smart_api and cand_opt:
                     df_o = fetch_real_option_candles(self.smart_api, cand_opt, candle_ts - timedelta(minutes=5), ist_now)
-                    if not df_o.empty:
-                        sub_o = df_o[df_o.index >= candle_ts]
-                        cand_p = round(float((sub_o.iloc[0] if not sub_o.empty else df_o.iloc[-1])["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
+                    sub_o = df_o[df_o.index >= candle_ts] if not df_o.empty else df_o
+                    if not sub_o.empty:
+                        cand_p = round(float(sub_o.iloc[-1]["close"]) * (1.0 + config.SLIPPAGE_PCT), 2)
                         cand_feed = f"Angel One Real Traded ({cand_opt['symbol']})"
 
                 if cand_p is None:
@@ -918,7 +924,7 @@ class LiveTriPaperTrader:
             cost = chosen_cost
             feed_label = chosen_feed
 
-            if cost > config.MAX_CAPITAL_PER_TRADE:
+            if cost > config.MAX_CAPITAL_PER_TRADE or entry_p < config.DYNAMIC_MIN_PREMIUM:
                 return
 
             total_deployed = sum(p.get("cost", 0.0) for p in self.active_positions.values() if p is not None)
@@ -932,70 +938,12 @@ class LiveTriPaperTrader:
             trig_p = round(entry_p * (1.0 + trig_pct), 2)
             floor_p = round(entry_p * (1.0 + floor_pct), 2)
 
-            # Late wake-up / restart resolution check
-            if candle_ts < ist_now and self.smart_api and c_opt:
-                df_history = fetch_real_option_candles(self.smart_api, c_opt, candle_ts, ist_now)
-                if not df_history.empty:
-                    resolved = False
-                    res_exit_p = entry_p
-                    res_exit_t = ist_now
-                    res_reason = ""
-                    res_trailed = False
-                    cur_sl_p = sl_p
-                    for c_ts, c_row in df_history.iterrows():
-                        # Dynamic Return Floor Lock: if high touched +50% trigger, lock stop at +10% floor
-                        if not res_trailed and float(c_row["high"]) >= trig_p:
-                            res_trailed = True
-                            cur_sl_p = max(cur_sl_p, floor_p)
-
-                        if float(c_row["low"]) <= cur_sl_p:
-                            resolved = True
-                            res_exit_p = round(cur_sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                            res_exit_t = c_ts
-                            res_reason = f"Profit Floor Hit (+{int(floor_pct * 100)}%)" if res_trailed else f"SL Hit (-{int(config.S2_SL_PCT * 100)}%)"
-                            break
-                        elif float(c_row["high"]) >= target_p:
-                            resolved = True
-                            res_exit_p = round(target_p * (1.0 - config.SLIPPAGE_PCT), 2)
-                            res_exit_t = c_ts
-                            res_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100)}%)"
-                            break
-
-                    if resolved:
-                        gross = (res_exit_p - entry_p) * self.bn_lot_size
-                        turn = (entry_p + res_exit_p) * self.bn_lot_size
-                        brok = 40.0
-                        stt = (res_exit_p * self.bn_lot_size) * config.STT_PCT_ON_SELL
-                        exch = turn * config.EXCHANGE_TURNOVER_PCT
-                        gst = (brok + exch) * config.GST_PCT
-                        charges = round(brok + stt + exch + gst, 2)
-                        net = round(gross - charges, 2)
-                        sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
-                        tr_log = {
-                            "date": str(today_date),
-                            "strategy": "Strategy 2: BankNIFTY 15M Directional Breakout",
-                            "symbol": sym_str,
-                            "entry_time": candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
-                            "exit_time": res_exit_t.strftime("%H:%M:%S") if hasattr(res_exit_t, "strftime") else str(res_exit_t),
-                            "strike": strike,
-                            "opt_type": opt_type,
-                            "entry_p": entry_p,
-                            "exit_p": res_exit_p,
-                            "cost": cost,
-                            "gross_pnl": round(gross, 2),
-                            "charges": charges,
-                            "net_pnl": net,
-                            "exit_reason": res_reason,
-                            "data_feed": feed_label
-                        }
-                        self.on_trade_exit("s2", "Strategy 2: BankNIFTY 15M Directional Breakout", tr_log)
-                        self.cooldown_until["s2"] = ist_now + timedelta(minutes=30)
-                        return
-
             sym_str = c_opt["symbol"] if c_opt else f"BANKNIFTY{strike}{opt_type}"
 
+            decision_time = get_ist_now()
             pos_data = {
-                "entry_time": candle_ts,
+                "signal_time": candle_ts.isoformat(),
+                "entry_time": decision_time,
                 "spot_entry": c,
                 "contract": c_opt,
                 "opt_type": opt_type,
@@ -1009,7 +957,7 @@ class LiveTriPaperTrader:
                 "data_feed": feed_label
             }
             try:
-                send_trade_entry_alert(
+                pos_data["entry_alert_accepted"] = send_trade_entry_alert(
                     strategy="Strategy 2: BankNIFTY 15M Directional Breakout",
                     spot=c,
                     opt_type=opt_type,
@@ -1023,7 +971,7 @@ class LiveTriPaperTrader:
                     win_target_pct=config.S2_TARGET_PCT,
                     lose_stop_pct=config.S2_SL_PCT,
                     max_hold_mins=360,
-                    time_str=candle_ts.strftime("%H:%M:%S") if hasattr(candle_ts, "strftime") else str(candle_ts),
+                    time_str=decision_time.strftime("%H:%M:%S"),
                     qty=self.bn_lot_size,
                     date_str=str(today_date)
                 )
@@ -1124,7 +1072,7 @@ class LiveTriPaperTrader:
                             f"🔴 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (-{int(config.DAS_LOSE_STOP_PCT * 100)}% SL)\n"
                             f"🛡️ *PUT Leg Status:* Still active under decoupled tracking.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
+                            alert_key=f"LEG_EXIT:{today_date}:s3:{pos['entry_time']:%H%M}:ce:{pos['ce_reason']}"
                         )
                 elif high_c >= pos["ce_tgt"]:
                     pos["ce_exited"] = True
@@ -1140,7 +1088,7 @@ class LiveTriPaperTrader:
                             f"🟢 *CALL Leg Exited:* `{pos['ce_symbol']}` @ *₹{pos['ce_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
                             f"🛡️ *PUT Leg Status:* Still active with capital protection.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s3:ce:{pos['ce_reason']}"
+                            alert_key=f"LEG_EXIT:{today_date}:s3:{pos['entry_time']:%H%M}:ce:{pos['ce_reason']}"
                         )
 
             if not pos["pe_exited"]:
@@ -1158,7 +1106,7 @@ class LiveTriPaperTrader:
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (-{int(config.DAS_LOSE_STOP_PCT * 100)}% SL)\n"
                             f"🛡️ *CALL Leg Status:* Still active under decoupled tracking.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
+                            alert_key=f"LEG_EXIT:{today_date}:s3:{pos['entry_time']:%H%M}:pe:{pos['pe_reason']}"
                         )
                 elif high_p >= pos["pe_tgt"]:
                     pos["pe_exited"] = True
@@ -1174,7 +1122,7 @@ class LiveTriPaperTrader:
                             f"🔴 *PUT Leg Exited:* `{pos['pe_symbol']}` @ *₹{pos['pe_exit_p']:.2f}* (+{int(config.DAS_WIN_TARGET_PCT * 100)}% Target)\n"
                             f"🛡️ *CALL Leg Status:* Still active with capital protection.\n"
                             f"━━━━━━━━━━━━━━━━━━━━━━",
-                            alert_key=f"LEG_EXIT:{today_date}:s3:pe:{pos['pe_reason']}"
+                            alert_key=f"LEG_EXIT:{today_date}:s3:{pos['entry_time']:%H%M}:pe:{pos['pe_reason']}"
                         )
 
             exit_c = pos["ce_exit_p"] if pos["ce_exited"] else round(p_c * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -1202,10 +1150,7 @@ class LiveTriPaperTrader:
                 gross = ((exit_c - pos["ce_entry"]) + (exit_p - pos["pe_entry"])) * self.lot_size
                 buy_v = pos["entry_tot"] * self.lot_size
                 sell_v = cur_tot * self.lot_size
-                turn = buy_v + sell_v
-                stt = sell_v * 0.001
-                exch = turn * 0.0005
-                charges = round(80.0 + stt + exch + (80.0 + exch) * 0.18, 2)
+                charges = option_charges(buy_v, sell_v, today_date, legs=2)
                 net = round(gross - charges, 2)
 
                 tr_log = {
@@ -1226,7 +1171,7 @@ class LiveTriPaperTrader:
                     "data_feed": pos.get("data_feed", "Angel One Real Traded")
                 }
                 try:
-                    send_trade_exit_alert(
+                    tr_log["exit_alert_accepted"] = send_trade_exit_alert(
                         strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
                         exit_reason=exit_reason,
                         gross_pnl=round(gross, 2),
@@ -1348,7 +1293,7 @@ class LiveTriPaperTrader:
                 "data_feed": feed_label
             }
             try:
-                send_trade_entry_alert(
+                pos_data["entry_alert_accepted"] = send_trade_entry_alert(
                     strategy="Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS)",
                     spot=spot,
                     ce_str=f"{ce_strike} CE ({c_ce['symbol'] if c_ce else ''})",
@@ -1387,16 +1332,21 @@ class LiveTriPaperTrader:
             f"• Strategy 1: Nifty 15M Breakout (ATM, SL -{int(config.S1_SL_PCT*100)}%, TP +{int(config.S1_TARGET_PCT*100)}%, Cutoff {config.S1_ENTRY_CUTOFF})\n"
             f"• Strategy 2: BankNifty 15M Breakout (Dynamic Strike, Buffer +{int(config.S2_BUFFER_PTS)}pt, SL -{int(config.S2_SL_PCT*100)}%, TP +{int(config.S2_TARGET_PCT*100)}%, Cutoff {config.S2_ENTRY_CUTOFF})\n"
             f"• Strategy 3: Nifty Decoupled Asymmetric Strangle (DAS - Vol Compression & Expansion)\n• Strategy 4: Nifty 1M Pullback Scalper (ATM, SL -11.5%, TP +10%, Single-Loss Stop)\n\n"
-            f"🛡️ *Position Rule:* Max 3 active positions concurrently (₹10,000 capital per trade limit)\n"
+            f"🛡️ *Position Rule:* Four strategy slots (₹{config.MAX_CAPITAL_PER_TRADE:,.0f} each)\n"
             f"🔔 Instant alerts will be sent here the exact second a trade enters and exits!\n\n"
             f"💡 *Live Bot Commands:* Send /status, /today, or /pnl anytime for live updates.",
             alert_key=f"WAKEUP:{today_date}",
             force=False
         )
 
+        next_retry = time.monotonic() + 300
         while get_ist_now().time() < dtime(15, 5):
             ist_now = get_ist_now()
             today_date = ist_now.date()
+
+            if time.monotonic() >= next_retry:
+                retry_pending_alerts()
+                next_retry = time.monotonic() + 300
 
             # 1. Sync live candles from Angel One SmartAPI
             try:
@@ -1425,6 +1375,7 @@ class LiveTriPaperTrader:
 
             if not df_all.empty:
                 df_all["timestamp"] = pd.to_datetime(df_all["timestamp"]).dt.tz_localize(None)
+                df_all = df_all[df_all["timestamp"] < pd.Timestamp(ist_now).floor("min")]
                 day_candles = df_all[df_all["timestamp"].dt.date == today_date]
                 spot = float(day_candles["close"].iloc[-1]) if not day_candles.empty else self.get_nifty_spot_price()
             else:
@@ -1432,6 +1383,7 @@ class LiveTriPaperTrader:
 
             if not df_bn.empty:
                 df_bn["timestamp"] = pd.to_datetime(df_bn["timestamp"]).dt.tz_localize(None)
+                df_bn = df_bn[df_bn["timestamp"] < pd.Timestamp(ist_now).floor("min")]
                 day_bn_candles = df_bn[df_bn["timestamp"].dt.date == today_date]
                 bn_spot = float(day_bn_candles["close"].iloc[-1]) if not day_bn_candles.empty else self.get_banknifty_spot_price()
             else:
@@ -1485,90 +1437,16 @@ class LiveTriPaperTrader:
         spot = self.get_nifty_spot_price()
         bn_spot = self.get_banknifty_spot_price()
 
-        # Force square off any remaining active positions at 15:05 IST with real market resolution
-        for s_key in ["s1", "s2", "s3", "s4"]:
-            pos = self.active_positions.get(s_key)
-            if pos is not None:
-                print(f"[EOD SQUAREOFF] Closing open position for {s_key} at market cutoff.")
-                s_name = pos.get("strategy_name", f"Strategy {s_key.upper()}")
-                lot = self.bn_lot_size if "banknifty" in s_name.lower() else self.lot_size
-                c_opt = pos.get("contract")
-                entry_p = float(pos.get("entry_p", 100.0))
-                exit_p = entry_p
-                exit_reason = "EOD Squareoff (15:05)"
-                exit_time_str = "15:05:00"
-
-                # Check if an intra-day candle breached SL or Target before 15:05
-                if self.smart_api and c_opt:
-                    from src.data.real_option_feed import fetch_real_option_candles
-                    df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], get_ist_now(), force_api=True)
-                    if not df_opt.empty:
-                        for o_ts, c_row in df_opt.iterrows():
-                            if float(c_row["low"]) <= pos.get("sl_p", 0.0):
-                                exit_p = round(pos["sl_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                                exit_reason = f"SL Hit (-{int(config.S2_SL_PCT * 100 if 'banknifty' in s_name.lower() else config.S1_SL_PCT * 100)}%)"
-                                exit_time_str = o_ts.strftime("%H:%M:%S")
-                                break
-                            elif float(c_row["high"]) >= pos.get("target_p", 999999.0):
-                                exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
-                                exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT * 100 if 'banknifty' in s_name.lower() else config.S1_TARGET_PCT * 100)}%)"
-                                exit_time_str = o_ts.strftime("%H:%M:%S")
-                                break
-                        if exit_reason == "EOD Squareoff (15:05)":
-                            exit_p = round(float(df_opt.iloc[-1]["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
-                            exit_time_str = df_opt.index[-1].strftime("%H:%M:%S")
-
-                # Fallback to LTP or BSM if df_opt was empty
-                if exit_p == entry_p and exit_reason == "EOD Squareoff (15:05)" and self.smart_api and c_opt and c_opt.get("token"):
-                    try:
-                        ltp_res = self.smart_api.ltpData(c_opt.get("exch_seg", "NFO"), c_opt["symbol"], str(c_opt["token"]))
-                        if ltp_res and ltp_res.get("status") and ltp_res.get("data") and float(ltp_res["data"].get("ltp", 0)) > 0:
-                            exit_p = round(float(ltp_res["data"]["ltp"]) * (1.0 - config.SLIPPAGE_PCT), 2)
-                    except Exception:
-                        pass
-
-                gross = round((exit_p - entry_p) * lot, 2)
-                turn = (entry_p + exit_p) * lot
-                brok = 40.0
-                stt = (exit_p * lot) * config.STT_PCT_ON_SELL
-                exch = turn * config.EXCHANGE_TURNOVER_PCT
-                gst = (brok + exch) * config.GST_PCT
-                charges = round(brok + stt + exch + gst, 2)
-                net = round(gross - charges, 2)
-
-                tr_log = {
-                    "date": str(today),
-                    "strategy": s_name,
-                    "leg": pos.get("opt_type", "CE"),
-                    "strike": pos.get("symbol", ""),
-                    "entry_time": pos["entry_time"].strftime("%H:%M:%S") if hasattr(pos["entry_time"], "strftime") else str(pos["entry_time"]),
-                    "exit_time": exit_time_str,
-                    "entry_p": entry_p,
-                    "exit_p": exit_p,
-                    "cost": pos.get("cost", round(entry_p * lot, 2)),
-                    "capital_used": pos.get("cost", round(entry_p * lot, 2)),
-                    "gross_pnl": gross,
-                    "charges": charges,
-                    "net_pnl": net,
-                    "exit_reason": exit_reason,
-                    "data_feed": pos.get("data_feed", "Angel One Real Traded")
-                }
-                try:
-                    send_trade_exit_alert(
-                        strategy=s_name,
-                        exit_reason=exit_reason,
-                        gross_pnl=gross,
-                        charges=charges,
-                        net_pnl=net,
-                        details=f"{pos.get('symbol', '')} | Entry: ₹{entry_p:.2f} -> Exit: ₹{exit_p:.2f}",
-                        time_str=exit_time_str,
-                        date_str=str(today),
-                        entry_time=str(tr_log["entry_time"]),
-                        strike=str(pos.get("symbol", ""))
-                    )
-                except Exception as e:
-                    print(f"[WARN] Failed to send EOD exit alert: {e}")
-                self.on_trade_exit(s_key, s_name, tr_log)
+        # Use each strategy's normal exit accounting, including both strangle legs.
+        close_time = get_ist_now()
+        for key, process, candles, underlying in (
+            ("s1", self.process_live_strategy_1, df_all, spot),
+            ("s2", self.process_live_strategy_2, df_bn, bn_spot),
+            ("s3", self.process_live_strategy_3, df_all, spot),
+            ("s4", self.process_live_strategy_4, df_all, spot),
+        ):
+            if self.active_positions.get(key):
+                process(candles, today, close_time, underlying)
 
         # Sync latest remote journal if running in duplicate or split runner setup
         try:
@@ -1620,51 +1498,12 @@ class LiveTriPaperTrader:
                     active_evals.append(("Strategy 2: BankNIFTY 15M Directional Breakout", s2_res))
 
             for s_name, s_res in active_evals:
-                if s_res.get("trade_occurred", False):
+                if s_res.get("trade_occurred", False) and not s_res.get("is_open"):
                     trades_today += s_res.get("num_trades_day", 1)
                     daily_net += s_res.get("net_pnl", 0.0)
                     trades_to_notify = s_res["all_trades"] if ("all_trades" in s_res and len(s_res["all_trades"]) > 1) else [s_res]
                     for sub_tr in trades_to_notify:
                         log_trade_to_journal(today, s_name, sub_tr)
-
-                        sub_opt = sub_tr.get("opt_type", sub_tr.get("leg", ""))
-                        sub_stk = str(sub_tr.get("symbol", sub_tr.get("strike", "")))
-                        sub_ep = float(sub_tr.get("entry_p", 0.0))
-                        sub_c = float(sub_tr.get("cost", sub_tr.get("capital_used", 0.0)))
-                        sub_t = str(sub_tr.get("entry_time", ""))
-
-                        # Send Entry Alert if not already sent
-                        send_trade_entry_alert(
-                            strategy=s_name,
-                            spot=float(sub_tr.get("spot_entry", spot if "Nifty 15M" in s_name else bn_spot)),
-                            opt_type=sub_opt,
-                            strike=sub_stk,
-                            entry_p=sub_ep,
-                            ce_str=sub_stk if "CE" in sub_opt else "",
-                            pe_str=sub_stk if "PE" in sub_opt else "",
-                            ce_p=sub_ep if "CE" in sub_opt else 0.0,
-                            pe_p=sub_ep if "PE" in sub_opt else 0.0,
-                            tot_cost=sub_c,
-                            win_target_pct=config.S1_TARGET_PCT if "Strategy 1" in s_name else (config.S2_TARGET_PCT if "Strategy 2" in s_name else (config.S4_TARGET_PCT if "Strategy 4" in s_name else 0.60)),
-                            lose_stop_pct=config.S1_SL_PCT if "Strategy 1" in s_name else (config.S2_SL_PCT if "Strategy 2" in s_name else (config.S4_SL_PCT if "Strategy 4" in s_name else 0.12)),
-                            max_hold_mins=360,
-                            time_str=sub_t,
-                            qty=self.bn_lot_size if "BankNIFTY" in s_name else self.lot_size,
-                            date_str=str(today)
-                        )
-
-                        send_trade_exit_alert(
-                            strategy=s_name,
-                            exit_reason=sub_tr.get("exit_reason", "EOD Reconciliation"),
-                            gross_pnl=sub_tr.get("gross_pnl", sub_tr.get("gross", 0.0)),
-                            charges=sub_tr.get("charges", 0.0),
-                            net_pnl=sub_tr.get("net_pnl", sub_tr.get("net", 0.0)),
-                            details=f"{sub_stk} | Entry: ₹{sub_ep:.2f} ({sub_t}) -> Exit: ₹{sub_tr.get('exit_p', 0):.2f} ({sub_tr.get('exit_time', '')})",
-                            time_str=str(sub_tr.get("exit_time", "")),
-                            date_str=str(today),
-                            entry_time=sub_t,
-                            strike=sub_stk
-                        )
 
         # Read cumulative PnL directly from journal
         total_pnl = 0.0
@@ -1678,7 +1517,7 @@ class LiveTriPaperTrader:
         else:
             total_pnl = daily_net
 
-        current_balance = round(10000.0 + total_pnl, 2)
+        current_balance = round(config.INITIAL_CAPITAL + total_pnl, 2)
 
         summary_key = f"SUMMARY:{today}"
         if not is_alert_already_sent(summary_key):
@@ -1689,7 +1528,6 @@ class LiveTriPaperTrader:
                 total_pnl=total_pnl,
                 current_balance=current_balance
             )
-            mark_alert_as_sent(summary_key)
         else:
             print(f"[EOD] Daily summary for {today} was already sent. Skipping duplicate.")
         mark_day_as_audited(str(today))
@@ -1771,6 +1609,7 @@ class LiveTriPaperTrader:
             if self.smart_api and c_opt:
                 df_opt = fetch_real_option_candles(self.smart_api, c_opt, pos["entry_time"], ist_now)
                 if not df_opt.empty:
+                    df_opt = df_opt[(df_opt.index > pos["entry_time"]) & (df_opt.index < pd.Timestamp(ist_now).floor("min"))]
                     for _, c_row in df_opt.iterrows():
                         if float(c_row["low"]) <= pos["sl_p"]:
                             exit_triggered = True
@@ -1782,8 +1621,9 @@ class LiveTriPaperTrader:
                             exit_p = round(pos["target_p"] * (1.0 - config.SLIPPAGE_PCT), 2)
                             exit_reason = f"Target Hit (+{int(config.S4_TARGET_PCT * 100)}%)"
                             break
-                    if not exit_triggered:
+                    if not exit_triggered and not live_p_found and not df_opt.empty:
                         cur_p = float(df_opt.iloc[-1]["close"])
+                        live_p_found = True
 
             # If no candle triggered, check latest real-time tick (LTP) or BSM fallback
             if not exit_triggered:
@@ -1806,12 +1646,7 @@ class LiveTriPaperTrader:
 
             if exit_triggered:
                 gross = (exit_p - pos["entry_p"]) * self.lot_size
-                turn = (pos["entry_p"] + exit_p) * self.lot_size
-                brok = 40.0
-                stt = (exit_p * self.lot_size) * config.STT_PCT_ON_SELL
-                exch = turn * config.EXCHANGE_TURNOVER_PCT
-                gst = (brok + exch) * config.GST_PCT
-                charges = round(brok + stt + exch + gst, 2)
+                charges = option_charges(pos["entry_p"] * self.lot_size, exit_p * self.lot_size, today_date)
                 net = round(gross - charges, 2)
 
                 tr_log = {
@@ -1836,7 +1671,7 @@ class LiveTriPaperTrader:
                     self.daily_loss_count["s4"] += 1
 
                 try:
-                    send_trade_exit_alert(
+                    tr_log["exit_alert_accepted"] = send_trade_exit_alert(
                         strategy="Strategy 4: Nifty 1M Pullback Scalper",
                         exit_reason=exit_reason,
                         gross_pnl=round(gross, 2),
@@ -1901,6 +1736,8 @@ class LiveTriPaperTrader:
             entry_spot = float(curr_row["close"])
             candle_ts = pd.to_datetime(curr_row["timestamp"]).to_pydatetime()
 
+            if ist_now - candle_ts > timedelta(minutes=2):
+                return
             strike, df_opt, sym, feed_label, opt_entry_p, opt_cost = select_dynamic_affordable_strike(
                 self.smart_api, today_date, entry_spot, opt_type, "NIFTY", day_bars, entry_ts=candle_ts, max_budget=config.S4_MAX_BUDGET
             )
@@ -1924,8 +1761,10 @@ class LiveTriPaperTrader:
 
             sym_str = chosen_c_opt["symbol"] if chosen_c_opt else (sym if sym else f"NIFTY{strike}{opt_type}")
 
+            decision_time = get_ist_now()
             pos_data = {
-                "entry_time": candle_ts,
+                "signal_time": candle_ts.isoformat(),
+                "entry_time": decision_time,
                 "spot_entry": entry_spot,
                 "strike": strike,
                 "opt_type": opt_type,
@@ -1943,7 +1782,7 @@ class LiveTriPaperTrader:
             print(f"[S4 LIVE ENTRY] Pullback bounce triggered at {candle_ts.strftime('%H:%M:%S')}! BUY {sym_str} @ Rs {entry_p:.2f}")
 
             try:
-                send_trade_entry_alert(
+                pos_data["entry_alert_accepted"] = send_trade_entry_alert(
                     strategy="Strategy 4: Nifty 1M Pullback Scalper",
                     spot=entry_spot,
                     opt_type=opt_type,
@@ -1957,7 +1796,7 @@ class LiveTriPaperTrader:
                     win_target_pct=config.S4_TARGET_PCT,
                     lose_stop_pct=config.S4_SL_PCT,
                     max_hold_mins=25,
-                    time_str=candle_ts.strftime("%H:%M:%S"),
+                    time_str=decision_time.strftime("%H:%M:%S"),
                     qty=self.lot_size,
                     date_str=str(today_date)
                 )
@@ -1978,6 +1817,7 @@ class LiveTriPaperTrader:
 
         print(f"\n[STARTUP] Option Trading Engine Initialized at {now.strftime('%Y-%m-%d %H:%M:%S')} IST.")
         self.connect_angel_one()
+        retry_pending_alerts()
 
         # Start interactive Telegram listener daemon in background
         try:
@@ -2023,6 +1863,7 @@ class LiveTriPaperTrader:
             else:
                 print(f"[POST-MARKET] Current time is {now.strftime('%H:%M:%S')} IST (after 15:25 IST market close).")
                 print("Performing end-of-day session audit and reconciliation...")
+                self.init_today_state(now.date())
                 self.run_eod_accounting()
 
 if __name__ == "__main__":

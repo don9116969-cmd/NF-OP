@@ -27,21 +27,20 @@ NSE_HOLIDAYS: Dict[str, str] = {
     "2025-12-25": "Christmas",
 
     # 2026 Trading Holidays
+    "2026-01-15": "Municipal elections",
     "2026-01-26": "Republic Day",
-    "2026-02-17": "Mahashivratri",
     "2026-03-03": "Holi",
-    "2026-03-20": "Id-Ul-Fitr (Ramzan Id)",
     "2026-03-26": "Ram Navami",
+    "2026-03-31": "Mahavir Jayanti",
     "2026-04-03": "Good Friday",
     "2026-04-14": "Dr. Baba Saheb Ambedkar Jayanti",
     "2026-05-01": "Maharashtra Day",
     "2026-05-28": "Bakri Id",
     "2026-06-26": "Muharram",
     "2026-08-15": "Independence Day",
-    "2026-08-26": "Milad-un-Nabi",
+    "2026-09-14": "Ganesh Chaturthi",
     "2026-10-02": "Mahatma Gandhi Jayanti",
     "2026-10-20": "Dussehra",
-    "2026-11-09": "Diwali Laxmi Pujan / Govardhan Puja",
     "2026-11-10": "Diwali-Balipratipada",
     "2026-11-24": "Gurunanak Jayanti",
     "2026-12-25": "Christmas",
@@ -75,3 +74,16 @@ def get_next_trading_day(d: Optional[datetime.date] = None) -> datetime.date:
     while not is_trading_day(curr):
         curr += datetime.timedelta(days=1)
     return curr
+
+
+def adjusted_expiry(scheduled: datetime.date) -> datetime.date:
+    """NSE index options expire on the preceding trading day if required."""
+    while not is_trading_day(scheduled):
+        scheduled -= datetime.timedelta(days=1)
+    return scheduled
+
+
+def weekly_expiry(day: datetime.date) -> datetime.date:
+    tuesday = day + datetime.timedelta(days=(1 - day.weekday()) % 7)
+    expiry = adjusted_expiry(tuesday)
+    return expiry if expiry >= day else adjusted_expiry(tuesday + datetime.timedelta(days=7))

@@ -22,7 +22,7 @@ import numpy as np
 from tabulate import tabulate
 from dotenv import dotenv_values
 import pyotp
-from SmartApi import SmartConnect
+from src.data.smartapi_client import SmartConnect
 
 from src.features.greeks import black_scholes_price
 from src.decoupled_strangle.das_engine import evaluate_das_for_day
@@ -33,7 +33,7 @@ from src.data.real_option_feed import (
     get_candle_feed,
     select_dynamic_affordable_strike
 )
-from config import config
+from config import config, option_charges
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(BASE_DIR, ".env")
@@ -278,12 +278,7 @@ def evaluate_strategy_1(df_full: pd.DataFrame, target_date: datetime.date, api: 
             exit_ts = sub_opt.index[-1]
 
     gross = (exit_p - entry_p) * config.LOT_SIZE
-    turn = (entry_p + exit_p) * config.LOT_SIZE
-    brok = 40.0
-    stt = (exit_p * config.LOT_SIZE) * config.STT_PCT_ON_SELL
-    exch = turn * config.EXCHANGE_TURNOVER_PCT
-    gst = (brok + exch) * config.GST_PCT
-    charges = round(brok + stt + exch + gst, 2)
+    charges = option_charges(entry_p * config.LOT_SIZE, exit_p * config.LOT_SIZE, target_date)
     net = round(gross - charges, 2)
 
     info.update({
@@ -419,11 +414,6 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
     hit_exit = False
 
     for o_ts, o_row in sub_opt.iloc[1:].iterrows():
-        # Dynamic Return Floor Lock: if high touched +50% trigger, lock stop at +10% floor
-        if not trailed and float(o_row["high"]) >= trig_p:
-            trailed = True
-            sl_p = max(sl_p, floor_p)
-
         # Evaluate Stop Loss before Target for strict conservative modeling (no lookahead bias)
         if float(o_row["low"]) <= sl_p:
             exit_p = round(sl_p * (1.0 - config.SLIPPAGE_PCT), 2)
@@ -437,7 +427,12 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
             exit_reason = f"Target Hit (+{int(config.S2_TARGET_PCT*100)}%)"
             hit_exit = True
             break
-        elif o_ts.time() >= datetime.time(15, 15):
+        # Arm the new floor for subsequent candles.
+        if not trailed and float(o_row["high"]) >= trig_p:
+            trailed = True
+            sl_p = max(sl_p, floor_p)
+
+        if o_ts.time() >= datetime.time(15, 15):
             exit_p = round(float(o_row["close"]) * (1.0 - config.SLIPPAGE_PCT), 2)
             exit_ts = o_ts
             exit_reason = "EOD (15:15)"
@@ -457,12 +452,7 @@ def evaluate_strategy_2(df_banknifty: pd.DataFrame, target_date: datetime.date, 
             exit_ts = sub_opt.index[-1]
 
     gross = (exit_p - entry_p) * config.BANKNIFTY_LOT_SIZE
-    turn = (entry_p + exit_p) * config.BANKNIFTY_LOT_SIZE
-    brok = 40.0
-    stt = (exit_p * config.BANKNIFTY_LOT_SIZE) * config.STT_PCT_ON_SELL
-    exch = turn * config.EXCHANGE_TURNOVER_PCT
-    gst = (brok + exch) * config.GST_PCT
-    charges = round(brok + stt + exch + gst, 2)
+    charges = option_charges(entry_p * config.BANKNIFTY_LOT_SIZE, exit_p * config.BANKNIFTY_LOT_SIZE, target_date)
     net = round(gross - charges, 2)
 
     info.update({
@@ -608,12 +598,12 @@ def print_portfolio_dashboard(target_date: datetime.date, s1: dict, s2: dict, s3
         f"{comb_sign}INR {tot_net_all:,.2f}"
     ])
 
-    print("\n" + " " * 20 + "--- CUMULATIVE INR 10,000 QUAD-STRATEGY PORTFOLIO SUMMARY ---")
+    print("\n" + " " * 20 + "--- CUMULATIVE QUAD-STRATEGY PORTFOLIO SUMMARY ---")
     print(tabulate(portfolio_table, headers=["Strategy", "Trades", "Win Rate", "Profit Factor", "Risk (Max DD)", "Net Return"], tablefmt="grid"))
-    curr_bal = 10000.0 + tot_net_all
-    ret_pct = (tot_net_all / 10000.0) * 100.0
+    curr_bal = config.INITIAL_CAPITAL + tot_net_all
+    ret_pct = (tot_net_all / config.INITIAL_CAPITAL) * 100.0
     r_sign = "+" if ret_pct >= 0 else ""
-    print(f"\nAccount Capital: INR 10,000.00  -->  Current Portfolio Balance: INR {curr_bal:,.2f} ({r_sign}{ret_pct:.1f}% Growth)")
+    print(f"\nAccount Capital: INR {config.INITIAL_CAPITAL:,.2f}  -->  Current Portfolio Balance: INR {curr_bal:,.2f} ({r_sign}{ret_pct:.1f}% Growth)")
     print("=" * 95 + "\n")
 
 def log_trade_to_journal(target_date, strategy_name: str, trade_res: dict):
@@ -775,7 +765,7 @@ def run():
                     from src.notifications.notifier import send_trade_exit_alert
                     send_trade_exit_alert(
                         strategy=s_name,
-                        exit_reason=sub_tr.get("exit_reason", "Audit Reconciled"),
+                        exit_reason=f"Historical reconstruction - {sub_tr.get('exit_reason', 'audit')}",
                         gross_pnl=float(sub_tr.get("gross_pnl", 0.0)),
                         charges=float(sub_tr.get("charges", 0.0)),
                         net_pnl=float(sub_tr.get("net_pnl", 0.0)),
@@ -825,7 +815,6 @@ def run():
             from src.notifications.notifier import (
                 send_daily_summary_alert,
                 is_alert_already_sent,
-                mark_alert_as_sent
             )
             summary_key = f"SUMMARY:{target_date}"
             if not is_alert_already_sent(summary_key):
@@ -835,10 +824,9 @@ def run():
                     trades_count=daily_trades_count,
                     daily_pnl=round(daily_net_pnl, 2),
                     total_pnl=tot_pnl,
-                    current_balance=round(10000.0 + tot_pnl, 2)
+                    current_balance=round(config.INITIAL_CAPITAL + tot_pnl, 2)
                 )
-                mark_alert_as_sent(summary_key)
-                print("[TELEGRAM] Daily summary delivered successfully!")
+
             else:
                 print(f"[TELEGRAM] Daily summary for {target_date} was already sent today. Skipping duplicate.")
         except Exception as e:

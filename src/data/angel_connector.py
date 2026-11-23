@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    from SmartApi import SmartConnect
+    from src.data.smartapi_client import SmartConnect
     import pyotp
     SMARTAPI_AVAILABLE = True
 except ImportError:

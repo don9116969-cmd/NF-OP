@@ -14,16 +14,18 @@ concurrency:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   trade:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 360 # Full trading day coverage (09:14 AM to 15:06 PM IST, safe within GitHub 360-min cap)
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,26 +33,13 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Check Market Hours & Holidays (Scheduled Runs)
-        if: github.event_name == 'schedule'
-        run: |
-          python -c "
-          import datetime, sys
-          from src.utils.market_calendar import is_nse_holiday, get_nse_holiday_name
-          now_ist = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
-          print('Current IST time:', now_ist.strftime('%Y-%m-%d %H:%M:%S'))
-          if is_nse_holiday(now_ist.date()):
-              print(f'Today is an official NSE Trading Holiday: {get_nse_holiday_name(now_ist.date())}. Skipping scheduled run.')
-              sys.exit(0)
-          if now_ist.weekday() < 5 and now_ist.time() >= datetime.time(15, 10):
-              print('Market closed and squareoff finished for today. Skipping redundant run.')
-              sys.exit(0)
-          " 
-
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Run offline regression checks
+        run: python -m unittest discover -s tests
 
       - name: Run Nifty Trading Bot
         env:
@@ -74,23 +63,11 @@ jobs:
         run: |
           git config --global user.name "Nifty Bot Cloud Runner"
           git config --global user.email "bot@github-actions.internal"
-          git add data/trade_journal.md data/trade_journal.csv data/active_positions.json data/sent_alerts.json data/audited_days.json data/nifty_1min_real.csv data/banknifty_1min_real.csv || true
-          if git diff --staged --quiet; then
-            echo "No journal changes to commit."
-          else
+          git add data/trade_journal.md data/trade_journal.csv data/active_positions.json data/sent_alerts.json data/audited_days.json data/nifty_1min_real.csv data/banknifty_1min_real.csv
+          if ! git diff --staged --quiet; then
             git commit -m "Auto-update trade journal and market candles [skip ci]"
-            git pull --rebase --autostash origin main || true
-            git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main || git push origin main || echo "Git push deferred."
           fi
-
-      - name: Clean Up Redundant Queued Runs
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh run list --workflow trading_bot.yml --status queued --json databaseId --jq '.[].databaseId' | while read -r run_id; do
-            if [ -n "$run_id" ]; then
-              echo "Cancelling redundant queued run: $run_id"
-              gh run cancel "$run_id" || true
-            fi
-          done
+          if [ "$(git rev-list --count origin/main..HEAD)" -gt 0 ]; then
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

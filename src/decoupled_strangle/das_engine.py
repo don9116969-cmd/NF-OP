@@ -11,7 +11,7 @@ import os
 import datetime
 import numpy as np
 import pandas as pd
-from config import config
+from config import config, option_charges
 from src.features.greeks import black_scholes_price
 from .das_signals import (
     select_affordable_strikes,
@@ -224,12 +224,7 @@ def evaluate_das_for_day(
                 # Statutory charges calculation
                 buy_val = (pos['ce_entry'] + pos['pe_entry']) * lot_size
                 sell_val = (pos['ce_exit_p'] + pos['pe_exit_p']) * lot_size
-                turn = buy_val + sell_val
-                brok = 80.0  # 4 legs execution @ Rs 20
-                stt = sell_val * 0.001
-                exch = turn * 0.0005
-                gst = (brok + exch) * 0.18
-                charges = round(brok + stt + exch + gst, 2)
+                charges = option_charges(buy_val, sell_val, target_date, legs=2)
                 total_net = round(total_gross - charges, 2)
 
                 ce_str = pos['ce_sym'] if 'ce_sym' in pos and pos['ce_sym'] else f"{pos['ce_strike']}CE"
@@ -314,7 +309,7 @@ def evaluate_das_for_day(
                     break
         else:
             # Mathematical BSM Mode
-            strike_res = select_affordable_strikes(spot, t, T_years=T_years, min_prem=config.DAS_MIN_LEG_PREMIUM, max_prem=config.DAS_MAX_LEG_PREMIUM, max_budget=config.INITIAL_CAPITAL)
+            strike_res = select_affordable_strikes(spot, t, T_years=T_years, min_prem=config.DAS_MIN_LEG_PREMIUM, max_prem=config.DAS_MAX_LEG_PREMIUM, max_budget=config.DAS_MAX_BUDGET)
             if strike_res:
                 ce_strike, pe_strike, ce_entry_p, pe_entry_p, _ = strike_res
 
@@ -322,7 +317,7 @@ def evaluate_das_for_day(
             continue
 
         tot_cap = (ce_entry_p + pe_entry_p) * lot_size
-        if tot_cap > config.INITIAL_CAPITAL:
+        if tot_cap > config.DAS_MAX_BUDGET:
             continue
 
         # Check Rolling Premium Volatility Compression & Kinetic Expansion
