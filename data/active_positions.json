@@ -1,1 +1,30 @@
-{}
+{
+  "s4": {
+    "signal_time": "2026-11-27T09:50:00",
+    "entry_time": "2026-11-27T09:51:25.410734",
+    "spot_entry": 25841.0,
+    "strike": 25800,
+    "opt_type": "PE",
+    "symbol": "NIFTY01DEC2625800PE",
+    "entry_p": 139.34,
+    "cost": 9057.1,
+    "target_p": 153.27,
+    "sl_p": 123.32,
+    "contract": {
+      "token": "47846",
+      "symbol": "NIFTY01DEC2625800PE"
+    },
+    "high_p": 139.34,
+    "low_p": 139.34,
+    "data_feed": "Real Option Tick",
+    "entry_alert_accepted": true,
+    "entry_depth": {
+      "observed_at": "2026-11-27T09:51:26.540740",
+      "side": "ask",
+      "quotes": {
+        "47846": 136.4
+      }
+    },
+    "strategy_name": "Strategy 4: Nifty 1M Pullback Scalper"
+  }
+}
