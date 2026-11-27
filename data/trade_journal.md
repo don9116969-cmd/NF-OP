@@ -1,24 +1,23 @@
 # 📈 Live Option Trading Journal & Paper Execution Log
 
-*Last Updated: 2026-11-27 10:05:34 IST*
+*Last Updated: 2026-11-27 10:09:29 IST*
 
 ---
 
 ## 🟢 Live Active Open Positions (In-Flight)
 
-| Strategy | Side | Strike / Contract | Entry Time | Entry Price | Target Price | Stop Loss | Capital Deployed | Status |
-|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Strategy 4: Nifty 1M Pullback Scalper** | `PE` | 25750 | 10:05:33 | ₹127.43 | ₹140.17 | ₹112.78 | ₹8282.95 | `🟢 ACTIVE / IN-PROGRESS` |
+> ℹ️ **No active open positions currently in-flight.**  
+> *Capital deployed: ₹0.00 | Bot is actively scanning 1-minute market candles for breakout triggers.*  
 
 ---
 
 ## 📊 Live Paper Trading Performance Summary
 
 - **Starting Portfolio Capital**: INR 38,000.00
-- **Total Executed Trades**: 58
-- **Win Rate**: 55.2% (32 Wins / 26 Losses)
-- **Net Realized PnL**: **INR +40,049.70**
-- **Current Account Balance**: **INR +78,049.70** (+105.4% Return)
+- **Total Executed Trades**: 59
+- **Win Rate**: 54.2% (32 Wins / 27 Losses)
+- **Net Realized PnL**: **INR +38,996.11**
+- **Current Account Balance**: **INR +76,996.11** (+102.6% Return)
 
 ---
 
@@ -26,7 +25,7 @@
 
 | Strategy | Closed trades | Net paper P&L | Trades with paired quotes | Net at sampled quotes |
 |---|---:|---:|---:|---:|
-| Strategy 4: Nifty 1M Pullback Scalper | 7 | INR +3,576.15 | 7 | INR +5,940.03 |
+| Strategy 4: Nifty 1M Pullback Scalper | 8 | INR +2,522.56 | 8 | INR +4,621.68 |
 
 ## 📜 Complete Historical Trade Ledger
 
@@ -90,4 +89,5 @@
 | 2026-11-26 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY01DEC2625600PE | 09:30:49 | 09:31:54 | ₹132.51 | ₹116.68 | ₹8613.15 | **-₹1094.59** | SL Hit (-11%) | Real Option Tick |
 | 2026-11-27 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY01DEC2625750PE | 09:21:08 | 09:25:47 | ₹125.68 | ₹137.56 | ₹8169.20 | **+₹704.15** | Target Hit (+10%) | Real Option Tick |
 | 2026-11-27 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY01DEC2625800PE | 09:51:25 | 09:53:43 | ₹139.34 | ₹152.50 | ₹9057.10 | **+₹785.08** | Target Hit (+10%) | Real Option Tick |
+| 2026-11-27 | Strategy 4: Nifty 1M Pullback Scalper | PE | NIFTY01DEC2625750PE | 10:05:33 | 10:09:02 | ₹127.43 | ₹112.22 | ₹8282.95 | **-₹1053.59** | SL Hit (-11%) | Real Option Tick |
 
